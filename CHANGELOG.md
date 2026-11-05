@@ -90,3 +90,19 @@
   - Implemented `EventInspectorView` and slide-out `EventLogDrawer` with live event stream, JSON payload viewer, and type filtering.
   - Implemented `IpcClient` loopback HTTP/SSE client with session bearer nonce authentication.
   - Verified 15 tests in Flutter app achieving 100% pass rate, 0 analyze issues, and 97.27% measured line coverage.
+
+
+---
+
+## [2026-11-05T21:45:00+05:30] — Stage 1 Certified (`v0.1.6-stage1.certified`)
+- **Action:** `STAGE_GATE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 1: Rust Core, Flutter Shell, Storage, APIs & Event System — Full Gate Certification`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, Flutter 3.38.4 / Dart 3.10.3, Python 3.14.0 uv)
+- **Summary:**
+  - Completed Phase 1.1: Transactional SQLite storage with WAL mode, foreign keys, deterministic SHA-256 migrations, atomic transactions, and corruption quarantine recovery (`crates/miniai-storage`).
+  - Completed Phase 1.2: Typed asynchronous event bus (`SystemEvent` broadcast with ring buffer) and authenticated localhost loopback IPC server with SSE streaming (`crates/miniai-server`).
+  - Completed Phase 1.3: Multi-pane responsive Flutter shell (`NavigationRail` / `NavigationBar`), persistent settings store (`FileSettingsStore`), live event drawer, and accessibility semantics (`ui/miniai_app`).
+  - Executed master Stage 1 gate verification script (`scripts/verify_stage1.py`) and generated deterministic report (`docs/STAGE_1_VERIFICATION_REPORT.json`).
+  - Independent QA Audit (`independent-qa-auditor`) returned `PASS` with 29 Rust tests, 6 Python tests, 19 Flutter tests (100% passing rate) and 97.43% line coverage.
+  - Architecture and Security Review (`arch-security-reviewer`) returned `PASS` confirming strict loopback binding, session bearer nonces, and zero mock code.
+  - Added ADR-006 covering SQLite WAL mode, deterministic migrations, and loopback IPC architecture.

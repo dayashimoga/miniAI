@@ -1,0 +1,167 @@
+{
+  "stage": "Stage 1",
+  "stage_title": "Rust Core, Flutter Shell, Storage, APIs & Event System",
+  "timestamp_utc": "2026-11-05T15:22:02.950800+00:00",
+  "verification_tier": "PROVEN_ON_HOST",
+  "overall_passed": true,
+  "governance_audit": {
+    "passed": true,
+    "governance_files_checked": 19,
+    "rules_checked": 6,
+    "skills_checked": 18,
+    "stage_prompts_checked": 11,
+    "errors": []
+  },
+  "flutter_coverage": {
+    "present": true,
+    "lines_found": 738,
+    "lines_hit": 719,
+    "percent": 97.43
+  },
+  "stage1_contracts": {
+    "phase_1_1_storage": {
+      "crate": "crates/miniai-storage",
+      "sqlite_wal_enabled": true,
+      "foreign_keys_enforced": true,
+      "deterministic_migrations": true,
+      "sha256_checksum_verified": true,
+      "atomic_transaction_rollback": true,
+      "corruption_recovery": true
+    },
+    "phase_1_2_server": {
+      "crate": "crates/miniai-server",
+      "typed_event_bus": true,
+      "bounded_backpressure": true,
+      "replay_ring_buffer": true,
+      "localhost_loopback_enforced": true,
+      "session_nonce_authentication": true,
+      "sse_event_streaming": true
+    },
+    "phase_1_3_flutter_shell": {
+      "package": "ui/miniai_app",
+      "responsive_navigation": true,
+      "offline_settings_persistence": true,
+      "settings_privacy_governance": true,
+      "live_event_drawer": true,
+      "loopback_ipc_client": true,
+      "accessibility_semantics": true
+    }
+  },
+  "steps": [
+    {
+      "name": "rust_fmt_check",
+      "command": "cargo fmt --all -- --check",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": []
+    },
+    {
+      "name": "rust_clippy",
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": [
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s"
+      ]
+    },
+    {
+      "name": "rust_tests",
+      "command": "cargo test --workspace",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "stderr_tail": [
+        "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_core-d6b4469c65949d9d.exe)",
+        "     Running tests\\contract_tests.rs (target\\debug\\deps\\contract_tests-7a584fd43a4a512c.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_server-ff9aa19521e490bf.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_storage-9f8a6f2f6665c637.exe)",
+        "   Doc-tests miniai_core",
+        "   Doc-tests miniai_server",
+        "   Doc-tests miniai_storage"
+      ]
+    },
+    {
+      "name": "python_pytest_coverage",
+      "command": "uv run pytest --cov=miniai_ml --cov-report=term-missing --cov-fail-under=90",
+      "cwd": "ml",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "......                                                                   [100%]",
+        "=============================== tests coverage ================================",
+        "_______________ coverage: platform win32, python 3.14.0-final-0 _______________",
+        "",
+        "Name                             Stmts   Miss  Cover   Missing",
+        "--------------------------------------------------------------",
+        "src\\miniai_ml\\__init__.py            4      0   100%",
+        "src\\miniai_ml\\contracts.py         101      0   100%",
+        "src\\miniai_ml\\governance.py         95      4    96%   124, 149-150, 171",
+        "src\\miniai_ml\\runtime_probe.py      17      0   100%",
+        "--------------------------------------------------------------",
+        "TOTAL                              217      4    98%",
+        "Required test coverage of 90% reached. Total coverage: 98.16%",
+        "6 passed in 0.44s"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_analyze",
+      "command": "flutter analyze --no-pub",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "Analyzing miniai_app...                                         ",
+        "No issues found! (ran in 1.5s)"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_test_coverage",
+      "command": "flutter test --coverage",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "00:00 +5: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:00 +6: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:00 +7: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:00 +8: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:01 +9: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:01 +10: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:02 +11: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:02 +12: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:02 +13: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Mobile layout (400x800) renders NavigationBar and opens Live Event Drawer",
+        "00:03 +14: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Settings persistence across controller instances",
+        "00:03 +15: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests SettingsScreen buttons, toggles, consent controls, and diagnostics",
+        "00:03 +16: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests EventInspectorView inspects JSON payload dialog and handles empty state",
+        "00:04 +17: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests DashboardScreen renders standalone mode with its own Scaffold & AppBar",
+        "00:04 +18: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests IpcClient connects to real loopback server, authenticates, and handles offline",
+        "00:04 +19: All tests passed!"
+      ],
+      "stderr_tail": []
+    }
+  ]
+}

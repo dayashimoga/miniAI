@@ -35,6 +35,12 @@ impl IpcServer {
             message: format!("Failed to retrieve local address: {e}"),
         })?;
 
+        if !local_addr.ip().is_loopback() {
+            return Err(ServerError::BadRequest {
+                message: format!("Bound address '{local_addr}' is not a valid loopback IP address"),
+            });
+        }
+
         Ok(Self {
             bridge,
             listener,

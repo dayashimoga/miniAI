@@ -280,7 +280,11 @@ class PlatformController extends ChangeNotifier {
   }
 
   void _saveSettings() {
-    _settingsStore.saveSettings(
+    saveSettings();
+  }
+
+  Future<void> saveSettings() {
+    return _settingsStore.saveSettings(
       AppSettings(
         localOnlyMode: _localOnlyMode,
         forceCpuOnly: _forceCpuOnly,

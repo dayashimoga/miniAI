@@ -31,9 +31,12 @@ class FileSettingsStore implements SettingsStore {
   FileSettingsStore({required this.filePath});
 
   final String filePath;
+  Future<void> _writeQueue = Future.value();
 
   @override
   Future<AppSettings> loadSettings() async {
+    // Wait for any queued writes to complete before reading
+    await _writeQueue;
     try {
       final file = File(filePath);
       if (!await file.exists()) {
@@ -48,15 +51,18 @@ class FileSettingsStore implements SettingsStore {
   }
 
   @override
-  Future<void> saveSettings(AppSettings settings) async {
-    try {
-      final file = File(filePath);
-      if (!await file.parent.exists()) {
-        await file.parent.create(recursive: true);
+  Future<void> saveSettings(AppSettings settings) {
+    _writeQueue = _writeQueue.then((_) async {
+      try {
+        final file = File(filePath);
+        if (!await file.parent.exists()) {
+          await file.parent.create(recursive: true);
+        }
+        await file.writeAsString(jsonEncode(settings.toJson()), flush: true);
+      } catch (_) {
+        // Offline file write error handling - fail gracefully without crashing
       }
-      await file.writeAsString(jsonEncode(settings.toJson()));
-    } catch (_) {
-      // Offline file write error handling - fail gracefully without crashing
-    }
+    });
+    return _writeQueue;
   }
 }

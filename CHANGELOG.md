@@ -75,3 +75,18 @@
   - Added session authentication bearer nonce check and strict loopback binding validation.
   - Implemented `/v1/system/snapshot`, `/v1/privacy/policy` (GET & POST), `/v1/events/recent`, and `/v1/events/stream` (SSE).
   - Verified 8 tests in `miniai-server` (29 tests across Rust workspace), achieving 100% pass rate and zero Clippy warnings with `#![forbid(unsafe_code)]`.
+
+
+---
+
+## [2026-11-05T18:25:00+05:30] — Stage 1 Subphase 1.3.1 Verified (`v0.1.5-stage1.sub1.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 1 / Phase 1.3 / Subphase 1.3.1 — Persistent Navigation Rail, Live Event Drawer & Settings Persistence`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Flutter 3.38.4 / Dart 3.10.3)
+- **Summary:**
+  - Implemented adaptive desktop `NavigationRail` and mobile `NavigationBar` in `ShellScreen`.
+  - Added `SettingsStore` contract and `FileSettingsStore` for offline settings persistence.
+  - Added `SettingsScreen` with privacy governance, hardware execution policy, workspace switching, and IPC connection controls.
+  - Implemented `EventInspectorView` and slide-out `EventLogDrawer` with live event stream, JSON payload viewer, and type filtering.
+  - Implemented `IpcClient` loopback HTTP/SSE client with session bearer nonce authentication.
+  - Verified 15 tests in Flutter app achieving 100% pass rate, 0 analyze issues, and 97.27% measured line coverage.

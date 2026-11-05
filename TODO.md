@@ -114,3 +114,19 @@
     - Full endpoint suite: `GET /v1/health` (liveness), `GET /v1/system/snapshot` (hardware + privacy + adapter snapshot), `GET /v1/privacy/policy`, `POST /v1/privacy/policy` (with persistent settings updates and event publishing), and `GET /v1/events/stream` (real-time Server-Sent Events).
     - Executed 8 unit and integration tests in `crates/miniai-server` (29 tests total across Rust workspace), achieving 100% pass rate with `#![forbid(unsafe_code)]`.
 - **Next Subphase Ready:** `S1-P3-SUB1.3.1` (Phase 1.3 / Subphase 1.3.1: Persistent Navigation Rail/Drawer, Live Event Drawer & SQLite-Backed Settings Persistence in Flutter UI `ui/miniai_app`).
+
+
+---
+
+### [2026-11-05T18:25:00+05:30] Stage 1 — Entry 007 (Subphase 1.3.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 1 / Phase 1.3 — Flutter Shell Navigation, Settings & Event Stream Inspector / Subphase 1.3.1`
+- **Status Transitions:**
+  - `S1-P3-SUB1.3.1` [`VERIFIED`]: Implemented persistent multi-pane navigation shell, SQLite-backed settings persistence, and live event stream inspector in `ui/miniai_app`:
+    - Responsive multi-layout shell (`ShellScreen`): adaptive desktop `NavigationRail` (>=720px width) and mobile `NavigationBar` (<720px width), with persistent destinations for `Modality Studio`, `Settings & Privacy`, and `System Event Stream`.
+    - Persistent settings persistence (`SettingsStore`, `FileSettingsStore`, `InMemorySettingsStore`): loads and saves `AppSettings` (`localOnlyMode`, `forceCpuOnly`, `activeWorkspaceId`, `ipcServerUrl`, `sessionNonce`) across process restarts offline.
+    - Full Settings panel (`SettingsScreen`): privacy governance toggles, cloud consent token status & revocation controls, force CPU-only baseline execution, active workspace switcher, and loopback IPC server/authentication nonce configuration with connection diagnostics.
+    - Live Event Inspector & Slide-out End Drawer (`EventInspectorView`): real-time event streaming with sequence badges, semantic type icons, UTC timestamps, JSON payload inspection modal, type filter chips (`privacy_policy_updated`, `hardware_changed`, `workspace_switched`, `diagnostic_alert`, `adapter_health_changed`), and manual event trigger/clear controls.
+    - Localhost loopback IPC client (`IpcClient`): authenticates with session bearer nonce, connects to `/v1/health`, `/v1/system/snapshot`, `/v1/events/recent`, and streams Server-Sent Events (`/v1/events/stream`).
+    - Verified 15 tests across `test/widget_test.dart` and `test/shell_and_settings_test.dart` with 100% pass rate, zero Flutter analyze warnings, and 97.27% measured line coverage (713/733 lines).
+- **Next Subphase Ready:** `S1-P3-SUB1.3.2` (Subphase 1.3.2: End-to-end Rust-to-Flutter integration contracts, offline disconnected resilience, and accessibility validation).

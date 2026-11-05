@@ -6,9 +6,11 @@ class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
     super.key,
     required this.controller,
+    this.embedded = false,
   });
 
   final PlatformController controller;
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +20,31 @@ class DashboardScreen extends StatelessWidget {
         final safeGiB = (controller.hardware.safeMemoryLimitBytes /
                 (1024 * 1024 * 1024))
             .toStringAsFixed(1);
+
+        final body = SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildPrivacyAndHardwarePanel(context, safeGiB),
+              const SizedBox(height: 16),
+              _buildAuditBanner(context),
+              const SizedBox(height: 16),
+              Text(
+                'Independently Pluggable Modality Adapters (${controller.adapterHealthList.length})',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              ...controller.adapterHealthList.map(
+                (health) => _buildModalityCard(context, health),
+              ),
+            ],
+          ),
+        );
+
+        if (embedded) {
+          return body;
+        }
 
         return Scaffold(
           appBar: AppBar(
@@ -46,26 +73,7 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildPrivacyAndHardwarePanel(context, safeGiB),
-                const SizedBox(height: 16),
-                _buildAuditBanner(context),
-                const SizedBox(height: 16),
-                Text(
-                  'Independently Pluggable Modality Adapters (${controller.adapterHealthList.length})',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                ...controller.adapterHealthList.map(
-                  (health) => _buildModalityCard(context, health),
-                ),
-              ],
-            ),
-          ),
+          body: body,
         );
       },
     );
@@ -192,4 +200,3 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 }
-

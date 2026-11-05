@@ -216,3 +216,86 @@ class AdapterHealth {
   }
 }
 
+/// Envelopes typed asynchronous system events emitted by the core or server.
+class EventEnvelope {
+  const EventEnvelope({
+    required this.sequence,
+    required this.timestampUtc,
+    required this.eventType,
+    required this.payload,
+  });
+
+  final int sequence;
+  final String timestampUtc;
+  final String eventType;
+  final Map<String, dynamic> payload;
+
+  Map<String, dynamic> toJson() => {
+        'sequence': sequence,
+        'timestamp_utc': timestampUtc,
+        'event_type': eventType,
+        'payload': payload,
+      };
+
+  factory EventEnvelope.fromJson(Map<String, dynamic> json) {
+    return EventEnvelope(
+      sequence: json['sequence'] as int? ?? 0,
+      timestampUtc: json['timestamp_utc'] as String? ?? '',
+      eventType: json['event_type'] as String? ?? 'diagnostic_alert',
+      payload: (json['payload'] as Map<String, dynamic>?) ?? {},
+    );
+  }
+}
+
+/// Persistent application configuration settings.
+class AppSettings {
+  const AppSettings({
+    this.localOnlyMode = true,
+    this.forceCpuOnly = false,
+    this.activeWorkspaceId = 'default',
+    this.ipcServerUrl = 'http://127.0.0.1:4140',
+    this.sessionNonce = '',
+  });
+
+  final bool localOnlyMode;
+  final bool forceCpuOnly;
+  final String activeWorkspaceId;
+  final String ipcServerUrl;
+  final String sessionNonce;
+
+  AppSettings copyWith({
+    bool? localOnlyMode,
+    bool? forceCpuOnly,
+    String? activeWorkspaceId,
+    String? ipcServerUrl,
+    String? sessionNonce,
+  }) {
+    return AppSettings(
+      localOnlyMode: localOnlyMode ?? this.localOnlyMode,
+      forceCpuOnly: forceCpuOnly ?? this.forceCpuOnly,
+      activeWorkspaceId: activeWorkspaceId ?? this.activeWorkspaceId,
+      ipcServerUrl: ipcServerUrl ?? this.ipcServerUrl,
+      sessionNonce: sessionNonce ?? this.sessionNonce,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'local_only_mode': localOnlyMode,
+        'force_cpu_only': forceCpuOnly,
+        'active_workspace_id': activeWorkspaceId,
+        'ipc_server_url': ipcServerUrl,
+        'session_nonce': sessionNonce,
+      };
+
+  factory AppSettings.fromJson(Map<String, dynamic> json) {
+    return AppSettings(
+      localOnlyMode: json['local_only_mode'] as bool? ?? true,
+      forceCpuOnly: json['force_cpu_only'] as bool? ?? false,
+      activeWorkspaceId: json['active_workspace_id'] as String? ?? 'default',
+      ipcServerUrl: json['ipc_server_url'] as String? ?? 'http://127.0.0.1:4140',
+      sessionNonce: json['session_nonce'] as String? ?? '',
+    );
+  }
+}
+
+

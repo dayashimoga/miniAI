@@ -1,6 +1,6 @@
 {
   "stage": "Stage 0",
-  "timestamp_utc": "2026-11-05T10:22:11.274541+00:00",
+  "timestamp_utc": "2026-11-05T12:30:03.776095+00:00",
   "verification_tier": "PROVEN_ON_HOST",
   "overall_passed": true,
   "governance_audit": {
@@ -13,9 +13,9 @@
   },
   "flutter_coverage": {
     "present": true,
-    "lines_found": 224,
-    "lines_hit": 218,
-    "percent": 97.32
+    "lines_found": 733,
+    "lines_hit": 713,
+    "percent": 97.27
   },
   "steps": [
     {
@@ -35,7 +35,7 @@
       "passed": true,
       "stdout_tail": [],
       "stderr_tail": [
-        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.20s"
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.21s"
       ]
     },
     {
@@ -92,7 +92,7 @@
         "--------------------------------------------------------------",
         "TOTAL                              217      4    98%",
         "Required test coverage of 90% reached. Total coverage: 98.16%",
-        "6 passed in 0.44s"
+        "6 passed in 0.39s"
       ],
       "stderr_tail": []
     },
@@ -104,7 +104,7 @@
       "passed": true,
       "stdout_tail": [
         "Analyzing miniai_app...                                         ",
-        "No issues found! (ran in 1.5s)"
+        "No issues found! (ran in 1.7s)"
       ],
       "stderr_tail": []
     },
@@ -115,21 +115,21 @@
       "exit_code": 0,
       "passed": true,
       "stdout_tail": [
-        "  material_color_utilities 0.11.1 (0.13.1 available)",
-        "  meta 1.17.0 (1.19.0 available)",
-        "  stack_trace 1.12.1 (1.12.2 available)",
-        "  test_api 0.7.7 (0.7.15 available)",
-        "  vector_math 2.2.0 (2.4.4 available)",
-        "Got dependencies!",
-        "10 packages have newer versions incompatible with dependency constraints.",
-        "Try `flutter pub outdated` for more information.",
-        "00:00 +0: loading G:/miniAI/ui/miniai_app/test/widget_test.dart",
-        "00:00 +0: SystemContracts Unit & Serialization Tests Modality and AcceleratorBackend wire serialization round-trips",
-        "00:00 +1: SystemContracts Unit & Serialization Tests HardwareProfile memory admission and CPU fallback logic",
-        "00:00 +2: SystemContracts Unit & Serialization Tests CloudConsentToken and AdapterHealth JSON round-trip",
-        "00:00 +3: SystemContracts Unit & Serialization Tests PlatformController blocks invalid consent or Local-Only grant attempts",
-        "00:00 +4: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:01 +5: All tests passed!"
+        "00:00 +1: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: Subphase 1.3.1 Contract & SettingsStore Unit Tests FileSettingsStore persists and restores settings across restarts",
+        "00:00 +2: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: Subphase 1.3.1 Contract & SettingsStore Unit Tests PlatformController records events, updates history, and applies filters",
+        "00:00 +3: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:00 +4: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:00 +5: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:00 +6: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:00 +7: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:02 +8: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:02 +9: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Mobile layout (400x800) renders NavigationBar and opens Live Event Drawer",
+        "00:03 +10: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Settings persistence across controller instances",
+        "00:03 +11: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests SettingsScreen buttons, toggles, consent controls, and diagnostics",
+        "00:03 +12: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests EventInspectorView inspects JSON payload dialog and handles empty state",
+        "00:04 +13: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests DashboardScreen renders standalone mode with its own Scaffold & AppBar",
+        "00:04 +14: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests IpcClient connects to real loopback server, authenticates, and handles offline",
+        "00:04 +15: All tests passed!"
       ],
       "stderr_tail": []
     }

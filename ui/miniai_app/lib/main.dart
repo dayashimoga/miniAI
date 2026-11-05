@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'src/controllers/platform_controller.dart';
-import 'src/screens/dashboard_screen.dart';
+import 'src/screens/shell_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   final controller = PlatformController();
   runApp(MiniAiApp(controller: controller));
 }
@@ -34,8 +35,7 @@ class MiniAiApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: DashboardScreen(controller: controller),
+      home: ShellScreen(controller: controller),
     );
   }
 }
-

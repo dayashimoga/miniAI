@@ -63,3 +63,15 @@
   - Defined strongly typed `SystemEvent` variants with cross-language JSON serialization.
   - Added monotonic event sequencing and backpressure lag detection (`EventBusError::Lagged`).
   - Verified 5 tests in `miniai-server` (26 tests across Rust workspace), achieving 100% pass rate and zero Clippy warnings with `#![forbid(unsafe_code)]`.
+
+---
+
+## [2026-11-05T15:36:00+05:30] — Stage 1 Subphase 1.2.2 Verified (`v0.1.4-stage1.sub1.2.2`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 1 / Phase 1.2 / Subphase 1.2.2 — Localhost Loopback API & Session Nonce Protection`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1)
+- **Summary:**
+  - Implemented `IpcBridge` and `IpcServer` in `crates/miniai-server`.
+  - Added session authentication bearer nonce check and strict loopback binding validation.
+  - Implemented `/v1/system/snapshot`, `/v1/privacy/policy` (GET & POST), `/v1/events/recent`, and `/v1/events/stream` (SSE).
+  - Verified 8 tests in `miniai-server` (29 tests across Rust workspace), achieving 100% pass rate and zero Clippy warnings with `#![forbid(unsafe_code)]`.

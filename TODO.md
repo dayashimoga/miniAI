@@ -101,3 +101,16 @@
     - `EventSubscriber` with async `recv()` and non-blocking `try_recv()`, handling subscriber lag gracefully via `EventBusError::Lagged`.
     - Executed 5 unit and integration tests in `crates/miniai-server` (26 tests total across Rust workspace), achieving 100% pass rate with `#![forbid(unsafe_code)]`.
 - **Next Subphase Ready:** `S1-P2-SUB1.2.2` (Subphase 1.2.2: Localhost Loopback API / FFI Bridge with Per-Session Authentication Nonce in `crates/miniai-server`).
+
+---
+
+### [2026-11-05T15:36:00+05:30] Stage 1 — Entry 006 (Subphase 1.2.2 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 1 / Phase 1.2 — Typed Event Bus & Local IPC API / Subphase 1.2.2`
+- **Status Transitions:**
+  - `S1-P2-SUB1.2.2` [`VERIFIED`]: Implemented in-process IPC bridge (`IpcBridge`) and localhost loopback HTTP/SSE server (`IpcServer`) in `crates/miniai-server`:
+    - Session authentication nonce enforcement: all API endpoints (`/v1/system/snapshot`, `/v1/privacy/policy`, `/v1/events/recent`, `/v1/events/stream`) require valid `Authorization: Bearer <nonce>` header; unauthorized requests return HTTP 401.
+    - Security-enforced localhost binding: strictly rejects non-loopback bindings (`0.0.0.0`) to prevent network exposure.
+    - Full endpoint suite: `GET /v1/health` (liveness), `GET /v1/system/snapshot` (hardware + privacy + adapter snapshot), `GET /v1/privacy/policy`, `POST /v1/privacy/policy` (with persistent settings updates and event publishing), and `GET /v1/events/stream` (real-time Server-Sent Events).
+    - Executed 8 unit and integration tests in `crates/miniai-server` (29 tests total across Rust workspace), achieving 100% pass rate with `#![forbid(unsafe_code)]`.
+- **Next Subphase Ready:** `S1-P3-SUB1.3.1` (Phase 1.3 / Subphase 1.3.1: Persistent Navigation Rail/Drawer, Live Event Drawer & SQLite-Backed Settings Persistence in Flutter UI `ui/miniai_app`).

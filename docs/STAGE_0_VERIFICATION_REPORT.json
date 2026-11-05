@@ -1,6 +1,6 @@
 {
   "stage": "Stage 0",
-  "timestamp_utc": "2026-11-05T09:26:02.016410+00:00",
+  "timestamp_utc": "2026-11-05T10:22:11.274541+00:00",
   "verification_tier": "PROVEN_ON_HOST",
   "overall_passed": true,
   "governance_audit": {
@@ -35,7 +35,7 @@
       "passed": true,
       "stdout_tail": [],
       "stderr_tail": [
-        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.21s"
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.20s"
       ]
     },
     {
@@ -92,7 +92,7 @@
         "--------------------------------------------------------------",
         "TOTAL                              217      4    98%",
         "Required test coverage of 90% reached. Total coverage: 98.16%",
-        "6 passed in 0.40s"
+        "6 passed in 0.44s"
       ],
       "stderr_tail": []
     },
@@ -104,7 +104,7 @@
       "passed": true,
       "stdout_tail": [
         "Analyzing miniai_app...                                         ",
-        "No issues found! (ran in 1.6s)"
+        "No issues found! (ran in 1.5s)"
       ],
       "stderr_tail": []
     },
@@ -129,7 +129,7 @@
         "00:00 +2: SystemContracts Unit & Serialization Tests CloudConsentToken and AdapterHealth JSON round-trip",
         "00:00 +3: SystemContracts Unit & Serialization Tests PlatformController blocks invalid consent or Local-Only grant attempts",
         "00:00 +4: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:02 +5: All tests passed!"
+        "00:01 +5: All tests passed!"
       ],
       "stderr_tail": []
     }

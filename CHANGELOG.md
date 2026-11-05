@@ -26,3 +26,16 @@
   - **Python ML & Governance (`ml/src/miniai_ml`)**: `uv run pytest --cov=miniai_ml --cov-fail-under=90` (`6/6` passed, `98.16%` measured statement coverage).
   - **Flutter Cross-Platform UI (`ui/miniai_app`)**: `flutter analyze --no-pub` (`No issues found!`), `flutter test --coverage` (`5/5` passed, `97.32%` measured line coverage: `218/224` lines).
   - **Independent Audits**: `independent-qa-auditor` verdict `PASS`; `arch-security-reviewer` verdict `PASS`.
+
+---
+
+## [2026-11-05T12:28:00+05:30] — Stage 1 Subphase 1.1.1 Verified & Antigravity CLAUDE Integration (`v0.1.1-stage1.sub1.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 1 / Phase 1.1 / Subphase 1.1.1 — SQLite WAL Connection Pool, Schema Migrations & Storage Foundation`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1)
+- **Summary:**
+  - Adapted `CLAUDE.md` to Antigravity via `GEMINI.md`, mapping Think Before Coding, Simplicity First, Surgical Changes, and Goal-Driven Execution to native Antigravity tools, clickable file links, artifacts, and reactive subagent delegation.
+  - Implemented `crates/miniai-storage` with WAL mode, foreign keys, synchronous normal, and busy timeout.
+  - Implemented deterministic migration runner with SHA-256 checksum verification and baseline migrations (`app_settings`, `workspaces`, `consent_audit_log`, `diagnostic_events`).
+  - Implemented `PRAGMA integrity_check` and `PRAGMA foreign_key_check` reporting structured `IntegrityReport`.
+  - Verified 10 unit and integration tests in `crates/miniai-storage` with 100% pass rate and zero warnings.

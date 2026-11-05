@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/miniai-core",
+    "crates/miniai-storage",
 ]
 
 [workspace.package]

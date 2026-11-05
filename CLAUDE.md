@@ -68,8 +68,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## 5. MiniAI Project-Specific Integration Rules
 
-This file is integrated with `GLOBAL_ENGINEERING_CONTRACT.md` and `AGENTS.md`. Every contributor and AI agent working on **MiniAI** must additionally adhere to:
+This file is integrated with `GLOBAL_ENGINEERING_CONTRACT.md`, `AGENTS.md`, and adapted to Antigravity via `GEMINI.md`. Every contributor and AI agent working on **MiniAI** must additionally adhere to:
 
+0. **Antigravity Pairing & Customization Integration (`GEMINI.md`)**:
+   - In Antigravity environments, behavioral guidelines are enforced via [`GEMINI.md`](./GEMINI.md), Antigravity rules (`.agents/rules/*.md`), and reusable skills (`.agents/skills/*/SKILL.md`).
+   - Use clickable `file:///` file links, create structured markdown artifacts in `<appDataDir>\brain\<conversation-id>`, and delegate independent audits to subagents (`independent-qa-auditor`, `arch-security-reviewer`).
 1. **Append-Only Logs (`TODO.md` and `CHANGELOG.md`)**:
    - Never overwrite, delete, rewrite, reorder, or silently modify existing entries in `TODO.md` or `CHANGELOG.md`.
    - Record every addition, completion, status transition, and release as a new dated entry at the bottom of the file.

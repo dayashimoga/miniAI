@@ -1,0 +1,15 @@
+[package]
+name = "miniai-storage"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Transactional SQLite storage engine, schema migrations, and settings/audit logging for MiniAI."
+
+[dependencies]
+miniai-core = { path = "../miniai-core" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+rusqlite = { version = "0.32", features = ["bundled"] }

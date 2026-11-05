@@ -58,3 +58,18 @@
   - `S0-P3-T3`: `PLANNED` -> `VERIFIED` — Created and linked remote GitHub repository `https://github.com/dayashimoga/miniAI.git`.
   - `S0-P3-T4`: `PLANNED` -> `VERIFIED` — Independent QA Lead (`independent-qa-auditor`) and Principal Architecture & Security Reviewer (`arch-security-reviewer`) both returned `PASS`.
 - **Next Stage Ready:** `STAGE-01-BACKLOG` (Stage 1: Rust Core, Flutter Shell, SQLite Storage, IPC APIs & Typed Event System).
+
+---
+
+### [2026-11-05T12:28:00+05:30] Stage 1 — Entry 003 (Subphase 1.1.1 Completed & Verified; CLAUDE.md Adapted to Antigravity)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 1 / Phase 1.1 — Transactional SQLite Storage / Subphase 1.1.1`
+- **Status Transitions:**
+  - `ANTIGRAVITY-CLAUDE-INTEGRATION`: `COMPLETED` & `VERIFIED` — Authored `GEMINI.md` adapting `CLAUDE.md` behavioral tenets (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) to Antigravity's native environment, tool execution, artifacts, and specialist subagent workflows. Registered `GEMINI.md` in `ml/src/miniai_ml/governance.py`.
+  - `S1-P1-SUB1.1.1` [`VERIFIED`]: Implemented `crates/miniai-storage` featuring:
+    - Connection management with SQLite WAL mode (`PRAGMA journal_mode = WAL`), foreign keys (`PRAGMA foreign_keys = ON`), synchronous normal mode, and 5000ms busy timeout.
+    - Deterministic schema migration engine (`MigrationRunner`) with SHA-256 checksum verification and `schema_migrations` tracking table.
+    - Initial baseline schemas: `app_settings` key-value table, `workspaces` table with active switching, `consent_audit_log` immutable audit table, and `diagnostic_events` store.
+    - Database integrity checks (`PRAGMA integrity_check` & `PRAGMA foreign_key_check`) reporting structured `IntegrityReport`.
+    - Executed 10 unit and integration tests in `crates/miniai-storage` (17 tests total across workspace), achieving 100% pass rate with `#![forbid(unsafe_code)]`.
+- **Next Subphase Ready:** `S1-P1-SUB1.1.2` (Subphase 1.1.2: Repository CRUD Contracts, Migration Rollback/Recovery & Crash-Recovery Integration Tests).

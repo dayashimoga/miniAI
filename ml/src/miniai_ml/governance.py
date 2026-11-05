@@ -10,6 +10,7 @@ REQUIRED_GOVERNANCE_FILES: tuple[str, ...] = (
     "AGENTS.md",
     "GLOBAL_ENGINEERING_CONTRACT.md",
     "CLAUDE.md",
+    "GEMINI.md",
     "REQUIREMENTS.md",
     "ARCHITECTURE.md",
     "IMPLEMENTATION_PLAN.md",

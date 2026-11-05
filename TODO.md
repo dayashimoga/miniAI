@@ -87,3 +87,17 @@
     - `quarantine_and_recover()` helper: safely quarantines corrupt SQLite files to timestamped `.corrupt.bak` (plus WAL/SHM files) and re-creates clean, healthy database at the original path.
     - Verified crash-recovery, transaction rollback, and corruption quarantine integration tests (14 tests in `miniai-storage`, 21 tests total across Rust workspace).
 - **Next Subphase Ready:** `S1-P2-SUB1.2.1` (Phase 1.2 / Subphase 1.2.1: Async Broadcast Event Bus (`SystemEvent` stream) with Backpressure Bounds in `crates/miniai-server`).
+
+---
+
+### [2026-11-05T14:54:00+05:30] Stage 1 — Entry 005 (Subphase 1.2.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 1 / Phase 1.2 — Typed Event Bus & Local IPC API / Subphase 1.2.1`
+- **Status Transitions:**
+  - `S1-P2-SUB1.2.1` [`VERIFIED`]: Implemented `crates/miniai-server` with async broadcast event bus:
+    - Strongly typed `SystemEvent` enum (`HardwareChanged`, `PrivacyPolicyUpdated`, `AdapterHealthChanged`, `DiagnosticAlert`, `ModelDownloadProgress`, `InferenceTokenStream`, `WorkspaceChanged`) with canonical JSON wire contracts.
+    - `EventEnvelope` containing monotonic sequence number, epoch timestamp, and typed payload.
+    - `EventBus` featuring bounded backpressure broadcast queues (`tokio::sync::broadcast`) and in-memory replay ring buffer for newly connecting subscribers.
+    - `EventSubscriber` with async `recv()` and non-blocking `try_recv()`, handling subscriber lag gracefully via `EventBusError::Lagged`.
+    - Executed 5 unit and integration tests in `crates/miniai-server` (26 tests total across Rust workspace), achieving 100% pass rate with `#![forbid(unsafe_code)]`.
+- **Next Subphase Ready:** `S1-P2-SUB1.2.2` (Subphase 1.2.2: Localhost Loopback API / FFI Bridge with Per-Session Authentication Nonce in `crates/miniai-server`).

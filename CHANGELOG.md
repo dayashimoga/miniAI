@@ -51,3 +51,15 @@
   - Added atomic `transaction()` helper with verified rollback-on-error.
   - Implemented `quarantine_and_recover()` database corruption recovery handler with automated `.corrupt.bak` backup.
   - Verified 14 tests in `miniai-storage` (21 tests across workspace), achieving 100% pass rate and zero Clippy warnings with `#![forbid(unsafe_code)]`.
+
+---
+
+## [2026-11-05T14:54:00+05:30] — Stage 1 Subphase 1.2.1 Verified (`v0.1.3-stage1.sub1.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 1 / Phase 1.2 / Subphase 1.2.1 — Async Broadcast Event Bus with Backpressure Bounds`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1)
+- **Summary:**
+  - Implemented `crates/miniai-server` with `EventBus` broadcast channel and configurable replay ring buffer.
+  - Defined strongly typed `SystemEvent` variants with cross-language JSON serialization.
+  - Added monotonic event sequencing and backpressure lag detection (`EventBusError::Lagged`).
+  - Verified 5 tests in `miniai-server` (26 tests across Rust workspace), achieving 100% pass rate and zero Clippy warnings with `#![forbid(unsafe_code)]`.

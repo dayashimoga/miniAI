@@ -1,0 +1,19 @@
+[package]
+name = "miniai-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Typed asynchronous event bus, system telemetry stream, and local IPC API server for MiniAI."
+
+[dependencies]
+miniai-core = { path = "../miniai-core" }
+miniai-storage = { path = "../miniai-storage" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread"] }

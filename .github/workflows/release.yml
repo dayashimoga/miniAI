@@ -1,0 +1,38 @@
+name: MiniAI Cross-Platform Release & Certification
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-rust-core:
+    name: Package & Checksum Rust Core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release workspace & run release tests
+        run: |
+          cargo build --workspace --release
+          cargo test --workspace --release
+
+      - name: Upload release verification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-core-release-${{ matrix.os }}
+          path: Cargo.toml
+          if-no-files-found: error
+

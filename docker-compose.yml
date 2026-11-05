@@ -1,0 +1,16 @@
+services:
+  miniai-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: "10001:10001"
+    working_dir: /workspace
+    environment:
+      MINIAI_LOCAL_ONLY_PRIVACY: "true"
+      MINIAI_FORCE_CPU: "true"
+    volumes:
+      - .:/workspace:rw
+    security_opt:
+      - no-new-privileges:true
+    command: ["cargo", "test", "--workspace"]
+

@@ -1,0 +1,49 @@
+name: MiniAI Security & Governance Audit
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secret-and-governance-audit:
+    name: Secret Scan & Append-Only Log Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Run Governance, Append-Only Log & Secret Scanner
+        working-directory: ml
+        run: uv run --python 3.12 pytest -k "test_governance_auditor_and_edge_cases or test_sha256_integrity_and_path_validation"
+
+  rust-security-audit:
+    name: Rust Cargo Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify unsafe_code is forbidden in miniai-core
+        run: |
+          grep -q "#!\[forbid(unsafe_code)\]" crates/miniai-core/src/lib.rs
+          cargo test --workspace
+

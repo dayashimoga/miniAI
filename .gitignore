@@ -1,0 +1,84 @@
+# Rust
+/target/
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# Flutter / Dart
+.dart_tool/
+**/.dart_tool/
+.packages
+**/.packages
+build/
+**/build/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/ios/Pods/
+**/ios/.symlinks/
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+*.jks
+*.keystore
+
+# Python / ML
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+**/.venv/
+venv/
+env/
+.pytest_cache/
+**/.pytest_cache/
+.coverage
+**/.coverage
+coverage.xml
+**/coverage.xml
+htmlcov/
+**/htmlcov/
+dist/
+**/dist/
+*.egg-info/
+**/*.egg-info/
+.mypy_cache/
+.ruff_cache/
+
+# Model Weights, Datasets & Runtime Artifacts (Local Only)
+models/weights/
+datasets/raw/
+datasets/processed/
+*.gguf
+*.safetensors
+*.onnx
+*.pt
+*.pth
+*.bin
+*.ckpt
+
+# Coverage & Test Output Artifacts
+artifacts/test-results/
+artifacts/coverage/
+*.lcov
+
+# IDE & OS
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Secrets & Environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+

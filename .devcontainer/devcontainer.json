@@ -1,0 +1,22 @@
+{
+  "name": "MiniAI Reproducible Development Container",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "miniai",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "rust-analyzer.check.command": "clippy"
+      },
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "Dart-Code.flutter",
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ]
+    }
+  }
+}
+

@@ -1,6 +1,6 @@
 {
   "stage": "Stage 0",
-  "timestamp_utc": "2026-11-05T07:15:32.721799+00:00",
+  "timestamp_utc": "2026-11-05T08:41:22.031066+00:00",
   "verification_tier": "PROVEN_ON_HOST",
   "overall_passed": true,
   "governance_audit": {
@@ -35,7 +35,7 @@
       "passed": true,
       "stdout_tail": [],
       "stderr_tail": [
-        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.18s"
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.19s"
       ]
     },
     {
@@ -46,10 +46,10 @@
       "passed": true,
       "stdout_tail": [
         "test tests::test_app_settings_crud_operations ... ok",
-        "test tests::test_workspaces_crud_and_active_switching ... ok",
         "test tests::test_on_disk_initialization_and_wal_mode ... ok",
+        "test tests::test_quarantine_and_recovery_on_corrupt_database ... ok",
         "",
-        "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s",
+        "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
         "",
         "",
         "running 0 tests",
@@ -62,7 +62,7 @@
         "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
       ],
       "stderr_tail": [
-        "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.18s",
+        "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.20s",
         "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_core-925af56448d8584a.exe)",
         "     Running tests\\contract_tests.rs (target\\debug\\deps\\contract_tests-19c433e30344b542.exe)",
         "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_storage-d06fcc901b23b382.exe)",
@@ -90,7 +90,7 @@
         "--------------------------------------------------------------",
         "TOTAL                              217      4    98%",
         "Required test coverage of 90% reached. Total coverage: 98.16%",
-        "6 passed in 0.39s"
+        "6 passed in 0.33s"
       ],
       "stderr_tail": []
     },
@@ -102,7 +102,7 @@
       "passed": true,
       "stdout_tail": [
         "Analyzing miniai_app...                                         ",
-        "No issues found! (ran in 1.5s)"
+        "No issues found! (ran in 1.4s)"
       ],
       "stderr_tail": []
     },
@@ -127,7 +127,7 @@
         "00:00 +2: SystemContracts Unit & Serialization Tests CloudConsentToken and AdapterHealth JSON round-trip",
         "00:00 +3: SystemContracts Unit & Serialization Tests PlatformController blocks invalid consent or Local-Only grant attempts",
         "00:00 +4: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:01 +5: All tests passed!"
+        "00:02 +5: All tests passed!"
       ],
       "stderr_tail": []
     }

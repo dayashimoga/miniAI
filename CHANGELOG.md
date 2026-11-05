@@ -39,3 +39,15 @@
   - Implemented deterministic migration runner with SHA-256 checksum verification and baseline migrations (`app_settings`, `workspaces`, `consent_audit_log`, `diagnostic_events`).
   - Implemented `PRAGMA integrity_check` and `PRAGMA foreign_key_check` reporting structured `IntegrityReport`.
   - Verified 10 unit and integration tests in `crates/miniai-storage` with 100% pass rate and zero warnings.
+
+---
+
+## [2026-11-05T14:11:00+05:30] — Stage 1 Subphase 1.1.2 Verified (`v0.1.2-stage1.sub1.1.2`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 1 / Phase 1.1 / Subphase 1.1.2 — Repository CRUD Contracts & Crash Recovery`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1)
+- **Summary:**
+  - Implemented `cached_models` and `chat_sessions` CRUD contracts in `crates/miniai-storage`.
+  - Added atomic `transaction()` helper with verified rollback-on-error.
+  - Implemented `quarantine_and_recover()` database corruption recovery handler with automated `.corrupt.bak` backup.
+  - Verified 14 tests in `miniai-storage` (21 tests across workspace), achieving 100% pass rate and zero Clippy warnings with `#![forbid(unsafe_code)]`.

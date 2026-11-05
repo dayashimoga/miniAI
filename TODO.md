@@ -73,3 +73,17 @@
     - Database integrity checks (`PRAGMA integrity_check` & `PRAGMA foreign_key_check`) reporting structured `IntegrityReport`.
     - Executed 10 unit and integration tests in `crates/miniai-storage` (17 tests total across workspace), achieving 100% pass rate with `#![forbid(unsafe_code)]`.
 - **Next Subphase Ready:** `S1-P1-SUB1.1.2` (Subphase 1.1.2: Repository CRUD Contracts, Migration Rollback/Recovery & Crash-Recovery Integration Tests).
+
+---
+
+### [2026-11-05T14:11:00+05:30] Stage 1 — Entry 004 (Subphase 1.1.2 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 1 / Phase 1.1 — Transactional SQLite Storage / Subphase 1.1.2`
+- **Status Transitions:**
+  - `S1-P1-SUB1.1.2` [`VERIFIED`]: Implemented repository CRUD contracts, atomic transaction helpers, and corruption quarantine/recovery:
+    - `CachedModelRecord` repository with insert/upsert, single get, list all, and modality-filtered queries.
+    - `ChatSessionRecord` repository with insert/upsert, single get, list ordered by updated timestamp descending, and title update with timestamp bump.
+    - `transaction<F, R>()` atomic helper guaranteeing complete rollback on closure error and commit on success.
+    - `quarantine_and_recover()` helper: safely quarantines corrupt SQLite files to timestamped `.corrupt.bak` (plus WAL/SHM files) and re-creates clean, healthy database at the original path.
+    - Verified crash-recovery, transaction rollback, and corruption quarantine integration tests (14 tests in `miniai-storage`, 21 tests total across Rust workspace).
+- **Next Subphase Ready:** `S1-P2-SUB1.2.1` (Phase 1.2 / Subphase 1.2.1: Async Broadcast Event Bus (`SystemEvent` stream) with Backpressure Bounds in `crates/miniai-server`).

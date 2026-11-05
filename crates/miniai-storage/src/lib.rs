@@ -2,8 +2,8 @@
 //! # MiniAI Storage (`miniai-storage`)
 //!
 //! Production-grade transactional SQLite storage engine, deterministic schema migrations,
-//! settings persistence, workspace management, consent audit logging, and database
-//! integrity/corruption detection for MiniAI.
+//! settings persistence, workspace management, consent audit logging, model caching,
+//! chat session persistence, atomic transactions, and corruption quarantine/recovery for MiniAI.
 
 pub mod db;
 pub mod error;
@@ -14,17 +14,20 @@ pub use db::StorageEngine;
 pub use error::StorageError;
 pub use migrations::{Migration, MigrationRunner, MIGRATIONS};
 pub use models::{
-    AppSetting, ConsentAuditEvent, DiagnosticEventRecord, IntegrityReport, Workspace,
+    AppSetting, CachedModelRecord, ChatSessionRecord, ConsentAuditEvent, DiagnosticEventRecord,
+    IntegrityReport, QuarantineResult, Workspace,
 };
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use miniai_core::{AcceleratorBackend, Modality};
 
     #[test]
     fn test_in_memory_initialization_and_schema_version() {
         let engine = StorageEngine::in_memory().expect("in-memory engine init");
         assert!(engine.is_in_memory());
+        assert!(engine.path().is_none());
         assert_eq!(engine.schema_version().expect("schema version"), 2);
 
         let integrity = engine.check_integrity().expect("integrity check");
@@ -40,6 +43,7 @@ mod tests {
 
         let engine = StorageEngine::open(&db_path).expect("open on-disk storage");
         assert!(!engine.is_in_memory());
+        assert_eq!(engine.path().unwrap(), db_path.as_path());
         assert_eq!(engine.schema_version().expect("schema version"), 2);
 
         // Verify WAL mode was enabled on disk
@@ -54,11 +58,9 @@ mod tests {
     fn test_app_settings_crud_operations() {
         let engine = StorageEngine::in_memory().expect("engine init");
 
-        // Initially empty
         assert_eq!(engine.get_setting("local_only_mode").unwrap(), None);
         assert_eq!(engine.list_settings().unwrap().len(), 0);
 
-        // Insert setting
         let setting = AppSetting {
             key: "local_only_mode".to_string(),
             value: "true".to_string(),
@@ -69,7 +71,6 @@ mod tests {
         let fetched = engine.get_setting("local_only_mode").unwrap().unwrap();
         assert_eq!(fetched, setting);
 
-        // Upsert / update setting
         let updated = AppSetting {
             key: "local_only_mode".to_string(),
             value: "false".to_string(),
@@ -85,7 +86,6 @@ mod tests {
             "false"
         );
 
-        // Add second setting and list
         engine
             .set_setting(&AppSetting {
                 key: "force_cpu_only".to_string(),
@@ -98,7 +98,6 @@ mod tests {
         assert_eq!(all[0].key, "force_cpu_only");
         assert_eq!(all[1].key, "local_only_mode");
 
-        // Delete setting
         assert!(engine.delete_setting("local_only_mode").unwrap());
         assert!(!engine.delete_setting("non_existent").unwrap());
         assert_eq!(engine.get_setting("local_only_mode").unwrap(), None);
@@ -131,7 +130,6 @@ mod tests {
         let active = engine.get_active_workspace().unwrap().unwrap();
         assert_eq!(active.id, "ws-01");
 
-        // Switch active workspace to ws2
         engine.set_active_workspace("ws-02", 1020).unwrap();
         let new_active = engine.get_active_workspace().unwrap().unwrap();
         assert_eq!(new_active.id, "ws-02");
@@ -139,7 +137,6 @@ mod tests {
         let ws1_reloaded = engine.get_workspace("ws-01").unwrap().unwrap();
         assert!(!ws1_reloaded.is_active);
 
-        // Switch to non-existent workspace returns NotFound
         assert!(matches!(
             engine.set_active_workspace("ws-99", 1030),
             Err(StorageError::NotFound {
@@ -148,11 +145,9 @@ mod tests {
             })
         ));
 
-        // List workspaces
         let list = engine.list_workspaces().unwrap();
         assert_eq!(list.len(), 2);
 
-        // Delete workspace
         assert!(engine.delete_workspace("ws-01").unwrap());
         assert_eq!(engine.get_workspace("ws-01").unwrap(), None);
     }
@@ -191,7 +186,6 @@ mod tests {
         assert_eq!(engine.count_consent_events().unwrap(), 2);
         let list = engine.list_consent_events(10).unwrap();
         assert_eq!(list.len(), 2);
-        // Listed in descending order of ID
         assert_eq!(list[0].action, "REVOKE");
         assert_eq!(list[1].action, "GRANT");
     }
@@ -217,6 +211,232 @@ mod tests {
         assert_eq!(records.len(), 1);
         assert_eq!(records[0].event_type, "HARDWARE_DETECTED");
         assert_eq!(records[0].message, diag.message);
+    }
+
+    #[test]
+    fn test_cached_models_crud_and_modality_filtering() {
+        let engine = StorageEngine::in_memory().expect("engine init");
+
+        let model1 = CachedModelRecord {
+            id: "tiny-llama-q4".to_string(),
+            modality: Modality::Llm,
+            file_path: "models/llm/tiny-llama-q4.gguf".to_string(),
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
+            size_bytes: 512 * 1024 * 1024,
+            preferred_backend: AcceleratorBackend::Cpu,
+            created_at_epoch_secs: 1000,
+        };
+
+        let model2 = CachedModelRecord {
+            id: "vit-small".to_string(),
+            modality: Modality::Vision,
+            file_path: "models/vision/vit-small.onnx".to_string(),
+            sha256: "a1b2c3d4e5f60123456789abcdef0123456789abcdef0123456789abcdef0123".to_string(),
+            size_bytes: 128 * 1024 * 1024,
+            preferred_backend: AcceleratorBackend::Cpu,
+            created_at_epoch_secs: 1010,
+        };
+
+        engine.record_cached_model(&model1).unwrap();
+        engine.record_cached_model(&model2).unwrap();
+
+        let fetched = engine.get_cached_model("tiny-llama-q4").unwrap().unwrap();
+        assert_eq!(fetched, model1);
+
+        // List all models
+        let all = engine.list_cached_models(None).unwrap();
+        assert_eq!(all.len(), 2);
+
+        // Filter by Modality::Llm
+        let llms = engine.list_cached_models(Some(Modality::Llm)).unwrap();
+        assert_eq!(llms.len(), 1);
+        assert_eq!(llms[0].id, "tiny-llama-q4");
+
+        // Filter by Modality::Vision
+        let visions = engine.list_cached_models(Some(Modality::Vision)).unwrap();
+        assert_eq!(visions.len(), 1);
+        assert_eq!(visions[0].id, "vit-small");
+
+        // Filter by Modality::Music (empty)
+        let musics = engine.list_cached_models(Some(Modality::Music)).unwrap();
+        assert_eq!(musics.len(), 0);
+
+        // Update model metadata on conflict
+        let mut updated = model1.clone();
+        updated.size_bytes = 600 * 1024 * 1024;
+        engine.record_cached_model(&updated).unwrap();
+        assert_eq!(
+            engine
+                .get_cached_model("tiny-llama-q4")
+                .unwrap()
+                .unwrap()
+                .size_bytes,
+            600 * 1024 * 1024
+        );
+
+        // Delete model
+        assert!(engine.delete_cached_model("tiny-llama-q4").unwrap());
+        assert!(!engine.delete_cached_model("tiny-llama-q4").unwrap());
+        assert_eq!(engine.get_cached_model("tiny-llama-q4").unwrap(), None);
+    }
+
+    #[test]
+    fn test_chat_sessions_crud_and_ordering() {
+        let engine = StorageEngine::in_memory().expect("engine init");
+
+        let s1 = ChatSessionRecord {
+            id: "chat-01".to_string(),
+            title: "First Conversation".to_string(),
+            created_at_epoch_secs: 1000,
+            updated_at_epoch_secs: 1000,
+        };
+        let s2 = ChatSessionRecord {
+            id: "chat-02".to_string(),
+            title: "Second Conversation".to_string(),
+            created_at_epoch_secs: 1010,
+            updated_at_epoch_secs: 1050,
+        };
+
+        engine.create_chat_session(&s1).unwrap();
+        engine.create_chat_session(&s2).unwrap();
+
+        let fetched = engine.get_chat_session("chat-01").unwrap().unwrap();
+        assert_eq!(fetched, s1);
+
+        // List ordered by updated_at_epoch_secs DESC (s2 first)
+        let list = engine.list_chat_sessions().unwrap();
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].id, "chat-02");
+        assert_eq!(list[1].id, "chat-01");
+
+        // Update title of chat-01 and bump timestamp
+        engine
+            .update_chat_session_title("chat-01", "Renamed First Chat", 1100)
+            .unwrap();
+        let list_updated = engine.list_chat_sessions().unwrap();
+        assert_eq!(list_updated[0].id, "chat-01");
+        assert_eq!(list_updated[0].title, "Renamed First Chat");
+
+        // Update missing session returns NotFound
+        assert!(matches!(
+            engine.update_chat_session_title("chat-99", "Missing", 1200),
+            Err(StorageError::NotFound {
+                entity: "chat_session",
+                ..
+            })
+        ));
+
+        // Delete session
+        assert!(engine.delete_chat_session("chat-01").unwrap());
+        assert_eq!(engine.get_chat_session("chat-01").unwrap(), None);
+    }
+
+    #[test]
+    fn test_transaction_atomicity_and_rollback() {
+        let engine = StorageEngine::in_memory().expect("engine init");
+
+        // Successful atomic transaction
+        let res: Result<(), StorageError> = engine.transaction(|tx| {
+            tx.execute(
+                "INSERT INTO app_settings (key, value, updated_at_epoch_secs) VALUES ('tx_key', 'tx_val', 1000)",
+                [],
+            )?;
+            tx.execute(
+                "INSERT INTO app_settings (key, value, updated_at_epoch_secs) VALUES ('tx_key2', 'tx_val2', 1000)",
+                [],
+            )?;
+            Ok(())
+        });
+        assert!(res.is_ok());
+        assert_eq!(
+            engine.get_setting("tx_key").unwrap().unwrap().value,
+            "tx_val"
+        );
+        assert_eq!(
+            engine.get_setting("tx_key2").unwrap().unwrap().value,
+            "tx_val2"
+        );
+
+        // Failed transaction: must rollback all operations
+        let fail_res: Result<(), StorageError> = engine.transaction(|tx| {
+            tx.execute(
+                "INSERT INTO app_settings (key, value, updated_at_epoch_secs) VALUES ('rollback_key', 'val', 1000)",
+                [],
+            )?;
+            // Intentional error: duplicate primary key insert without conflict handler
+            tx.execute(
+                "INSERT INTO app_settings (key, value, updated_at_epoch_secs) VALUES ('rollback_key', 'val', 1000)",
+                [],
+            )?;
+            Ok(())
+        });
+        assert!(fail_res.is_err());
+
+        // Verify that 'rollback_key' was not persisted due to atomic rollback
+        assert_eq!(engine.get_setting("rollback_key").unwrap(), None);
+    }
+
+    #[test]
+    fn test_quarantine_and_recovery_on_corrupt_database() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("miniai_test_quarantine_{}", std::process::id()));
+        let db_path = temp_dir.join("corrupt_test.db");
+
+        // 1. Create a healthy on-disk database with data
+        {
+            let engine = StorageEngine::open(&db_path).expect("open initial db");
+            engine
+                .set_setting(&AppSetting {
+                    key: "pre_corrupt_key".to_string(),
+                    value: "pre_corrupt_val".to_string(),
+                    updated_at_epoch_secs: 1000,
+                })
+                .unwrap();
+            let integrity = engine.check_integrity().unwrap();
+            assert!(integrity.is_healthy);
+        }
+
+        // 2. Simulate file corruption by overwriting database file with garbage bytes
+        std::fs::write(&db_path, b"GARBAGE_CORRUPTED_SQLITE_HEADER_AND_PAGE_DATA").unwrap();
+
+        // 3. Attempting to open the corrupted file and check integrity fails or reports unhealthy
+        let corrupt_engine_res = StorageEngine::open(&db_path);
+        // Note: rusqlite may fail on open/migration or check_integrity
+        if let Ok(corrupt_engine) = corrupt_engine_res {
+            let integrity = corrupt_engine.check_integrity();
+            if let Ok(rep) = integrity {
+                assert!(!rep.is_healthy);
+            }
+        }
+
+        // 4. Quarantine and recover the corrupted database
+        let (recovered_engine, quarantine_result) =
+            StorageEngine::quarantine_and_recover(&db_path, 20261105).unwrap();
+
+        assert!(quarantine_result.recreated_healthy);
+        assert!(std::path::Path::new(&quarantine_result.quarantined_backup_path).exists());
+        assert!(recovered_engine.check_integrity().unwrap().is_healthy);
+        assert_eq!(recovered_engine.schema_version().unwrap(), 2);
+
+        // Verify recovered database accepts new writes
+        recovered_engine
+            .set_setting(&AppSetting {
+                key: "post_recovery_key".to_string(),
+                value: "post_recovery_val".to_string(),
+                updated_at_epoch_secs: 2000,
+            })
+            .unwrap();
+        assert_eq!(
+            recovered_engine
+                .get_setting("post_recovery_key")
+                .unwrap()
+                .unwrap()
+                .value,
+            "post_recovery_val"
+        );
+
+        // Clean up temp dir
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 
     #[test]
@@ -280,6 +500,16 @@ mod tests {
         let rep_decoded: IntegrityReport =
             serde_json::from_str(&rep_json).expect("deserialize report");
         assert_eq!(report, rep_decoded);
+
+        let q_res = QuarantineResult {
+            original_path: "/data/orig.db".to_string(),
+            quarantined_backup_path: "/data/orig.corrupt.bak".to_string(),
+            recreated_healthy: true,
+        };
+        let q_json = serde_json::to_string(&q_res).expect("serialize quarantine");
+        let q_decoded: QuarantineResult =
+            serde_json::from_str(&q_json).expect("deserialize quarantine");
+        assert_eq!(q_res, q_decoded);
     }
 
     #[test]
@@ -326,7 +556,6 @@ mod tests {
         let err8 = StorageError::LockPoisoned;
         assert!(format!("{err8}").contains("poisoned"));
 
-        // From rusqlite error
         let rusql_err = rusqlite::Error::InvalidQuery;
         let converted: StorageError = rusql_err.into();
         assert!(matches!(converted, StorageError::DatabaseError { .. }));
@@ -344,7 +573,6 @@ mod tests {
     fn test_migration_checksum_mismatch_detection() {
         let mut conn = rusqlite::Connection::open_in_memory().unwrap();
 
-        // Run initial migrations
         let initial_migrations = [Migration::new(
             1,
             "001_init",
@@ -353,7 +581,6 @@ mod tests {
         let count = MigrationRunner::run_migrations(&mut conn, &initial_migrations, 1000).unwrap();
         assert_eq!(count, 1);
 
-        // Attempt to re-run migration with altered SQL
         let altered_migrations = [Migration::new(
             1,
             "001_init",
@@ -366,7 +593,6 @@ mod tests {
             StorageError::MigrationChecksumMismatch { version: 1, .. }
         ));
 
-        // Attempt to re-run migration with altered name
         let altered_name_migrations = [Migration::new(
             1,
             "001_different_name",

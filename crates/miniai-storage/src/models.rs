@@ -1,3 +1,4 @@
+use miniai_core::{AcceleratorBackend, Modality};
 use serde::{Deserialize, Serialize};
 
 /// Persisted key-value setting.
@@ -44,10 +45,39 @@ pub struct DiagnosticEventRecord {
     pub created_at_epoch_secs: u64,
 }
 
+/// Cached model metadata record.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CachedModelRecord {
+    pub id: String,
+    pub modality: Modality,
+    pub file_path: String,
+    pub sha256: String,
+    pub size_bytes: u64,
+    pub preferred_backend: AcceleratorBackend,
+    pub created_at_epoch_secs: u64,
+}
+
+/// Persisted chat session record.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChatSessionRecord {
+    pub id: String,
+    pub title: String,
+    pub created_at_epoch_secs: u64,
+    pub updated_at_epoch_secs: u64,
+}
+
 /// Database integrity verification report.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntegrityReport {
     pub is_healthy: bool,
     pub integrity_messages: Vec<String>,
     pub foreign_key_violations: Vec<String>,
+}
+
+/// Result of quarantining and recovering a corrupted database.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QuarantineResult {
+    pub original_path: String,
+    pub quarantined_backup_path: String,
+    pub recreated_healthy: bool,
 }

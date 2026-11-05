@@ -1,12 +1,14 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use miniai_core::{AcceleratorBackend, Modality};
 use rusqlite::{params, Connection, OpenFlags};
 
 use crate::error::StorageError;
 use crate::migrations::{MigrationRunner, MIGRATIONS};
 use crate::models::{
-    AppSetting, ConsentAuditEvent, DiagnosticEventRecord, IntegrityReport, Workspace,
+    AppSetting, CachedModelRecord, ChatSessionRecord, ConsentAuditEvent, DiagnosticEventRecord,
+    IntegrityReport, QuarantineResult, Workspace,
 };
 
 /// A thread-safe, transactional SQLite storage engine with WAL mode and migration support.
@@ -14,6 +16,7 @@ use crate::models::{
 pub struct StorageEngine {
     conn: Arc<Mutex<Connection>>,
     is_in_memory: bool,
+    path: Option<PathBuf>,
 }
 
 impl StorageEngine {
@@ -26,6 +29,7 @@ impl StorageEngine {
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
             is_in_memory: true,
+            path: None,
         })
     }
 
@@ -53,6 +57,7 @@ impl StorageEngine {
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
             is_in_memory: false,
+            path: Some(path_ref.to_path_buf()),
         })
     }
 
@@ -72,9 +77,27 @@ impl StorageEngine {
         self.is_in_memory
     }
 
+    /// Returns the filesystem path of this storage engine if it is backed by an on-disk file.
+    pub fn path(&self) -> Option<&Path> {
+        self.path.as_deref()
+    }
+
     /// Acquires the connection mutex.
     fn lock_conn(&self) -> Result<std::sync::MutexGuard<'_, Connection>, StorageError> {
         self.conn.lock().map_err(|_| StorageError::LockPoisoned)
+    }
+
+    /// Executes a closure inside an atomic database transaction.
+    /// Automatically commits if the closure returns `Ok(_)`, or rolls back on `Err(_)`.
+    pub fn transaction<F, R>(&self, f: F) -> Result<R, StorageError>
+    where
+        F: FnOnce(&rusqlite::Transaction<'_>) -> Result<R, StorageError>,
+    {
+        let mut conn = self.lock_conn()?;
+        let tx = conn.transaction()?;
+        let result = f(&tx)?;
+        tx.commit()?;
+        Ok(result)
     }
 
     /// Performs `PRAGMA integrity_check` and `PRAGMA foreign_key_check`.
@@ -112,6 +135,54 @@ impl StorageEngine {
             integrity_messages,
             foreign_key_violations,
         })
+    }
+
+    /// Quarantines an existing corrupted database by renaming the file (and any associated
+    /// `-wal` and `-shm` journal files) to a timestamped backup path, and initializes a clean,
+    /// healthy database at the original path.
+    pub fn quarantine_and_recover<P: AsRef<Path>>(
+        path: P,
+        timestamp_epoch_secs: u64,
+    ) -> Result<(Self, QuarantineResult), StorageError> {
+        let path_ref = path.as_ref();
+        let backup_path = path_ref.with_extension(format!("{timestamp_epoch_secs}.corrupt.bak"));
+
+        if path_ref.exists() {
+            std::fs::rename(path_ref, &backup_path).map_err(|e| StorageError::DatabaseError {
+                message: format!(
+                    "Failed to quarantine corrupt database from '{}' to '{}': {e}",
+                    path_ref.display(),
+                    backup_path.display()
+                ),
+            })?;
+
+            let wal_path = PathBuf::from(format!("{}-wal", path_ref.display()));
+            if wal_path.exists() {
+                let _ = std::fs::rename(
+                    &wal_path,
+                    PathBuf::from(format!("{}-wal", backup_path.display())),
+                );
+            }
+            let shm_path = PathBuf::from(format!("{}-shm", path_ref.display()));
+            if shm_path.exists() {
+                let _ = std::fs::rename(
+                    &shm_path,
+                    PathBuf::from(format!("{}-shm", backup_path.display())),
+                );
+            }
+        }
+
+        let new_engine = Self::open(path_ref)?;
+        let integrity = new_engine.check_integrity()?;
+
+        Ok((
+            new_engine,
+            QuarantineResult {
+                original_path: path_ref.to_string_lossy().to_string(),
+                quarantined_backup_path: backup_path.to_string_lossy().to_string(),
+                recreated_healthy: integrity.is_healthy,
+            },
+        ))
     }
 
     /// Returns the current schema version recorded in `schema_migrations`.
@@ -397,5 +468,294 @@ impl StorageEngine {
             out.push(r?);
         }
         Ok(out)
+    }
+
+    // =========================================================================
+    // Cached Models Repository
+    // =========================================================================
+
+    pub fn record_cached_model(&self, model: &CachedModelRecord) -> Result<(), StorageError> {
+        let modality_str = serde_json::to_string(&model.modality)
+            .map_err(|e| StorageError::SerializationError {
+                message: e.to_string(),
+            })?
+            .trim_matches('"')
+            .to_string();
+
+        let backend_str = serde_json::to_string(&model.preferred_backend)
+            .map_err(|e| StorageError::SerializationError {
+                message: e.to_string(),
+            })?
+            .trim_matches('"')
+            .to_string();
+
+        let conn = self.lock_conn()?;
+        conn.execute(
+            "INSERT INTO cached_models (id, modality, file_path, sha256, size_bytes, preferred_backend, created_at_epoch_secs)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(id) DO UPDATE SET
+                 modality = excluded.modality,
+                 file_path = excluded.file_path,
+                 sha256 = excluded.sha256,
+                 size_bytes = excluded.size_bytes,
+                 preferred_backend = excluded.preferred_backend,
+                 created_at_epoch_secs = excluded.created_at_epoch_secs",
+            params![
+                model.id,
+                modality_str,
+                model.file_path,
+                model.sha256,
+                model.size_bytes as i64,
+                backend_str,
+                model.created_at_epoch_secs as i64,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_cached_model(&self, id: &str) -> Result<Option<CachedModelRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, modality, file_path, sha256, size_bytes, preferred_backend, created_at_epoch_secs
+             FROM cached_models WHERE id = ?1",
+        )?;
+        let mut rows = stmt.query(params![id])?;
+        if let Some(row) = rows.next()? {
+            let modality_raw: String = row.get(1)?;
+            let modality: Modality =
+                serde_json::from_str(&format!("\"{modality_raw}\"")).map_err(|e| {
+                    StorageError::SerializationError {
+                        message: e.to_string(),
+                    }
+                })?;
+
+            let backend_raw: String = row.get(5)?;
+            let preferred_backend: AcceleratorBackend =
+                serde_json::from_str(&format!("\"{backend_raw}\"")).map_err(|e| {
+                    StorageError::SerializationError {
+                        message: e.to_string(),
+                    }
+                })?;
+
+            Ok(Some(CachedModelRecord {
+                id: row.get(0)?,
+                modality,
+                file_path: row.get(2)?,
+                sha256: row.get(3)?,
+                size_bytes: row.get::<_, i64>(4)? as u64,
+                preferred_backend,
+                created_at_epoch_secs: row.get::<_, i64>(6)? as u64,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn list_cached_models(
+        &self,
+        filter_modality: Option<Modality>,
+    ) -> Result<Vec<CachedModelRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut out = Vec::new();
+
+        if let Some(filter) = filter_modality {
+            let filter_str = serde_json::to_string(&filter)
+                .map_err(|e| StorageError::SerializationError {
+                    message: e.to_string(),
+                })?
+                .trim_matches('"')
+                .to_string();
+
+            let mut stmt = conn.prepare(
+                "SELECT id, modality, file_path, sha256, size_bytes, preferred_backend, created_at_epoch_secs
+                 FROM cached_models WHERE modality = ?1 ORDER BY id ASC",
+            )?;
+            let rows = stmt.query_map(params![filter_str], |row| {
+                let id: String = row.get(0)?;
+                let modality_raw: String = row.get(1)?;
+                let file_path: String = row.get(2)?;
+                let sha256: String = row.get(3)?;
+                let size_bytes: i64 = row.get(4)?;
+                let backend_raw: String = row.get(5)?;
+                let created_at: i64 = row.get(6)?;
+                Ok((
+                    id,
+                    modality_raw,
+                    file_path,
+                    sha256,
+                    size_bytes,
+                    backend_raw,
+                    created_at,
+                ))
+            })?;
+
+            for r in rows {
+                let (id, mod_raw, file_path, sha256, size_bytes, backend_raw, created_at) = r?;
+                let modality: Modality =
+                    serde_json::from_str(&format!("\"{mod_raw}\"")).map_err(|e| {
+                        StorageError::SerializationError {
+                            message: e.to_string(),
+                        }
+                    })?;
+                let preferred_backend: AcceleratorBackend =
+                    serde_json::from_str(&format!("\"{backend_raw}\"")).map_err(|e| {
+                        StorageError::SerializationError {
+                            message: e.to_string(),
+                        }
+                    })?;
+                out.push(CachedModelRecord {
+                    id,
+                    modality,
+                    file_path,
+                    sha256,
+                    size_bytes: size_bytes as u64,
+                    preferred_backend,
+                    created_at_epoch_secs: created_at as u64,
+                });
+            }
+        } else {
+            let mut stmt = conn.prepare(
+                "SELECT id, modality, file_path, sha256, size_bytes, preferred_backend, created_at_epoch_secs
+                 FROM cached_models ORDER BY id ASC",
+            )?;
+            let rows = stmt.query_map([], |row| {
+                let id: String = row.get(0)?;
+                let modality_raw: String = row.get(1)?;
+                let file_path: String = row.get(2)?;
+                let sha256: String = row.get(3)?;
+                let size_bytes: i64 = row.get(4)?;
+                let backend_raw: String = row.get(5)?;
+                let created_at: i64 = row.get(6)?;
+                Ok((
+                    id,
+                    modality_raw,
+                    file_path,
+                    sha256,
+                    size_bytes,
+                    backend_raw,
+                    created_at,
+                ))
+            })?;
+
+            for r in rows {
+                let (id, mod_raw, file_path, sha256, size_bytes, backend_raw, created_at) = r?;
+                let modality: Modality =
+                    serde_json::from_str(&format!("\"{mod_raw}\"")).map_err(|e| {
+                        StorageError::SerializationError {
+                            message: e.to_string(),
+                        }
+                    })?;
+                let preferred_backend: AcceleratorBackend =
+                    serde_json::from_str(&format!("\"{backend_raw}\"")).map_err(|e| {
+                        StorageError::SerializationError {
+                            message: e.to_string(),
+                        }
+                    })?;
+                out.push(CachedModelRecord {
+                    id,
+                    modality,
+                    file_path,
+                    sha256,
+                    size_bytes: size_bytes as u64,
+                    preferred_backend,
+                    created_at_epoch_secs: created_at as u64,
+                });
+            }
+        }
+
+        Ok(out)
+    }
+
+    pub fn delete_cached_model(&self, id: &str) -> Result<bool, StorageError> {
+        let conn = self.lock_conn()?;
+        let affected = conn.execute("DELETE FROM cached_models WHERE id = ?1", params![id])?;
+        Ok(affected > 0)
+    }
+
+    // =========================================================================
+    // Chat Sessions Repository
+    // =========================================================================
+
+    pub fn create_chat_session(&self, session: &ChatSessionRecord) -> Result<(), StorageError> {
+        let conn = self.lock_conn()?;
+        conn.execute(
+            "INSERT INTO chat_sessions (id, title, created_at_epoch_secs, updated_at_epoch_secs)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(id) DO UPDATE SET
+                 title = excluded.title,
+                 updated_at_epoch_secs = excluded.updated_at_epoch_secs",
+            params![
+                session.id,
+                session.title,
+                session.created_at_epoch_secs as i64,
+                session.updated_at_epoch_secs as i64,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_chat_session(&self, id: &str) -> Result<Option<ChatSessionRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, title, created_at_epoch_secs, updated_at_epoch_secs FROM chat_sessions WHERE id = ?1",
+        )?;
+        let mut rows = stmt.query(params![id])?;
+        if let Some(row) = rows.next()? {
+            Ok(Some(ChatSessionRecord {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                created_at_epoch_secs: row.get::<_, i64>(2)? as u64,
+                updated_at_epoch_secs: row.get::<_, i64>(3)? as u64,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn list_chat_sessions(&self) -> Result<Vec<ChatSessionRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, title, created_at_epoch_secs, updated_at_epoch_secs
+             FROM chat_sessions ORDER BY updated_at_epoch_secs DESC",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok(ChatSessionRecord {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                created_at_epoch_secs: row.get::<_, i64>(2)? as u64,
+                updated_at_epoch_secs: row.get::<_, i64>(3)? as u64,
+            })
+        })?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    }
+
+    pub fn update_chat_session_title(
+        &self,
+        id: &str,
+        title: &str,
+        updated_at_epoch_secs: u64,
+    ) -> Result<(), StorageError> {
+        let conn = self.lock_conn()?;
+        let affected = conn.execute(
+            "UPDATE chat_sessions SET title = ?2, updated_at_epoch_secs = ?3 WHERE id = ?1",
+            params![id, title, updated_at_epoch_secs as i64],
+        )?;
+        if affected == 0 {
+            return Err(StorageError::NotFound {
+                entity: "chat_session",
+                key: id.to_string(),
+            });
+        }
+        Ok(())
+    }
+
+    pub fn delete_chat_session(&self, id: &str) -> Result<bool, StorageError> {
+        let conn = self.lock_conn()?;
+        let affected = conn.execute("DELETE FROM chat_sessions WHERE id = ?1", params![id])?;
+        Ok(affected > 0)
     }
 }

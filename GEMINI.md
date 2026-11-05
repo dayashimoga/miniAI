@@ -68,3 +68,4 @@ This file is automatically loaded by Antigravity as the primary workspace rule f
 5. **Coverage & Test Pass Rate**:
    - Maintain `>= 90%` measured coverage on critical business logic.
    - Maintain `100%` passing tests across all test suites.
+

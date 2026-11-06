@@ -172,6 +172,62 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
     );
   }
 
+  void _showCitationDialog(BuildContext context, String citationTag) {
+    final snippet = widget.controller.getCitationSnippet(citationTag);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const Key('chat_citation_dialog'),
+        title: Row(
+          children: [
+            const Icon(Icons.bookmark, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Source: $citationTag',
+                style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Container(
+          width: 520,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: SingleChildScrollView(
+            child: SelectableText(
+              snippet,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            key: const Key('copy_chat_citation_button'),
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text('Copy Citation Tag'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: citationTag));
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Citation copied to clipboard!')),
+              );
+            },
+          ),
+          FilledButton(
+            key: const Key('close_chat_citation_dialog_button'),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showExportDialog(BuildContext context) {
     final activeId = widget.controller.activeSessionId;
     if (activeId == null) return;
@@ -585,6 +641,27 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
                     message.content,
                     style: theme.textTheme.bodyMedium,
                   ),
+                  if (message.citations.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: message.citations.map((citation) {
+                        return ActionChip(
+                          key: Key('citation_chip_$citation'),
+                          avatar: const Icon(Icons.bookmark_border, size: 14),
+                          label: Text(
+                            citation,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          onPressed: () => _showCitationDialog(context, citation),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,

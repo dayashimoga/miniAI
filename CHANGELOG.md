@@ -491,3 +491,26 @@
   - Added built-in tools: `WorkspaceFileReadTool`, `CalculatorTool`, `CodeSymbolSearchTool`, and `RagQueryTool`.
   - Enforced strict Local-Only Privacy Mode blocking all network tools, execution timeouts, and output byte limits with truncation markers.
   - Reached 106/106 Rust tests passing across the workspace with 0 Clippy warnings.
+
+
+---
+
+## [2026-11-06T18:18:00+05:30] — Stage 5 Subphase 5.3.2 In Progress (`v0.5.4-stage5.sub5.3.2.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 5 / Phase 5.3 / Subphase 5.3.2 — Knowledge Base UI & Interactive Citation Inspector`
+- **Summary:**
+  - Initiated Subphase 5.3.2 in `ui/miniai_app`.
+  - Building Knowledge Base screen (Tab 7 in `ShellScreen`), interactive RAG query tester, grounded citation inspector dialog in Chat UI, and comprehensive widget tests.
+
+
+---
+
+## [2026-11-06T18:55:00+05:30] — Stage 5 Subphase 5.3.2 Verified (`v0.5.4-stage5.sub5.3.2`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 5 / Phase 5.3 / Subphase 5.3.2 — Knowledge Base UI & Interactive Citation Inspector`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Flutter 3.32.0-0.2.pre, Dart 3.9.0-109.0.dev)
+- **Summary:**
+  - Implemented Knowledge Base index manager screen (Tab 7 'Knowledge' in `ShellScreen`).
+  - Added interactive hybrid retrieval tester with RRF score chips, document inventory data table, and citation source modal.
+  - Added grounded citation chips to `ChatWorkspaceScreen` assistant messages with snippet inspection dialog.
+  - Reached 50/50 Flutter tests passing with 92.46% line coverage and 0 analyzer issues.

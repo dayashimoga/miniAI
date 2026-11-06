@@ -681,6 +681,7 @@ class ChatMessage {
     required this.createdAtEpochSecs,
     required this.updatedAtEpochSecs,
     this.isPinned = false,
+    this.citations = const [],
   });
 
   final String id;
@@ -693,12 +694,14 @@ class ChatMessage {
   final int createdAtEpochSecs;
   final int updatedAtEpochSecs;
   final bool isPinned;
+  final List<String> citations;
 
   ChatMessage copyWith({
     String? content,
     int? tokenCount,
     int? updatedAtEpochSecs,
     bool? isPinned,
+    List<String>? citations,
   }) {
     return ChatMessage(
       id: id,
@@ -711,6 +714,7 @@ class ChatMessage {
       createdAtEpochSecs: createdAtEpochSecs,
       updatedAtEpochSecs: updatedAtEpochSecs ?? this.updatedAtEpochSecs,
       isPinned: isPinned ?? this.isPinned,
+      citations: citations ?? this.citations,
     );
   }
 
@@ -725,6 +729,7 @@ class ChatMessage {
         'created_at_epoch_secs': createdAtEpochSecs,
         'updated_at_epoch_secs': updatedAtEpochSecs,
         'is_pinned': isPinned,
+        'citations': citations,
       };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
@@ -738,6 +743,10 @@ class ChatMessage {
         createdAtEpochSecs: json['created_at_epoch_secs'] as int,
         updatedAtEpochSecs: json['updated_at_epoch_secs'] as int,
         isPinned: json['is_pinned'] as bool? ?? false,
+        citations: (json['citations'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            const [],
       );
 }
 
@@ -1051,5 +1060,229 @@ class TrainingJob {
         errorMessage: json['error_message'] as String?,
         outputAdapterPath: json['output_adapter_path'] as String?,
         adapterSha256: json['adapter_sha256'] as String?,
+      );
+}
+
+// -----------------------------------------------------------------------------
+// Stage 5: RAG & Knowledge Base Contracts
+// -----------------------------------------------------------------------------
+
+enum KnowledgeDocType {
+  markdown('markdown', 'Markdown'),
+  code('code', 'Source Code'),
+  plainText('plain_text', 'Plain Text'),
+  pdfText('pdf_text', 'PDF Text');
+
+  const KnowledgeDocType(this.wireValue, this.displayName);
+  final String wireValue;
+  final String displayName;
+
+  static KnowledgeDocType fromWire(String value) {
+    for (final t in KnowledgeDocType.values) {
+      if (t.wireValue == value.toLowerCase()) return t;
+    }
+    return KnowledgeDocType.plainText;
+  }
+}
+
+class KnowledgeDocument {
+  const KnowledgeDocument({
+    required this.filePath,
+    required this.fileSha256,
+    required this.sizeBytes,
+    required this.lineCount,
+    required this.docType,
+    required this.lastModifiedEpochSecs,
+  });
+
+  final String filePath;
+  final String fileSha256;
+  final int sizeBytes;
+  final int lineCount;
+  final KnowledgeDocType docType;
+  final int lastModifiedEpochSecs;
+
+  String get formattedSize {
+    if (sizeBytes >= 1024 * 1024) {
+      return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    if (sizeBytes >= 1024) {
+      return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '$sizeBytes B';
+  }
+
+  Map<String, dynamic> toJson() => {
+        'file_path': filePath,
+        'file_sha256': fileSha256,
+        'size_bytes': sizeBytes,
+        'line_count': lineCount,
+        'doc_type': docType.wireValue,
+        'last_modified_epoch_secs': lastModifiedEpochSecs,
+      };
+
+  factory KnowledgeDocument.fromJson(Map<String, dynamic> json) =>
+      KnowledgeDocument(
+        filePath: json['file_path'] as String,
+        fileSha256: json['file_sha256'] as String,
+        sizeBytes: json['size_bytes'] as int? ?? 0,
+        lineCount: json['line_count'] as int? ?? 0,
+        docType: KnowledgeDocType.fromWire(json['doc_type'] as String? ?? 'plain_text'),
+        lastModifiedEpochSecs: json['last_modified_epoch_secs'] as int? ?? 0,
+      );
+}
+
+class KnowledgeChunk {
+  const KnowledgeChunk({
+    required this.chunkId,
+    required this.filePath,
+    required this.lineStart,
+    required this.lineEnd,
+    required this.text,
+    required this.citationTag,
+    required this.tokenEstimate,
+    required this.docType,
+  });
+
+  final String chunkId;
+  final String filePath;
+  final int lineStart;
+  final int lineEnd;
+  final String text;
+  final String citationTag;
+  final int tokenEstimate;
+  final KnowledgeDocType docType;
+
+  Map<String, dynamic> toJson() => {
+        'chunk_id': chunkId,
+        'file_path': filePath,
+        'line_start': lineStart,
+        'line_end': lineEnd,
+        'text': text,
+        'citation_tag': citationTag,
+        'token_estimate': tokenEstimate,
+        'doc_type': docType.wireValue,
+      };
+
+  factory KnowledgeChunk.fromJson(Map<String, dynamic> json) => KnowledgeChunk(
+        chunkId: json['chunk_id'] as String,
+        filePath: json['file_path'] as String,
+        lineStart: json['line_start'] as int? ?? 1,
+        lineEnd: json['line_end'] as int? ?? 1,
+        text: json['text'] as String? ?? '',
+        citationTag: json['citation_tag'] as String? ?? '',
+        tokenEstimate: json['token_estimate'] as int? ?? 0,
+        docType: KnowledgeDocType.fromWire(json['doc_type'] as String? ?? 'plain_text'),
+      );
+}
+
+class RetrievalResultItem {
+  const RetrievalResultItem({
+    required this.chunk,
+    required this.rrfScore,
+    required this.denseScore,
+    required this.lexicalScore,
+    required this.citationTag,
+    required this.excerpt,
+  });
+
+  final KnowledgeChunk chunk;
+  final double rrfScore;
+  final double denseScore;
+  final double lexicalScore;
+  final String citationTag;
+  final String excerpt;
+
+  Map<String, dynamic> toJson() => {
+        'chunk': chunk.toJson(),
+        'rrf_score': rrfScore,
+        'dense_score': denseScore,
+        'lexical_score': lexicalScore,
+        'citation_tag': citationTag,
+        'excerpt': excerpt,
+      };
+
+  factory RetrievalResultItem.fromJson(Map<String, dynamic> json) =>
+      RetrievalResultItem(
+        chunk: KnowledgeChunk.fromJson(json['chunk'] as Map<String, dynamic>),
+        rrfScore: (json['rrf_score'] as num?)?.toDouble() ?? 0.0,
+        denseScore: (json['dense_score'] as num?)?.toDouble() ?? 0.0,
+        lexicalScore: (json['lexical_score'] as num?)?.toDouble() ?? 0.0,
+        citationTag: json['citation_tag'] as String? ?? '',
+        excerpt: json['excerpt'] as String? ?? '',
+      );
+}
+
+enum ToolCapabilityContract {
+  workspaceRead('workspace_read', 'Workspace Read'),
+  compute('compute', 'Local Compute'),
+  codeSearch('code_search', 'Code Search'),
+  network('network', 'Network Outbound');
+
+  const ToolCapabilityContract(this.wireValue, this.displayName);
+  final String wireValue;
+  final String displayName;
+
+  static ToolCapabilityContract fromWire(String value) {
+    for (final c in ToolCapabilityContract.values) {
+      if (c.wireValue == value.toLowerCase()) return c;
+    }
+    return ToolCapabilityContract.compute;
+  }
+}
+
+class ToolDescriptorContract {
+  const ToolDescriptorContract({
+    required this.name,
+    required this.description,
+    required this.requiredCapability,
+  });
+
+  final String name;
+  final String description;
+  final ToolCapabilityContract requiredCapability;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'description': description,
+        'required_capability': requiredCapability.wireValue,
+      };
+
+  factory ToolDescriptorContract.fromJson(Map<String, dynamic> json) =>
+      ToolDescriptorContract(
+        name: json['name'] as String,
+        description: json['description'] as String,
+        requiredCapability: ToolCapabilityContract.fromWire(
+          json['required_capability'] as String? ?? 'compute',
+        ),
+      );
+}
+
+class KnowledgeBaseStats {
+  const KnowledgeBaseStats({
+    required this.filesIndexed,
+    required this.chunksIndexed,
+    required this.totalCharsIndexed,
+    required this.lastIndexedAtEpochSecs,
+  });
+
+  final int filesIndexed;
+  final int chunksIndexed;
+  final int totalCharsIndexed;
+  final int lastIndexedAtEpochSecs;
+
+  Map<String, dynamic> toJson() => {
+        'files_indexed': filesIndexed,
+        'chunks_indexed': chunksIndexed,
+        'total_chars_indexed': totalCharsIndexed,
+        'last_indexed_at_epoch_secs': lastIndexedAtEpochSecs,
+      };
+
+  factory KnowledgeBaseStats.fromJson(Map<String, dynamic> json) =>
+      KnowledgeBaseStats(
+        filesIndexed: json['files_indexed'] as int? ?? 0,
+        chunksIndexed: json['chunks_indexed'] as int? ?? 0,
+        totalCharsIndexed: json['total_chars_indexed'] as int? ?? 0,
+        lastIndexedAtEpochSecs: json['last_indexed_at_epoch_secs'] as int? ?? 0,
       );
 }

@@ -136,3 +136,28 @@ pub struct StreamToken {
     /// Terminal reason if `is_final` is true.
     pub finish_reason: Option<FinishReason>,
 }
+
+/// Telemetry record emitted upon hot model switching with verified memory release.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SwitchReport {
+    /// ID of the model previously loaded, if any.
+    pub previous_model_id: Option<String>,
+
+    /// ID of the newly loaded model.
+    pub new_model_id: String,
+
+    /// Memory freed by explicitly dropping the previous model, in bytes.
+    pub freed_memory_bytes: u64,
+
+    /// Memory footprint allocated for the new model, in bytes.
+    pub allocated_memory_bytes: u64,
+
+    /// Active execution backend selected for the new model.
+    pub active_backend: miniai_core::AcceleratorBackend,
+
+    /// Timestamp epoch when switch completed.
+    pub switched_at_epoch_secs: u64,
+
+    /// Total switch duration in milliseconds.
+    pub duration_ms: f64,
+}

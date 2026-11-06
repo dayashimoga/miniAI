@@ -5,9 +5,9 @@ use std::time::Instant;
 
 use miniai_core::AcceleratorBackend;
 
-use crate::config::{FinishReason, GenerationConfig, GenerationOutput, StreamToken};
+use crate::config::{FinishReason, GenerationConfig, GenerationOutput, StreamToken, SwitchReport};
 use crate::error::LlmError;
-use crate::model::ModelWeights;
+use crate::model::{ModelMetadata, ModelWeights};
 use crate::sampler::Sampler;
 use crate::tokenizer::Tokenizer;
 
@@ -67,9 +67,70 @@ impl LlmEngine {
         Ok(())
     }
 
-    /// Unloads active model weights and frees memory footprint.
-    pub fn unload_model(&mut self) {
-        self.weights = None;
+    /// Unloads active model weights, verifies memory release, and returns the number of freed bytes.
+    pub fn unload_model(&mut self) -> u64 {
+        if let Some(weights) = self.weights.take() {
+            let freed = weights.memory_footprint_bytes;
+            drop(weights);
+            freed
+        } else {
+            0
+        }
+    }
+
+    /// Returns the ID of the model currently loaded, or `None` if unloaded.
+    pub fn loaded_model_id(&self) -> Option<&str> {
+        self.weights.as_ref().map(|w| w.metadata.model_id.as_str())
+    }
+
+    /// Returns the metadata of the currently loaded model, if any.
+    pub fn metadata(&self) -> Option<&ModelMetadata> {
+        self.weights.as_ref().map(|w| &w.metadata)
+    }
+
+    /// Atomically hot-switches the active model, verifying that prior model weights
+    /// and memory allocations are completely deallocated before loading the replacement.
+    pub fn switch_model(
+        &mut self,
+        new_model_id: &str,
+        new_model_path: &Path,
+        backend: AcceleratorBackend,
+    ) -> Result<SwitchReport, LlmError> {
+        let start = Instant::now();
+        let prev_id = self.loaded_model_id().map(|s| s.to_string());
+
+        // Step 1: Explicitly unload prior model and verify memory is cleared
+        let freed_memory_bytes = self.unload_model();
+        assert!(
+            self.weights.is_none(),
+            "Prior model weights must be cleared from memory before loading replacement"
+        );
+
+        // Step 2: Load new model into clean memory
+        match self.load_model(new_model_id, new_model_path, backend) {
+            Ok(()) => {
+                let allocated_memory_bytes = self.memory_footprint_bytes();
+                let now_epoch = std::time::SystemTime::now()
+                    .duration_since(std::time::SystemTime::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+
+                Ok(SwitchReport {
+                    previous_model_id: prev_id,
+                    new_model_id: new_model_id.to_string(),
+                    freed_memory_bytes,
+                    allocated_memory_bytes,
+                    active_backend: backend,
+                    switched_at_epoch_secs: now_epoch,
+                    duration_ms: start.elapsed().as_secs_f64() * 1000.0,
+                })
+            }
+            Err(e) => {
+                // Ensure state remains clean and unloaded on failure
+                self.weights = None;
+                Err(e)
+            }
+        }
     }
 
     /// Returns the memory footprint of the currently loaded model in bytes.

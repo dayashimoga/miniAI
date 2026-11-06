@@ -308,3 +308,32 @@
     - Added 12 comprehensive unit tests in `crates/miniai-llm` covering configuration validation, PRNG reproducibility, tokenizer roundtrips, forward pass, greedy generation, stochastic top-p sampling, repetition penalty, stop sequence detection, context window limits, cooperative cancellation under 10ms, and EventBus streaming.
     - Verified all 66 workspace tests pass (`miniai-core`: 9, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13, `miniai-runtime`: 9, `miniai-llm`: 12) with 0 Clippy warnings and clean code formatting.
 - **Next Subphase Ready:** `S3-P1-SUB3.1.2` (Subphase 3.1.2: Hot model switching with verified memory release before loading replacement model).
+
+
+---
+
+### [2026-11-06T09:48:30+05:30] Stage 3 — Entry 017 (Subphase 3.1.2 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.1 — Local LLM Runtime Adapter / Subphase 3.1.2`
+- **Status Transitions:**
+  - `S3-P1-SUB3.1.2` [`IN_PROGRESS`]: Commenced implementation of hot model switching with verified memory release:
+    - Designing `SwitchReport` tracking previous model, replacement model, freed bytes, newly allocated bytes, selected backend, and switch duration.
+    - Implementing safe atomic hot-switch in `LlmEngine` and `LlmAdapter` with verified two-phase drop (explicit deallocation of model $A$ before loading model $B$).
+    - Integrating dynamic `AdmissionGuard` evaluation into model switching, verifying 85% memory ceilings and automatic CPU fallback during transitions.
+    - Emitting real-time `AdapterHealthChanged` and `DiagnosticAlert` events across `EventBus`.
+
+
+---
+
+### [2026-11-06T09:55:00+05:30] Stage 3 — Entry 018 (Subphase 3.1.2 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.1 — Local LLM Runtime Adapter / Subphase 3.1.2`
+- **Status Transitions:**
+  - `S3-P1-SUB3.1.2` [`VERIFIED`]: Implemented hot model switching with verified memory release:
+    - `SwitchReport`: Created comprehensive telemetry structure tracking `previous_model_id`, `new_model_id`, `freed_memory_bytes`, `allocated_memory_bytes`, `active_backend`, `switched_at_epoch_secs`, and `duration_ms`.
+    - `LlmEngine::switch_model`: Implemented verified two-phase drop (explicitly drops model $A$ weights, asserts memory is cleared, then loads model $B$; on load error, cleans up state to unloaded with 0 memory footprint).
+    - `LlmAdapter::switch_model_with_guard`: Coordinated hot model replacement with `AdmissionGuard`, validating RAM/VRAM against the strict 85% ceiling, executing automatic CPU fallback, and broadcasting `AdapterHealthChanged` events to `EventBus`.
+    - `RuntimeSupervisor::switch_model`: Integrated atomic model switching across modalities, safely releasing active adapter state before admitting and loading replacement weights.
+    - Added 4 new unit tests in `crates/miniai-llm` and 1 integration test in `crates/miniai-runtime` verifying explicit memory release, corrupt file recovery, admission guard fallback, and rapid consecutive switches (5 models in sequence with 0 leaks).
+    - Verified all 71 workspace tests pass (`miniai-core`: 9, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13, `miniai-runtime`: 10, `miniai-llm`: 16) with 0 Clippy warnings and 100% Python and Flutter test pass rates.
+- **Next Subphase Ready:** `S3-P2-SUB3.2.1` (Phase 3.2 / Subphase 3.2.1: SQLite conversation history with message editing, branch regeneration, and JSON/Markdown export).

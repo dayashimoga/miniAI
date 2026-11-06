@@ -248,3 +248,19 @@
   - Implemented `LlmEngine` with autoregressive loop, TTFT and throughput calculation, context window sliding, cooperative atomic cancellation (`Arc<AtomicBool>`) responding under 10ms, and stop sequence termination.
   - Implemented `LlmAdapter` bridging `LlmEngine` with `miniai-server` `EventBus` (`InferenceTokenStream` events) and Tokio MPSC channels for token-by-token streaming.
   - Added 12 unit tests in `crates/miniai-llm`, bringing total workspace tests to 66/66 passing with 0 Clippy warnings.
+
+
+---
+
+## [2026-11-06T09:55:00+05:30] — Stage 3 Subphase 3.1.2 Verified (`v0.3.1-stage3.sub3.1.2`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 3 / Phase 3.1 / Subphase 3.1.2 — Hot Model Switching with Verified Memory Release`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `SwitchReport` telemetry record in `crates/miniai-llm/src/config.rs` capturing `previous_model_id`, `new_model_id`, `freed_memory_bytes`, `allocated_memory_bytes`, `active_backend`, `switched_at_epoch_secs`, and `duration_ms`.
+  - Implemented `LlmEngine::switch_model` enforcing verified two-phase drop: explicitly deallocates active model weights and asserts memory clearance before allocating replacement model weights.
+  - Added error-recovery in `LlmEngine`: corrupted or failing model switches leave the engine in clean unloaded state (memory footprint = 0).
+  - Implemented `LlmAdapter::switch_model_with_guard` coordinating with `AdmissionGuard`, validating RAM/VRAM against the 85% ceiling, executing automatic CPU fallback, and broadcasting `AdapterHealthChanged` events to `EventBus`.
+  - Implemented `RuntimeSupervisor::switch_model` in `crates/miniai-runtime/src/supervisor.rs` for atomic model replacement across registered modalities.
+  - Authored 4 unit tests in `crates/miniai-llm` and 1 test in `crates/miniai-runtime` verifying explicit memory release, corrupt file recovery, admission guard fallback, and rapid consecutive switches (5 models in sequence with 0 memory leaks).
+  - Reached 71/71 workspace Rust tests passing with 0 Clippy warnings and 0 formatting diffs.

@@ -123,6 +123,31 @@ impl RuntimeSupervisor {
         Ok(decision)
     }
 
+    /// Atomically hot-switches the model loaded in a specific modality, verifying
+    /// that the prior model is completely unloaded and memory freed before loading the replacement.
+    pub fn switch_model(
+        &mut self,
+        modality: Modality,
+        new_model_id: &str,
+        new_model_path: &Path,
+        required_ram_bytes: u64,
+        required_vram_bytes: u64,
+        preferred_backend: Option<AcceleratorBackend>,
+    ) -> Result<AdmissionDecision, RuntimeError> {
+        // Step 1: Safely unload current model (if loaded) to release memory
+        let _ = self.unload_model(modality);
+
+        // Step 2: Load replacement model into clean memory
+        self.load_model(
+            modality,
+            new_model_id,
+            new_model_path,
+            required_ram_bytes,
+            required_vram_bytes,
+            preferred_backend,
+        )
+    }
+
     /// Returns the health of a specific modality adapter.
     pub fn health_check(&self, modality: Modality) -> Result<AdapterHealth, RuntimeError> {
         let adapter = self

@@ -18,6 +18,7 @@ mod tests {
         PrivacyPolicyEngine, VerificationTier,
     };
     use miniai_server::EventBus;
+    use tempfile::NamedTempFile;
 
     use super::*;
 
@@ -309,5 +310,52 @@ mod tests {
         assert_eq!(snapshot.capabilities.len(), 7);
         assert_eq!(snapshot.adapter_health.len(), 7);
         assert!(snapshot.privacy.local_only_mode);
+    }
+
+    #[test]
+    fn test_supervisor_hot_model_switch_unloads_before_loading_replacement() {
+        let hardware = create_test_hardware_profile(10_000_000_000, false, 0);
+        let privacy = Arc::new(PrivacyPolicyEngine::default());
+        let mut supervisor = RuntimeSupervisor::new(hardware, privacy, None);
+
+        let temp_alpha = NamedTempFile::new().unwrap();
+        let temp_beta = NamedTempFile::new().unwrap();
+
+        // Load model alpha
+        supervisor
+            .load_model(
+                Modality::Llm,
+                "model-alpha",
+                temp_alpha.path(),
+                100_000_000,
+                0,
+                Some(AcceleratorBackend::Cpu),
+            )
+            .expect("load alpha");
+
+        // Now hot-switch to model beta
+        let res = supervisor
+            .switch_model(
+                Modality::Llm,
+                "model-beta",
+                temp_beta.path(),
+                200_000_000,
+                0,
+                Some(AcceleratorBackend::Cpu),
+            )
+            .expect("switch to beta");
+
+        assert_eq!(res.selected_backend, AcceleratorBackend::Cpu);
+        match supervisor.get_state(Modality::Llm) {
+            Some(AdapterState::Loaded {
+                model_id,
+                memory_footprint_bytes,
+                ..
+            }) => {
+                assert_eq!(model_id, "model-beta");
+                assert_eq!(*memory_footprint_bytes, 200_000_000);
+            }
+            other => panic!("Expected Loaded state, got {other:?}"),
+        }
     }
 }

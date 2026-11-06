@@ -9,7 +9,7 @@ pub mod sampler;
 pub mod tokenizer;
 
 pub use adapter::LlmAdapter;
-pub use config::{FinishReason, GenerationConfig, GenerationOutput, StreamToken};
+pub use config::{FinishReason, GenerationConfig, GenerationOutput, StreamToken, SwitchReport};
 pub use engine::LlmEngine;
 pub use error::LlmError;
 pub use model::{ModelMetadata, ModelWeights, GGUF_MAGIC};
@@ -361,5 +361,141 @@ mod tests {
         let config = GenerationConfig::default();
         let res = engine.generate("hello", &config);
         assert_eq!(res, Err(LlmError::ModelNotLoaded));
+    }
+
+    #[test]
+    fn test_llm_engine_hot_model_switch_verifies_memory_release() {
+        let file_alpha = create_dummy_model_file();
+        let file_beta = create_dummy_model_file();
+        let mut engine = LlmEngine::new();
+
+        engine
+            .load_model("model-alpha", file_alpha.path(), AcceleratorBackend::Cpu)
+            .expect("load alpha");
+        assert!(engine.is_loaded());
+        assert_eq!(engine.loaded_model_id(), Some("model-alpha"));
+        let alpha_footprint = engine.memory_footprint_bytes();
+        assert!(alpha_footprint > 0);
+
+        // Hot switch to model-beta
+        let report = engine
+            .switch_model("model-beta", file_beta.path(), AcceleratorBackend::Cpu)
+            .expect("switch to beta");
+
+        assert_eq!(report.previous_model_id, Some("model-alpha".to_string()));
+        assert_eq!(report.new_model_id, "model-beta");
+        assert_eq!(report.freed_memory_bytes, alpha_footprint);
+        assert!(report.allocated_memory_bytes > 0);
+        assert_eq!(report.active_backend, AcceleratorBackend::Cpu);
+        assert!(report.duration_ms >= 0.0);
+
+        assert_eq!(engine.loaded_model_id(), Some("model-beta"));
+        assert_eq!(
+            engine.memory_footprint_bytes(),
+            report.allocated_memory_bytes
+        );
+
+        // Verify inference runs cleanly on new model
+        let output = engine
+            .generate(
+                "MiniAI switch test",
+                &GenerationConfig {
+                    max_new_tokens: 5,
+                    temperature: 0.0,
+                    ..Default::default()
+                },
+            )
+            .expect("generate on beta");
+        assert_eq!(output.completion_tokens, 5);
+    }
+
+    #[test]
+    fn test_llm_engine_hot_model_switch_recovers_on_corrupt_file() {
+        let file_alpha = create_dummy_model_file();
+        let mut engine = LlmEngine::new();
+        engine
+            .load_model("model-alpha", file_alpha.path(), AcceleratorBackend::Cpu)
+            .expect("load alpha");
+        assert!(engine.is_loaded());
+
+        // Attempt switch to non-existent path
+        let invalid_path = std::path::Path::new("non_existent_model_weights.gguf");
+        let res = engine.switch_model("corrupt-model", invalid_path, AcceleratorBackend::Cpu);
+        assert!(matches!(res, Err(LlmError::ModelLoadError { .. })));
+
+        // Verify engine safely cleared state and left footprint at 0
+        assert!(!engine.is_loaded());
+        assert_eq!(engine.loaded_model_id(), None);
+        assert_eq!(engine.memory_footprint_bytes(), 0);
+    }
+
+    #[test]
+    fn test_llm_adapter_hot_model_switch_with_admission_guard() {
+        let file_alpha = create_dummy_model_file();
+        let file_beta = create_dummy_model_file();
+        let mut adapter = LlmAdapter::new("llm-switch-adapter");
+
+        adapter
+            .load_model("model-alpha", file_alpha.path(), AcceleratorBackend::Cpu)
+            .expect("load alpha");
+
+        let hw = miniai_core::HardwareDetector::detect_host_profile();
+        let privacy = Arc::new(miniai_core::PrivacyPolicyEngine::default());
+        let guard = miniai_core::AdmissionGuard::new(hw, privacy);
+
+        let event_bus = EventBus::new(32, 16);
+        let mut rx = event_bus.subscribe();
+
+        let report = adapter
+            .switch_model_with_guard(
+                "model-beta",
+                file_beta.path(),
+                Some(AcceleratorBackend::Cpu),
+                &guard,
+                Some(&event_bus),
+            )
+            .expect("switch with guard");
+
+        assert_eq!(report.new_model_id, "model-beta");
+        assert_eq!(adapter.loaded_model_id(), Some("model-beta"));
+
+        // Verify health changed events were emitted over event bus
+        let mut health_events = 0;
+        while let Ok(env) = rx.try_recv() {
+            if let miniai_server::SystemEvent::AdapterHealthChanged { .. } = env.event {
+                health_events += 1;
+            }
+        }
+        assert!(health_events >= 2); // Unloading event + Loaded event
+    }
+
+    #[test]
+    fn test_rapid_consecutive_model_switches() {
+        let mut engine = LlmEngine::new();
+        let files: Vec<NamedTempFile> = (0..5).map(|_| create_dummy_model_file()).collect();
+
+        for (i, file) in files.iter().enumerate() {
+            let model_id = format!("model-{i}");
+            let report = engine
+                .switch_model(&model_id, file.path(), AcceleratorBackend::Cpu)
+                .expect("switch in sequence");
+
+            assert_eq!(report.new_model_id, model_id);
+            assert_eq!(engine.loaded_model_id(), Some(model_id.as_str()));
+            assert!(engine.memory_footprint_bytes() > 0);
+        }
+
+        assert_eq!(engine.loaded_model_id(), Some("model-4"));
+        let out = engine
+            .generate(
+                "Final prompt",
+                &GenerationConfig {
+                    max_new_tokens: 4,
+                    temperature: 0.0,
+                    ..Default::default()
+                },
+            )
+            .expect("final generate");
+        assert_eq!(out.completion_tokens, 4);
     }
 }

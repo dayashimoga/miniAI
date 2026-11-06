@@ -3,10 +3,10 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use miniai_core::{AcceleratorBackend, AdapterHealth, Modality};
+use miniai_core::{AcceleratorBackend, AdapterHealth, AdmissionGuard, Modality};
 use miniai_server::{EventBus, SystemEvent};
 
-use crate::config::{GenerationConfig, GenerationOutput, StreamToken};
+use crate::config::{GenerationConfig, GenerationOutput, StreamToken, SwitchReport};
 use crate::engine::LlmEngine;
 use crate::error::LlmError;
 
@@ -56,8 +56,76 @@ impl LlmAdapter {
         self.engine.load_model(model_id, path, backend)
     }
 
-    pub fn unload_model(&mut self) {
-        self.engine.unload_model();
+    pub fn unload_model(&mut self) -> u64 {
+        self.engine.unload_model()
+    }
+
+    pub fn loaded_model_id(&self) -> Option<&str> {
+        self.engine.loaded_model_id()
+    }
+
+    pub fn memory_footprint_bytes(&self) -> u64 {
+        self.engine.memory_footprint_bytes()
+    }
+
+    /// Hot-switches the model with verified memory release.
+    pub fn switch_model(
+        &mut self,
+        new_model_id: &str,
+        new_model_path: &Path,
+        backend: AcceleratorBackend,
+    ) -> Result<SwitchReport, LlmError> {
+        self.engine
+            .switch_model(new_model_id, new_model_path, backend)
+    }
+
+    /// Hot-switches the model with verified memory release, admission guard evaluation,
+    /// automatic CPU fallback, and event bus telemetry broadcast.
+    pub fn switch_model_with_guard(
+        &mut self,
+        new_model_id: &str,
+        new_model_path: &Path,
+        preferred_backend: Option<AcceleratorBackend>,
+        admission_guard: &AdmissionGuard,
+        event_bus: Option<&EventBus>,
+    ) -> Result<SwitchReport, LlmError> {
+        let file_meta =
+            std::fs::metadata(new_model_path).map_err(|e| LlmError::ModelLoadError {
+                reason: format!("Failed to read replacement model file: {}", e),
+            })?;
+        let required_bytes = file_meta.len();
+
+        let decision = admission_guard.evaluate_admission(
+            required_bytes,
+            required_bytes,
+            preferred_backend,
+        )?;
+
+        let selected_backend = decision.selected_backend;
+
+        if let Some(bus) = event_bus {
+            let _ = bus.publish_now(SystemEvent::AdapterHealthChanged {
+                health: AdapterHealth {
+                    adapter_id: self.adapter_id.clone(),
+                    modality: Modality::Llm,
+                    ready: false,
+                    active_backend: selected_backend,
+                    status_message: format!("Hot-switching to model '{}'", new_model_id),
+                },
+            });
+        }
+
+        let report = self
+            .engine
+            .switch_model(new_model_id, new_model_path, selected_backend)?;
+
+        if let Some(bus) = event_bus {
+            let _ = bus.publish_now(SystemEvent::AdapterHealthChanged {
+                health: self.health_check(),
+            });
+        }
+
+        Ok(report)
     }
 
     pub fn health_check(&self) -> AdapterHealth {

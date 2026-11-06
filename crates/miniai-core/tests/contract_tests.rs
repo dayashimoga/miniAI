@@ -46,8 +46,8 @@ fn test_cross_language_json_contract_serialization() {
     let round_trip: SystemSnapshot =
         serde_json::from_value(value).expect("deserialize from json value");
     assert_eq!(round_trip.capabilities.len(), 7);
-    assert_eq!(
-        round_trip.hardware.detected_backends,
-        vec![AcceleratorBackend::Cpu]
-    );
+    assert!(round_trip
+        .hardware
+        .detected_backends
+        .contains(&AcceleratorBackend::Cpu));
 }

@@ -138,77 +138,20 @@ pub enum MiniAiError {
     SerializationError { message: String },
 }
 
-/// Host hardware capability profile with CPU-first fallback semantics.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HardwareProfile {
-    pub os_family: String,
-    pub arch: String,
-    pub logical_cpu_cores: u32,
-    pub total_memory_bytes: u64,
-    pub available_memory_bytes: u64,
-    pub detected_backends: Vec<AcceleratorBackend>,
-}
+pub mod hardware;
 
-impl HardwareProfile {
-    /// Returns the 85% available memory admission ceiling to prevent system OOM.
-    pub fn safe_memory_limit_bytes(&self) -> u64 {
-        (self.available_memory_bytes / 100).saturating_mul(85)
-    }
-
-    /// Checks whether a model with `required_bytes` footprint can be safely admitted.
-    pub fn can_admit_model(&self, required_bytes: u64) -> Result<(), MiniAiError> {
-        let safe_limit_bytes = self.safe_memory_limit_bytes();
-        if required_bytes == 0 || required_bytes > safe_limit_bytes {
-            return Err(MiniAiError::InsufficientMemory {
-                required_bytes,
-                safe_limit_bytes,
-            });
-        }
-        Ok(())
-    }
-
-    /// Selects the optimal execution backend with deterministic fallback to `AcceleratorBackend::Cpu`.
-    pub fn select_execution_backend(
-        &self,
-        preferred: Option<AcceleratorBackend>,
-        force_cpu: bool,
-    ) -> AcceleratorBackend {
-        if force_cpu {
-            return AcceleratorBackend::Cpu;
-        }
-        if let Some(target) = preferred {
-            if self.detected_backends.contains(&target) {
-                return target;
-            }
-        }
-        for backend in &self.detected_backends {
-            if !backend.is_cpu() {
-                return *backend;
-            }
-        }
-        AcceleratorBackend::Cpu
-    }
-}
+pub use hardware::{
+    probe_host_hardware, AdmissionDecision, AdmissionGuard, CpuFeatures, GpuDevice, HardwareProfile,
+};
 
 /// Hardware discovery service.
 pub struct HardwareDetector;
 
 impl HardwareDetector {
-    /// Detects the current host profile with guaranteed `AcceleratorBackend::Cpu` baseline.
+    /// Detects the current host profile with guaranteed `AcceleratorBackend::Cpu` baseline
+    /// and dynamic SIMD / RAM / VRAM probing.
     pub fn detect_host_profile() -> HardwareProfile {
-        let logical_cpu_cores = std::thread::available_parallelism()
-            .map(|n| n.get() as u32)
-            .unwrap_or(1)
-            .max(1);
-
-        HardwareProfile {
-            os_family: std::env::consts::OS.to_string(),
-            arch: std::env::consts::ARCH.to_string(),
-            logical_cpu_cores,
-            total_memory_bytes: 16 * 1024 * 1024 * 1024,
-            available_memory_bytes: 8 * 1024 * 1024 * 1024,
-            detected_backends: vec![AcceleratorBackend::Cpu],
-        }
+        HardwareProfile::probe()
     }
 }
 
@@ -626,6 +569,7 @@ impl RuntimeRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
 
     #[test]
     fn test_all_modalities_and_display_names() {
@@ -657,11 +601,11 @@ mod tests {
     fn test_hardware_admission_and_backend_fallback() {
         let mut profile = HardwareDetector::detect_host_profile();
         assert!(profile.logical_cpu_cores >= 1);
-        assert_eq!(profile.detected_backends, vec![AcceleratorBackend::Cpu]);
+        assert!(profile.detected_backends.contains(&AcceleratorBackend::Cpu));
 
-        // 85% of 8 GiB
         let limit = profile.safe_memory_limit_bytes();
-        assert!(profile.can_admit_model(1024 * 1024 * 100).is_ok());
+        assert!(limit > 0);
+        assert!(profile.can_admit_model(1024 * 1024 * 10).is_ok());
         assert!(matches!(
             profile.can_admit_model(0),
             Err(MiniAiError::InsufficientMemory { .. })
@@ -671,26 +615,130 @@ mod tests {
             Err(MiniAiError::InsufficientMemory { .. })
         ));
 
-        // When CUDA is preferred but not detected, falls back to CPU
+        // When ROCm (absent) is preferred, falls back to CPU
+        profile
+            .detected_backends
+            .retain(|b| *b != AcceleratorBackend::Rocm);
         assert_eq!(
-            profile.select_execution_backend(Some(AcceleratorBackend::Cuda), false),
+            profile.select_execution_backend(Some(AcceleratorBackend::Rocm), false),
             AcceleratorBackend::Cpu
         );
 
-        // When Vulkan is detected, selects Vulkan unless force_cpu is true
-        profile.detected_backends.push(AcceleratorBackend::Vulkan);
+        // When an accelerator is detected, selects it unless force_cpu is true
+        if !profile
+            .detected_backends
+            .contains(&AcceleratorBackend::Vulkan)
+        {
+            profile.detected_backends.push(AcceleratorBackend::Vulkan);
+        }
         assert_eq!(
             profile.select_execution_backend(Some(AcceleratorBackend::Vulkan), false),
-            AcceleratorBackend::Vulkan
-        );
-        assert_eq!(
-            profile.select_execution_backend(None, false),
             AcceleratorBackend::Vulkan
         );
         assert_eq!(
             profile.select_execution_backend(Some(AcceleratorBackend::Vulkan), true),
             AcceleratorBackend::Cpu
         );
+    }
+
+    #[test]
+    fn test_admission_guard_evaluates_memory_ceiling_and_cpu_fallback() {
+        let profile = HardwareProfile {
+            os_family: "linux".to_string(),
+            arch: "x86_64".to_string(),
+            logical_cpu_cores: 16,
+            total_memory_bytes: 32_000_000_000,
+            available_memory_bytes: 10_000_000_000, // 10 GB avail -> 8.5 GB safe limit
+            detected_backends: vec![AcceleratorBackend::Cpu, AcceleratorBackend::Cuda],
+            cpu_features: CpuFeatures::detect(),
+            gpus: vec![GpuDevice {
+                name: "NVIDIA RTX 4090".to_string(),
+                backend: AcceleratorBackend::Cuda,
+                total_vram_bytes: 24_000_000_000,
+                available_vram_bytes: 4_000_000_000, // 4 GB avail -> 3.4 GB safe limit
+            }],
+        };
+
+        let mut privacy = PrivacyPolicyEngine::new();
+        let guard = AdmissionGuard::new(profile.clone(), Arc::new(privacy.clone()));
+
+        let safe_ram = guard.safe_ram_limit_bytes();
+        assert_eq!(safe_ram, 8_500_000_000); // 85% of 10GB
+
+        // 1. Fits within VRAM and RAM on CUDA
+        let decision = guard
+            .evaluate_admission(2_000_000_000, 3_000_000_000, Some(AcceleratorBackend::Cuda))
+            .expect("should admit on CUDA");
+        assert!(decision.admitted);
+        assert_eq!(decision.selected_backend, AcceleratorBackend::Cuda);
+        assert!(decision.fallback_to_cpu_reason.is_none());
+
+        // 2. Exceeds VRAM safe limit (3.5 GB > 3.4 GB) -> Fallback to CPU
+        let fallback_decision = guard
+            .evaluate_admission(2_000_000_000, 3_500_000_000, Some(AcceleratorBackend::Cuda))
+            .expect("should fall back to CPU");
+        assert!(fallback_decision.admitted);
+        assert_eq!(fallback_decision.selected_backend, AcceleratorBackend::Cpu);
+        assert!(fallback_decision.fallback_to_cpu_reason.is_some());
+
+        // 3. Accelerator not present on host -> Fallback to CPU
+        let no_gpu_decision = guard
+            .evaluate_admission(
+                1_000_000_000,
+                1_000_000_000,
+                Some(AcceleratorBackend::Metal),
+            )
+            .expect("should fall back to CPU for missing backend");
+        assert!(no_gpu_decision.admitted);
+        assert_eq!(no_gpu_decision.selected_backend, AcceleratorBackend::Cpu);
+        assert!(no_gpu_decision.fallback_to_cpu_reason.is_some());
+
+        // 4. Force CPU mode active -> Restricts to CPU even when GPU has plenty of VRAM
+        privacy.set_force_cpu_only(true);
+        let guard_force_cpu = AdmissionGuard::new(profile.clone(), Arc::new(privacy.clone()));
+        let force_cpu_decision = guard_force_cpu
+            .evaluate_admission(1_000_000_000, 1_000_000_000, Some(AcceleratorBackend::Cuda))
+            .expect("admit on CPU due to force CPU policy");
+        assert_eq!(force_cpu_decision.selected_backend, AcceleratorBackend::Cpu);
+        assert!(force_cpu_decision.fallback_to_cpu_reason.is_some());
+
+        // 5. Exceeds 85% RAM safe limit -> InsufficientMemory error
+        privacy.set_force_cpu_only(false);
+        let guard_oom = AdmissionGuard::new(profile.clone(), Arc::new(privacy));
+        let err = guard_oom
+            .evaluate_admission(9_000_000_000, 0, Some(AcceleratorBackend::Cpu))
+            .expect_err("should reject model exceeding 85% RAM limit");
+        match err {
+            MiniAiError::InsufficientMemory {
+                required_bytes,
+                safe_limit_bytes,
+            } => {
+                assert_eq!(required_bytes, 9_000_000_000);
+                assert_eq!(safe_limit_bytes, 8_500_000_000);
+            }
+            other => panic!("Expected InsufficientMemory, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_cpu_features_simd_detection() {
+        let features = CpuFeatures::detect();
+        let summary = features.enabled_features();
+
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+        {
+            // On modern x86_64, at least SSE4.2 is enabled
+            if is_x86_feature_detected!("sse4.2") {
+                assert!(features.sse4_2);
+                assert!(summary.contains(&"SSE4.2"));
+            }
+        }
+
+        #[cfg(target_arch = "aarch64")]
+        {
+            assert!(features.neon);
+            assert!(summary.contains(&"NEON"));
+        }
     }
 
     #[test]

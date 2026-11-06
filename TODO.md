@@ -185,3 +185,21 @@
     - Added 7 integration tests in `crates/miniai-registry` (13 tests total) covering valid import with expected digest, auto-computed digest, tampered weight quarantine deletion, size mismatch rejection, collision/overwrite handling, path traversal defense, and local-only privacy mode execution.
     - All 43 workspace tests pass (`miniai-core`: 7, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13), 0 Clippy warnings, 100% Python and Flutter test pass rates.
 - **Next Subphase Ready:** `S2-P2-SUB2.2.1` (Subphase 2.2.1: CPU SIMD feature detection [AVX2, AVX-512, NEON], system RAM & GPU VRAM probing, and 85% memory ceiling admission guard).
+
+
+---
+
+### [2026-11-06T09:05:00+05:30] Stage 2 — Entry 011 (Subphase 2.2.1 Completed & Phase 2.2 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 2: Model Registry, Downloads, Integrity, Hardware Detection & Runtime Adapters / Phase 2.2 — Hardware Probing & Admission Guard / Subphase 2.2.1`
+- **Status Transitions:**
+  - `S2-P2-SUB2.2.1` [`VERIFIED`]: Implemented native CPU SIMD detection, real-time memory/GPU probing, and 85% memory ceiling admission guard:
+    - Created [`crates/miniai-core/src/hardware.rs`](file:///g:/miniAI/crates/miniai-core/src/hardware.rs):
+      - `CpuFeatures`: Runtime native SIMD instruction set probing supporting `AVX2`, `AVX-512` (`F`, `BW`, `CD`, `DQ`, `VL`), `FMA`, `SSE4.2` on x86_64, and `NEON`, `SVE`, `DotProd` on AArch64.
+      - `GpuDevice`: Accelerator device descriptor tracking available and total VRAM with strict 85% VRAM ceiling calculation (`safe_vram_limit_bytes`).
+      - `HardwareProfile`: Extended with dynamic host hardware probing via `sysinfo` (`probe_host_hardware()`), querying real physical RAM, available RAM, CPU cores, SIMD extensions, and detected accelerator backends (`Cpu`, `Cuda`, `Vulkan`, `Metal`).
+      - `AdmissionGuard`: Coordinates host hardware profile with `PrivacyPolicyEngine`. Evaluates model RAM and VRAM footprints against strict 85% available memory ceilings, automatically executing fallback to `AcceleratorBackend::Cpu` if accelerator VRAM is exceeded, if the accelerator is missing, or if `force_cpu_only` mode is active. Rejects model admission with `MiniAiError::InsufficientMemory` if available system RAM cannot safely admit the model.
+      - `AdmissionDecision`: Detailed evaluation telemetry capturing admission status, selected execution backend, memory sufficiency, and CPU fallback reasons.
+    - Updated contract tests and added comprehensive unit tests for `AdmissionGuard`, `CpuFeatures`, and CPU fallback semantics.
+    - Verified all 45 workspace tests pass (`miniai-core`: 9, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13), 0 Clippy warnings with `-D warnings`, 100% Python and Flutter test pass rates.
+- **Next Subphase Ready:** `S2-P3-SUB2.3.1` (Subphase 2.3.1: Independent lifecycle supervisor for all 7 modalities with automatic CPU fallback on accelerator failure).

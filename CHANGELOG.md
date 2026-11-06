@@ -138,3 +138,20 @@
   - Enforced strict parameter validation, 0-byte file rejection, and path traversal sanitization.
   - Verified offline model import capability permitted in `LocalOnlyPrivacyMode`.
   - Added 7 integration tests in `crates/miniai-registry` (13 tests total), achieving 43/43 workspace tests passing with 0 Clippy warnings.
+
+
+---
+
+## [2026-11-06T09:05:00+05:30] — Stage 2 Subphase 2.2.1 Verified (`v0.2.2-stage2.sub2.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 2 / Phase 2.2 / Subphase 2.2.1 — CPU SIMD Feature Detection, Memory Probing & 85% Admission Guard`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `CpuFeatures` in `crates/miniai-core` providing runtime SIMD instruction set probing (AVX2, AVX-512 F/BW/CD/DQ/VL, FMA, SSE4.2, NEON, SVE, DotProd).
+  - Integrated `sysinfo` in `crates/miniai-core` for real-time probing of physical RAM, available memory, CPU core counts, and accelerator devices.
+  - Implemented `GpuDevice` tracking device names, backends, total VRAM, and 85% available VRAM admission ceilings.
+  - Implemented `AdmissionGuard` coordinating memory admission control with `PrivacyPolicyEngine`.
+  - Added deterministic fallback to `AcceleratorBackend::Cpu` when accelerators are absent, when VRAM exceeds the 85% ceiling, or when `force_cpu_only` mode is active.
+  - Enforced strict 85% available system RAM admission ceiling, returning `MiniAiError::InsufficientMemory` on breach.
+  - Added unit and contract tests verifying SIMD discovery, memory admission calculations, and CPU fallback.
+  - Verified 45/45 workspace unit tests passing, 0 Clippy warnings, and code formatting compliance.

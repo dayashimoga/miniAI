@@ -35,6 +35,8 @@ mod tests {
                     total_memory_bytes: 16_000,
                     available_memory_bytes: 8_000,
                     detected_backends: vec![AcceleratorBackend::Cpu],
+                    cpu_features: Default::default(),
+                    gpus: vec![],
                 },
             },
             SystemEvent::PrivacyPolicyUpdated {

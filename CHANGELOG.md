@@ -371,3 +371,18 @@
   - Authored 16 unit and convergence tests in `ml/tests/test_training.py` proving deterministic seeding, zero initialization delta ($B=0$), bidirectional weight merging/unmerging, sequence token support, and loss decrease on CPU.
   - Reached **96% statement coverage** on `miniai_ml/training.py` and **97% total coverage** across `miniai_ml` (33/33 pytest tests passing).
   - Maintained 100% test pass rate across all workspace test suites (77 Rust tests, 33 Python ML tests, 38 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues).
+
+
+---
+
+## [2026-11-06T16:52:00+05:30] — Stage 4 Subphase 4.2.2 Verified (`v0.4.3-stage4.sub4.2.2`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 4 / Phase 4.2 / Subphase 4.2.2 — Cryptographic Provenance Manifest & Model Registry Export`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Python 3.14.0 uv, PyTorch 2.15.0+cpu, pytest 9.2.0)
+- **Summary:**
+  - Implemented `ml/src/miniai_ml/provenance.py` with `TrainingJobProvenance`, `create_job_provenance`, `export_adapter_package`, `export_merged_model`, `create_registry_manifest`, `save_registry_manifest`, and `verify_checkpoint_provenance`.
+  - Implemented cryptographic provenance recording conformant to `references/training_manifest_spec.md` with SHA-256 fingerprinting for base model, dataset, and adapter artifacts.
+  - Implemented Stage 2 Model Registry export generating catalog manifests matching `crates/miniai-registry` specifications.
+  - Authored 6 unit and property tests in `ml/tests/test_provenance.py` verifying validation rules, tamper rejection, JSON serialization, and physical file digest matching.
+  - Reached **99% statement coverage** on `miniai_ml/provenance.py` and **97% total coverage** across `miniai_ml` (39/39 pytest tests passing).
+  - Maintained 100% test pass rate across all suites: 77 Rust tests, 39 Python ML tests, 38 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues.

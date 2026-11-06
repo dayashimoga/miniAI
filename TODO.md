@@ -515,3 +515,35 @@
     - Authored 16 unit, property, and mathematical convergence tests in `ml/tests/test_training.py` verifying zero-delta initialization, exact weight merging/unmerging, distillation loss gradients, cooperative cancellation, checkpoint resume, and significant loss reduction on CPU.
     - Achieved **96% line coverage** on `miniai_ml/training.py` and **97% total coverage** across `miniai_ml` (33/33 pytest tests passing).
 - **Next Subphase Ready:** `S4-P2-SUB4.2.2` (Phase 4.2: LoRA/QLoRA Fine-Tuning & Knowledge Distillation Engine / Subphase 4.2.2: Cryptographic Provenance Manifest & Model Registry Export).
+
+
+---
+
+### [2026-11-06T16:42:00+05:30] Stage 4 — Entry 030 (Subphase 4.2.2 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation / Phase 4.2 — LoRA/QLoRA Fine-Tuning & Knowledge Distillation Engine / Subphase 4.2.2`
+- **Status Transitions:**
+  - `S4-P2-SUB4.2.2` [`IN_PROGRESS`]: Commenced implementation of Cryptographic Provenance Manifest & Model Registry Export in `ml/src/miniai_ml/provenance.py`:
+    - Defining `TrainingJobProvenance` conforming to `references/training_manifest_spec.md` with base model SHA-256, dataset SHA-256, random seed, device info, hyperparameters, and validation metrics.
+    - Implementing `generate_provenance_manifest` producing cryptographic `checkpoint_provenance.json` alongside adapter checkpoints.
+    - Implementing adapter weight packaging and merged model export (`export_merged_model`) with streaming SHA-256 verification.
+    - Implementing Model Registry export producing catalog manifest payloads directly compatible with MiniAI's Stage 2 Model Registry schema (`crates/miniai-registry`).
+    - Authoring unit and property tests under `ml/tests/test_provenance.py` ensuring >=90% test coverage and zero mock artifacts.
+
+
+---
+
+### [2026-11-06T16:52:00+05:30] Stage 4 — Entry 031 (Subphase 4.2.2 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation / Phase 4.2 — LoRA/QLoRA Fine-Tuning & Knowledge Distillation Engine / Subphase 4.2.2`
+- **Status Transitions:**
+  - `S4-P2-SUB4.2.2` [`VERIFIED`]: Implemented cryptographic provenance manifests and Stage 2 model registry export in `ml/src/miniai_ml/provenance.py`:
+    - Defined `TrainingJobProvenance` conforming to `references/training_manifest_spec.md` with base model SHA-256, dataset SHA-256, random seed, device info, hyperparameters, convergence metrics, and path traversal protection.
+    - Implemented `create_job_provenance` helper automatically computing SHA-256 digests of base model and dataset files and packaging hyperparameters from `TrainingConfig` and `LoraConfig`.
+    - Implemented `export_adapter_package` writing standalone `adapter_model.pt` and atomic `checkpoint_provenance.json` with computed adapter digest and byte size.
+    - Implemented `export_merged_model` saving merged PyTorch model weights and streaming SHA-256 computation.
+    - Implemented `create_registry_manifest` and `save_registry_manifest` producing JSON manifests matching MiniAI's Stage 2 Model Registry schema (`crates/miniai-registry/src/models.rs`).
+    - Implemented `verify_checkpoint_provenance` verifying physical files on disk against cryptographic provenance manifests.
+    - Authored 6 unit and property tests in `ml/tests/test_provenance.py` verifying schema validation, tampering detection across base model/dataset/adapter, and model registry compatibility.
+    - Achieved **99% line coverage** on `miniai_ml/provenance.py` and **97% total coverage** across `miniai_ml` (39/39 pytest tests passing).
+- **Next Subphase Ready:** `S4-P3-SUB4.3.1` (Phase 4.3: Training Studio UI & Evaluation Comparison / Subphase 4.3.1: Flutter Training Studio Screen & Hyperparameter Tuning Controls).

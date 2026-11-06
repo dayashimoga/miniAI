@@ -31,6 +31,15 @@ from .governance import (
     scan_for_secret_leaks,
     verify_append_only_log,
 )
+from .provenance import (
+    TrainingJobProvenance,
+    create_job_provenance,
+    create_registry_manifest,
+    export_adapter_package,
+    export_merged_model,
+    save_registry_manifest,
+    verify_checkpoint_provenance,
+)
 from .runtime_probe import probe_ml_environment, seed_everything
 from .training import (
     DistillationLoss,
@@ -63,6 +72,7 @@ __all__ = [
     "PrivacyPolicyState",
     "Trainer",
     "TrainingConfig",
+    "TrainingJobProvenance",
     "TrainingStepLog",
     "VerificationTier",
     "REQUIRED_GOVERNANCE_FILES",
@@ -74,12 +84,17 @@ __all__ = [
     "compute_file_sha256",
     "compute_sha256_hex",
     "count_trainable_parameters",
+    "create_job_provenance",
+    "create_registry_manifest",
     "deduplicate_records",
+    "export_adapter_package",
+    "export_merged_model",
     "extract_lora_state_dict",
     "load_dataset_file",
     "merge_lora_weights",
     "probe_ml_environment",
     "resolve_device",
+    "save_registry_manifest",
     "save_splits_and_manifest",
     "scan_for_secret_leaks",
     "seed_everything",
@@ -89,6 +104,7 @@ __all__ = [
     "validate_record",
     "validate_safe_relative_path",
     "verify_append_only_log",
+    "verify_checkpoint_provenance",
     "verify_dataset_manifest",
     "verify_sha256_digest",
 ]

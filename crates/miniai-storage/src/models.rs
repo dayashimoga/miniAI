@@ -57,6 +57,25 @@ pub struct CachedModelRecord {
     pub created_at_epoch_secs: u64,
 }
 
+/// Model manifest catalog record.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ModelManifestRecord {
+    pub model_id: String,
+    pub name: String,
+    pub modality: Modality,
+    pub version: String,
+    pub description: String,
+    pub source_url: String,
+    pub expected_sha256: String,
+    pub expected_size_bytes: u64,
+    pub format: String,
+    pub parameter_count: Option<String>,
+    pub quantization: Option<String>,
+    pub min_ram_bytes: u64,
+    pub recommended_backend: AcceleratorBackend,
+    pub created_at_epoch_secs: u64,
+}
+
 /// Persisted chat session record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChatSessionRecord {

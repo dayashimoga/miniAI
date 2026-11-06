@@ -259,6 +259,11 @@ impl PrivacyPolicyEngine {
         &self.state
     }
 
+    /// Returns `true` if Local-Only Privacy Mode is active.
+    pub fn is_local_only(&self) -> bool {
+        self.state.local_only_mode
+    }
+
     /// Enables or disables `LocalOnlyPrivacyMode`. Enabling it immediately revokes any active cloud consent token.
     pub fn set_local_only_mode(&mut self, enabled: bool) {
         self.state.local_only_mode = enabled;

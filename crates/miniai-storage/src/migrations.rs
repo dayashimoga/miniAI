@@ -86,6 +86,28 @@ pub const MIGRATIONS: &[Migration] = &[
         );
         "#,
     ),
+    Migration::new(
+        3,
+        "003_model_manifests",
+        r#"
+        CREATE TABLE IF NOT EXISTS model_manifests (
+            model_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            modality TEXT NOT NULL,
+            version TEXT NOT NULL,
+            description TEXT NOT NULL,
+            source_url TEXT NOT NULL,
+            expected_sha256 TEXT NOT NULL,
+            expected_size_bytes INTEGER NOT NULL,
+            format TEXT NOT NULL,
+            parameter_count TEXT,
+            quantization TEXT,
+            min_ram_bytes INTEGER NOT NULL,
+            recommended_backend TEXT NOT NULL,
+            created_at_epoch_secs INTEGER NOT NULL
+        );
+        "#,
+    ),
 ];
 
 /// Manages and executes database schema migrations.

@@ -106,3 +106,19 @@
   - Independent QA Audit (`independent-qa-auditor`) returned `PASS` with 29 Rust tests, 6 Python tests, 19 Flutter tests (100% passing rate) and 97.43% line coverage.
   - Architecture and Security Review (`arch-security-reviewer`) returned `PASS` confirming strict loopback binding, session bearer nonces, and zero mock code.
   - Added ADR-006 covering SQLite WAL mode, deterministic migrations, and loopback IPC architecture.
+
+
+---
+
+## [2026-11-05T23:05:00+05:30] — Stage 2 Subphase 2.1.1 Verified (`v0.2.0-stage2.sub2.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 2 / Phase 2.1 / Subphase 2.1.1 — Local Model Catalog Schema, Resumable Range Downloader & SHA-256 Promotion`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Added deterministic SQLite migration `003_model_manifests.sql` and `ModelManifestRecord` CRUD operations to `crates/miniai-storage`.
+  - Created `crates/miniai-registry` crate with `#![forbid(unsafe_code)]`.
+  - Implemented `ModelManifest` domain entity with strict SHA-256 format validation and path traversal sanitization.
+  - Implemented `ResumableDownloader` with streaming SHA-256 hash calculation, HTTP `Range: bytes={offset}-` partial content resuming, `.part` staging files, quarantine/deletion on hash mismatch, and atomic promotion to verified model cache.
+  - Implemented `ModelRegistry` orchestrating metadata persistence and enforcing `LocalOnlyPrivacyMode` to block unconsented outbound model downloads.
+  - Authored 6 integration tests in `crates/miniai-registry` verifying range resumes over real loopback HTTP sockets, corruption defense, and privacy enforcement.
+  - Verified 36/36 Rust workspace unit and integration tests passing, 0 Clippy warnings, and code formatting compliance.

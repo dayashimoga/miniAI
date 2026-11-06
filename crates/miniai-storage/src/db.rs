@@ -8,7 +8,7 @@ use crate::error::StorageError;
 use crate::migrations::{MigrationRunner, MIGRATIONS};
 use crate::models::{
     AppSetting, CachedModelRecord, ChatSessionRecord, ConsentAuditEvent, DiagnosticEventRecord,
-    IntegrityReport, QuarantineResult, Workspace,
+    IntegrityReport, ModelManifestRecord, QuarantineResult, Workspace,
 };
 
 /// A thread-safe, transactional SQLite storage engine with WAL mode and migration support.
@@ -513,6 +513,10 @@ impl StorageEngine {
         Ok(())
     }
 
+    pub fn insert_cached_model(&self, model: &CachedModelRecord) -> Result<(), StorageError> {
+        self.record_cached_model(model)
+    }
+
     pub fn get_cached_model(&self, id: &str) -> Result<Option<CachedModelRecord>, StorageError> {
         let conn = self.lock_conn()?;
         let mut stmt = conn.prepare(
@@ -757,5 +761,165 @@ impl StorageEngine {
         let conn = self.lock_conn()?;
         let affected = conn.execute("DELETE FROM chat_sessions WHERE id = ?1", params![id])?;
         Ok(affected > 0)
+    }
+
+    pub fn insert_model_manifest(&self, record: &ModelManifestRecord) -> Result<(), StorageError> {
+        let conn = self.lock_conn()?;
+        let modality_str = serde_json::to_string(&record.modality)
+            .map_err(|e| StorageError::SerializationError {
+                message: e.to_string(),
+            })?
+            .trim_matches('"')
+            .to_string();
+
+        let backend_str = serde_json::to_string(&record.recommended_backend)
+            .map_err(|e| StorageError::SerializationError {
+                message: e.to_string(),
+            })?
+            .trim_matches('"')
+            .to_string();
+
+        conn.execute(
+            "INSERT INTO model_manifests (
+                model_id, name, modality, version, description, source_url,
+                expected_sha256, expected_size_bytes, format, parameter_count,
+                quantization, min_ram_bytes, recommended_backend, created_at_epoch_secs
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+             ON CONFLICT(model_id) DO UPDATE SET
+                name = excluded.name,
+                modality = excluded.modality,
+                version = excluded.version,
+                description = excluded.description,
+                source_url = excluded.source_url,
+                expected_sha256 = excluded.expected_sha256,
+                expected_size_bytes = excluded.expected_size_bytes,
+                format = excluded.format,
+                parameter_count = excluded.parameter_count,
+                quantization = excluded.quantization,
+                min_ram_bytes = excluded.min_ram_bytes,
+                recommended_backend = excluded.recommended_backend",
+            params![
+                record.model_id,
+                record.name,
+                modality_str,
+                record.version,
+                record.description,
+                record.source_url,
+                record.expected_sha256,
+                record.expected_size_bytes as i64,
+                record.format,
+                record.parameter_count,
+                record.quantization,
+                record.min_ram_bytes as i64,
+                backend_str,
+                record.created_at_epoch_secs as i64,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_model_manifest(
+        &self,
+        model_id: &str,
+    ) -> Result<Option<ModelManifestRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT model_id, name, modality, version, description, source_url,
+                    expected_sha256, expected_size_bytes, format, parameter_count,
+                    quantization, min_ram_bytes, recommended_backend, created_at_epoch_secs
+             FROM model_manifests WHERE model_id = ?1",
+        )?;
+        let mut rows = stmt.query(params![model_id])?;
+        if let Some(row) = rows.next()? {
+            let record = Self::decode_manifest_row(row)?;
+            Ok(Some(record))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn list_model_manifests(
+        &self,
+        filter_modality: Option<Modality>,
+    ) -> Result<Vec<ModelManifestRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut out = Vec::new();
+
+        if let Some(filter) = filter_modality {
+            let filter_str = serde_json::to_string(&filter)
+                .map_err(|e| StorageError::SerializationError {
+                    message: e.to_string(),
+                })?
+                .trim_matches('"')
+                .to_string();
+
+            let mut stmt = conn.prepare(
+                "SELECT model_id, name, modality, version, description, source_url,
+                        expected_sha256, expected_size_bytes, format, parameter_count,
+                        quantization, min_ram_bytes, recommended_backend, created_at_epoch_secs
+                 FROM model_manifests WHERE modality = ?1 ORDER BY model_id ASC",
+            )?;
+            let mut rows = stmt.query(params![filter_str])?;
+            while let Some(row) = rows.next()? {
+                out.push(Self::decode_manifest_row(row)?);
+            }
+        } else {
+            let mut stmt = conn.prepare(
+                "SELECT model_id, name, modality, version, description, source_url,
+                        expected_sha256, expected_size_bytes, format, parameter_count,
+                        quantization, min_ram_bytes, recommended_backend, created_at_epoch_secs
+                 FROM model_manifests ORDER BY model_id ASC",
+            )?;
+            let mut rows = stmt.query([])?;
+            while let Some(row) = rows.next()? {
+                out.push(Self::decode_manifest_row(row)?);
+            }
+        }
+
+        Ok(out)
+    }
+
+    pub fn delete_model_manifest(&self, model_id: &str) -> Result<bool, StorageError> {
+        let conn = self.lock_conn()?;
+        let affected = conn.execute(
+            "DELETE FROM model_manifests WHERE model_id = ?1",
+            params![model_id],
+        )?;
+        Ok(affected > 0)
+    }
+
+    fn decode_manifest_row(row: &rusqlite::Row) -> Result<ModelManifestRecord, StorageError> {
+        let modality_raw: String = row.get(2)?;
+        let modality: Modality =
+            serde_json::from_str(&format!("\"{modality_raw}\"")).map_err(|e| {
+                StorageError::SerializationError {
+                    message: e.to_string(),
+                }
+            })?;
+
+        let backend_raw: String = row.get(12)?;
+        let recommended_backend: AcceleratorBackend =
+            serde_json::from_str(&format!("\"{backend_raw}\"")).map_err(|e| {
+                StorageError::SerializationError {
+                    message: e.to_string(),
+                }
+            })?;
+
+        Ok(ModelManifestRecord {
+            model_id: row.get(0)?,
+            name: row.get(1)?,
+            modality,
+            version: row.get(3)?,
+            description: row.get(4)?,
+            source_url: row.get(5)?,
+            expected_sha256: row.get(6)?,
+            expected_size_bytes: row.get::<_, i64>(7)? as u64,
+            format: row.get(8)?,
+            parameter_count: row.get(9)?,
+            quantization: row.get(10)?,
+            min_ram_bytes: row.get::<_, i64>(11)? as u64,
+            recommended_backend,
+            created_at_epoch_secs: row.get::<_, i64>(13)? as u64,
+        })
     }
 }

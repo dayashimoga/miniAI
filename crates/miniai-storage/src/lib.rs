@@ -28,7 +28,7 @@ mod tests {
         let engine = StorageEngine::in_memory().expect("in-memory engine init");
         assert!(engine.is_in_memory());
         assert!(engine.path().is_none());
-        assert_eq!(engine.schema_version().expect("schema version"), 2);
+        assert_eq!(engine.schema_version().expect("schema version"), 3);
 
         let integrity = engine.check_integrity().expect("integrity check");
         assert!(integrity.is_healthy);
@@ -44,7 +44,7 @@ mod tests {
         let engine = StorageEngine::open(&db_path).expect("open on-disk storage");
         assert!(!engine.is_in_memory());
         assert_eq!(engine.path().unwrap(), db_path.as_path());
-        assert_eq!(engine.schema_version().expect("schema version"), 2);
+        assert_eq!(engine.schema_version().expect("schema version"), 3);
 
         // Verify WAL mode was enabled on disk
         let integrity = engine.check_integrity().expect("integrity check");
@@ -416,7 +416,7 @@ mod tests {
         assert!(quarantine_result.recreated_healthy);
         assert!(std::path::Path::new(&quarantine_result.quarantined_backup_path).exists());
         assert!(recovered_engine.check_integrity().unwrap().is_healthy);
-        assert_eq!(recovered_engine.schema_version().unwrap(), 2);
+        assert_eq!(recovered_engine.schema_version().unwrap(), 3);
 
         // Verify recovered database accepts new writes
         recovered_engine
@@ -601,5 +601,55 @@ mod tests {
         let err_name =
             MigrationRunner::run_migrations(&mut conn, &altered_name_migrations, 1010).unwrap_err();
         assert!(matches!(err_name, StorageError::MigrationError { .. }));
+    }
+
+    #[test]
+    fn test_model_manifests_crud() {
+        let engine = StorageEngine::in_memory().unwrap();
+
+        let record = crate::models::ModelManifestRecord {
+            model_id: "qwen2.5-0.5b".to_string(),
+            name: "Qwen 2.5 0.5B Instruct".to_string(),
+            modality: miniai_core::Modality::Llm,
+            version: "1.0.0".to_string(),
+            description: "Compact local LLM for edge reasoning".to_string(),
+            source_url: "https://models.miniai.local/qwen2.5-0.5b.gguf".to_string(),
+            expected_sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                .to_string(),
+            expected_size_bytes: 400_000_000,
+            format: "gguf".to_string(),
+            parameter_count: Some("0.5B".to_string()),
+            quantization: Some("Q4_K_M".to_string()),
+            min_ram_bytes: 1_000_000_000,
+            recommended_backend: miniai_core::AcceleratorBackend::Cpu,
+            created_at_epoch_secs: 1700000000,
+        };
+
+        engine.insert_model_manifest(&record).unwrap();
+
+        let fetched = engine
+            .get_model_manifest("qwen2.5-0.5b")
+            .unwrap()
+            .expect("manifest should exist");
+        assert_eq!(fetched.name, "Qwen 2.5 0.5B Instruct");
+        assert_eq!(fetched.modality, miniai_core::Modality::Llm);
+        assert_eq!(fetched.format, "gguf");
+
+        let llm_list = engine
+            .list_model_manifests(Some(miniai_core::Modality::Llm))
+            .unwrap();
+        assert_eq!(llm_list.len(), 1);
+
+        let vision_list = engine
+            .list_model_manifests(Some(miniai_core::Modality::Vision))
+            .unwrap();
+        assert_eq!(vision_list.len(), 0);
+
+        let all_list = engine.list_model_manifests(None).unwrap();
+        assert_eq!(all_list.len(), 1);
+
+        let deleted = engine.delete_model_manifest("qwen2.5-0.5b").unwrap();
+        assert!(deleted);
+        assert!(engine.get_model_manifest("qwen2.5-0.5b").unwrap().is_none());
     }
 }

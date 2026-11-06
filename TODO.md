@@ -147,3 +147,20 @@
     - Architecture & Security Reviewer (`arch-security-reviewer`): strict loopback binding enforced, per-session bearer nonce authentication verified, privacy consent gates audited, SQLite WAL & quarantine validated, zero mocks.
     - Documented ADR-006: "SQLite WAL Mode, Deterministic Migrations & Localhost-Only Authenticated IPC".
 - **Next Stage Ready:** `STAGE-2` (Stage 2: Model Registry, Downloads, Integrity, Hardware Detection & Runtime Adapters).
+
+
+---
+
+### [2026-11-05T23:05:00+05:30] Stage 2 — Entry 009 (Subphase 2.1.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 2: Model Registry, Downloads, Integrity, Hardware Detection & Runtime Adapters / Phase 2.1 — Model Registry & Resumable Downloader / Subphase 2.1.1`
+- **Status Transitions:**
+  - `S2-P1-SUB2.1.1` [`VERIFIED`]: Implemented local model catalog schema, resumable HTTP range downloader, and SHA-256 staging promotion:
+    - Added Migration 3 (`003_model_manifests`) and `ModelManifestRecord` transactional CRUD in [`crates/miniai-storage`](file:///g:/miniAI/crates/miniai-storage/src/models.rs).
+    - Created [`crates/miniai-registry`](file:///g:/miniAI/crates/miniai-registry/src/lib.rs) with `#![forbid(unsafe_code)]`:
+      - `ModelManifest`: Canonical model metadata with modality, architecture, quantization, parameter count, file size, SHA-256 digest, and path traversal sanitization.
+      - `ResumableDownloader`: Resumable HTTP/file downloader supporting `Range: bytes={offset}-` headers, handling HTTP 206 Partial Content and HTTP 200 OK, tracking real-time `DownloadProgress`, streaming SHA-256 digest calculation, corrupt `.part` file deletion on digest mismatch, and atomic rename to verified storage.
+      - `ModelRegistry`: Coordinates SQLite metadata storage, filesystem staging/verified directories, and strict privacy enforcement (rejecting remote downloads when `LocalOnlyPrivacyMode` is enabled).
+    - Added 6 integration tests in `crates/miniai-registry` covering manifest validation, lifecycle storage, remote privacy blocking, tampered weight rejection/quarantine, local range resume, and real HTTP loopback range download.
+    - Verified all 36 workspace tests pass (`miniai-core`: 7, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 6), 0 Clippy warnings with `-D warnings`, and clean `cargo fmt`.
+- **Next Subphase Ready:** `S2-P1-SUB2.1.2` (Subphase 2.1.2: Offline Local Model Import with Quarantine and Digest Check).

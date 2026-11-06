@@ -56,6 +56,116 @@ enum AcceleratorBackend {
   }
 }
 
+class CpuFeatures {
+  const CpuFeatures({
+    this.avx2 = false,
+    this.avx512f = false,
+    this.avx512bw = false,
+    this.avx512cd = false,
+    this.avx512dq = false,
+    this.avx512vl = false,
+    this.fma = false,
+    this.sse4_2 = false,
+    this.neon = false,
+    this.sve = false,
+    this.dotprod = false,
+  });
+
+  final bool avx2;
+  final bool avx512f;
+  final bool avx512bw;
+  final bool avx512cd;
+  final bool avx512dq;
+  final bool avx512vl;
+  final bool fma;
+  final bool sse4_2;
+  final bool neon;
+  final bool sve;
+  final bool dotprod;
+
+  List<String> get enabledFeatures {
+    final list = <String>[];
+    if (avx2) list.add('AVX2');
+    if (avx512f) list.add('AVX512F');
+    if (avx512bw) list.add('AVX512BW');
+    if (avx512cd) list.add('AVX512CD');
+    if (avx512dq) list.add('AVX512DQ');
+    if (avx512vl) list.add('AVX512VL');
+    if (fma) list.add('FMA');
+    if (sse4_2) list.add('SSE4.2');
+    if (neon) list.add('NEON');
+    if (sve) list.add('SVE');
+    if (dotprod) list.add('DotProd');
+    return list;
+  }
+
+  Map<String, Object?> toJson() => {
+        'avx2': avx2,
+        'avx512f': avx512f,
+        'avx512bw': avx512bw,
+        'avx512cd': avx512cd,
+        'avx512dq': avx512dq,
+        'avx512vl': avx512vl,
+        'fma': fma,
+        'sse4_2': sse4_2,
+        'neon': neon,
+        'sve': sve,
+        'dotprod': dotprod,
+      };
+
+  factory CpuFeatures.fromJson(Map<String, Object?> json) {
+    return CpuFeatures(
+      avx2: json['avx2'] as bool? ?? false,
+      avx512f: json['avx512f'] as bool? ?? false,
+      avx512bw: json['avx512bw'] as bool? ?? false,
+      avx512cd: json['avx512cd'] as bool? ?? false,
+      avx512dq: json['avx512dq'] as bool? ?? false,
+      avx512vl: json['avx512vl'] as bool? ?? false,
+      fma: json['fma'] as bool? ?? false,
+      sse4_2: json['sse4_2'] as bool? ?? false,
+      neon: json['neon'] as bool? ?? false,
+      sve: json['sve'] as bool? ?? false,
+      dotprod: json['dotprod'] as bool? ?? false,
+    );
+  }
+}
+
+class GpuDevice {
+  const GpuDevice({
+    required this.name,
+    required this.backend,
+    required this.totalVramBytes,
+    required this.availableVramBytes,
+  });
+
+  final String name;
+  final AcceleratorBackend backend;
+  final int totalVramBytes;
+  final int availableVramBytes;
+
+  int get safeVramLimitBytes => (availableVramBytes ~/ 100) * 85;
+
+  bool canAdmitVram(int requiredBytes) {
+    return requiredBytes == 0 || requiredBytes <= safeVramLimitBytes;
+  }
+
+  Map<String, Object?> toJson() => {
+        'name': name,
+        'backend': backend.wireValue,
+        'total_vram_bytes': totalVramBytes,
+        'available_vram_bytes': availableVramBytes,
+      };
+
+  factory GpuDevice.fromJson(Map<String, Object?> json) {
+    return GpuDevice(
+      name: json['name'] as String? ?? 'Generic GPU',
+      backend: AcceleratorBackend.fromWire(json['backend'] as String? ?? 'cpu'),
+      totalVramBytes: json['total_vram_bytes'] as int? ?? 0,
+      availableVramBytes: json['available_vram_bytes'] as int? ?? 0,
+    );
+  }
+}
+
 class HardwareProfile {
   const HardwareProfile({
     required this.osFamily,
@@ -64,6 +174,8 @@ class HardwareProfile {
     required this.totalMemoryBytes,
     required this.availableMemoryBytes,
     required this.detectedBackends,
+    this.cpuFeatures = const CpuFeatures(),
+    this.gpus = const [],
   });
 
   final String osFamily;
@@ -72,6 +184,8 @@ class HardwareProfile {
   final int totalMemoryBytes;
   final int availableMemoryBytes;
   final List<AcceleratorBackend> detectedBackends;
+  final CpuFeatures cpuFeatures;
+  final List<GpuDevice> gpus;
 
   /// Returns 85% of available memory as the safe admission limit.
   int get safeMemoryLimitBytes => (availableMemoryBytes ~/ 100) * 85;
@@ -105,18 +219,29 @@ class HardwareProfile {
         'total_memory_bytes': totalMemoryBytes,
         'available_memory_bytes': availableMemoryBytes,
         'detected_backends': detectedBackends.map((b) => b.wireValue).toList(),
+        'cpu_features': cpuFeatures.toJson(),
+        'gpus': gpus.map((g) => g.toJson()).toList(),
       };
 
   factory HardwareProfile.fromJson(Map<String, Object?> json) {
-    final backendsRaw = json['detected_backends'] as List<Object?>;
+    final backendsRaw = (json['detected_backends'] as List<Object?>?) ?? [];
+    final gpusRaw = (json['gpus'] as List<Object?>?) ?? [];
+    final cpuFeaturesRaw = json['cpu_features'] as Map<String, Object?>?;
+
     return HardwareProfile(
-      osFamily: json['os_family'] as String,
-      arch: json['arch'] as String,
-      logicalCpuCores: json['logical_cpu_cores'] as int,
-      totalMemoryBytes: json['total_memory_bytes'] as int,
-      availableMemoryBytes: json['available_memory_bytes'] as int,
+      osFamily: json['os_family'] as String? ?? 'unknown',
+      arch: json['arch'] as String? ?? 'unknown',
+      logicalCpuCores: json['logical_cpu_cores'] as int? ?? 1,
+      totalMemoryBytes: json['total_memory_bytes'] as int? ?? 0,
+      availableMemoryBytes: json['available_memory_bytes'] as int? ?? 0,
       detectedBackends: backendsRaw
           .map((item) => AcceleratorBackend.fromWire(item as String))
+          .toList(),
+      cpuFeatures: cpuFeaturesRaw != null
+          ? CpuFeatures.fromJson(cpuFeaturesRaw)
+          : const CpuFeatures(),
+      gpus: gpusRaw
+          .map((item) => GpuDevice.fromJson(item as Map<String, Object?>))
           .toList(),
     );
   }
@@ -294,6 +419,235 @@ class AppSettings {
       activeWorkspaceId: json['active_workspace_id'] as String? ?? 'default',
       ipcServerUrl: json['ipc_server_url'] as String? ?? 'http://127.0.0.1:4140',
       sessionNonce: json['session_nonce'] as String? ?? '',
+    );
+  }
+}
+
+enum DownloadStatus {
+  pending('pending', 'Pending'),
+  downloading('downloading', 'Downloading'),
+  verifyingSha256('verifying_sha256', 'Verifying SHA-256'),
+  verified('verified', 'Verified'),
+  failed('failed', 'Failed'),
+  paused('paused', 'Paused');
+
+  const DownloadStatus(this.wireValue, this.displayName);
+  final String wireValue;
+  final String displayName;
+
+  static DownloadStatus fromWire(String value) {
+    for (final status in DownloadStatus.values) {
+      if (status.wireValue == value) {
+        return status;
+      }
+    }
+    return DownloadStatus.pending;
+  }
+}
+
+class DownloadProgressItem {
+  const DownloadProgressItem({
+    required this.modelId,
+    required this.bytesDownloaded,
+    required this.totalBytes,
+    required this.percentage,
+    required this.status,
+    this.errorMessage,
+  });
+
+  final String modelId;
+  final int bytesDownloaded;
+  final int totalBytes;
+  final double percentage;
+  final DownloadStatus status;
+  final String? errorMessage;
+
+  DownloadProgressItem copyWith({
+    int? bytesDownloaded,
+    int? totalBytes,
+    double? percentage,
+    DownloadStatus? status,
+    String? errorMessage,
+  }) {
+    return DownloadProgressItem(
+      modelId: modelId,
+      bytesDownloaded: bytesDownloaded ?? this.bytesDownloaded,
+      totalBytes: totalBytes ?? this.totalBytes,
+      percentage: percentage ?? this.percentage,
+      status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'model_id': modelId,
+        'bytes_downloaded': bytesDownloaded,
+        'total_bytes': totalBytes,
+        'percentage': percentage,
+        'status': status.wireValue,
+        'error_message': errorMessage,
+      };
+
+  factory DownloadProgressItem.fromJson(Map<String, dynamic> json) {
+    return DownloadProgressItem(
+      modelId: json['model_id'] as String? ?? '',
+      bytesDownloaded: json['bytes_downloaded'] as int? ?? 0,
+      totalBytes: json['total_bytes'] as int? ?? 0,
+      percentage: (json['percentage'] as num?)?.toDouble() ?? 0.0,
+      status: DownloadStatus.fromWire(json['status'] as String? ?? 'pending'),
+      errorMessage: json['error_message'] as String?,
+    );
+  }
+}
+
+class ModelManifest {
+  const ModelManifest({
+    required this.modelId,
+    required this.name,
+    required this.modality,
+    required this.version,
+    required this.description,
+    required this.sourceUrl,
+    required this.expectedSha256,
+    required this.expectedSizeBytes,
+    required this.format,
+    this.parameterCount,
+    this.quantization,
+    required this.minRamBytes,
+    required this.recommendedBackend,
+  });
+
+  final String modelId;
+  final String name;
+  final Modality modality;
+  final String version;
+  final String description;
+  final String sourceUrl;
+  final String expectedSha256;
+  final int expectedSizeBytes;
+  final String format;
+  final String? parameterCount;
+  final String? quantization;
+  final int minRamBytes;
+  final AcceleratorBackend recommendedBackend;
+
+  String get shortSha256 {
+    if (expectedSha256.length <= 12) return expectedSha256;
+    return '${expectedSha256.substring(0, 8)}...${expectedSha256.substring(expectedSha256.length - 4)}';
+  }
+
+  String get formattedSize {
+    if (expectedSizeBytes >= 1024 * 1024 * 1024) {
+      return '${(expectedSizeBytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+    }
+    return '${(expectedSizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  Map<String, dynamic> toJson() => {
+        'model_id': modelId,
+        'name': name,
+        'modality': modality.wireValue,
+        'version': version,
+        'description': description,
+        'source_url': sourceUrl,
+        'expected_sha256': expectedSha256,
+        'expected_size_bytes': expectedSizeBytes,
+        'format': format,
+        'parameter_count': parameterCount,
+        'quantization': quantization,
+        'min_ram_bytes': minRamBytes,
+        'recommended_backend': recommendedBackend.wireValue,
+      };
+
+  factory ModelManifest.fromJson(Map<String, dynamic> json) {
+    return ModelManifest(
+      modelId: json['model_id'] as String,
+      name: json['name'] as String,
+      modality: Modality.fromWire(json['modality'] as String),
+      version: json['version'] as String,
+      description: json['description'] as String,
+      sourceUrl: json['source_url'] as String,
+      expectedSha256: json['expected_sha256'] as String,
+      expectedSizeBytes: json['expected_size_bytes'] as int,
+      format: json['format'] as String,
+      parameterCount: json['parameter_count'] as String?,
+      quantization: json['quantization'] as String?,
+      minRamBytes: json['min_ram_bytes'] as int? ?? 1024 * 1024 * 1024,
+      recommendedBackend: AcceleratorBackend.fromWire(
+        json['recommended_backend'] as String? ?? 'cpu',
+      ),
+    );
+  }
+}
+
+class LocalModelImportRequest {
+  const LocalModelImportRequest({
+    required this.sourcePath,
+    required this.modelId,
+    required this.name,
+    required this.modality,
+    required this.version,
+    required this.description,
+    required this.format,
+    this.parameterCount,
+    this.quantization,
+    required this.minRamBytes,
+    required this.recommendedBackend,
+    this.expectedSha256,
+    this.expectedSizeBytes,
+    this.overwrite = false,
+  });
+
+  final String sourcePath;
+  final String modelId;
+  final String name;
+  final Modality modality;
+  final String version;
+  final String description;
+  final String format;
+  final String? parameterCount;
+  final String? quantization;
+  final int minRamBytes;
+  final AcceleratorBackend recommendedBackend;
+  final String? expectedSha256;
+  final int? expectedSizeBytes;
+  final bool overwrite;
+
+  Map<String, dynamic> toJson() => {
+        'source_path': sourcePath,
+        'model_id': modelId,
+        'name': name,
+        'modality': modality.wireValue,
+        'version': version,
+        'description': description,
+        'format': format,
+        'parameter_count': parameterCount,
+        'quantization': quantization,
+        'min_ram_bytes': minRamBytes,
+        'recommended_backend': recommendedBackend.wireValue,
+        'expected_sha256': expectedSha256,
+        'expected_size_bytes': expectedSizeBytes,
+        'overwrite': overwrite,
+      };
+
+  factory LocalModelImportRequest.fromJson(Map<String, dynamic> json) {
+    return LocalModelImportRequest(
+      sourcePath: json['source_path'] as String,
+      modelId: json['model_id'] as String,
+      name: json['name'] as String,
+      modality: Modality.fromWire(json['modality'] as String),
+      version: json['version'] as String,
+      description: json['description'] as String,
+      format: json['format'] as String,
+      parameterCount: json['parameter_count'] as String?,
+      quantization: json['quantization'] as String?,
+      minRamBytes: json['min_ram_bytes'] as int? ?? 1024 * 1024 * 1024,
+      recommendedBackend: AcceleratorBackend.fromWire(
+        json['recommended_backend'] as String? ?? 'cpu',
+      ),
+      expectedSha256: json['expected_sha256'] as String?,
+      expectedSizeBytes: json['expected_size_bytes'] as int?,
+      overwrite: json['overwrite'] as bool? ?? false,
     );
   }
 }

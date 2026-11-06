@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../controllers/platform_controller.dart';
 import 'dashboard_screen.dart';
 import 'event_inspector_view.dart';
+import 'hardware_inspector_screen.dart';
+import 'model_manager_screen.dart';
 import 'settings_screen.dart';
 
 class ShellScreen extends StatelessWidget {
@@ -114,6 +116,16 @@ class ShellScreen extends StatelessWidget {
                           selectedIcon: Icon(Icons.receipt_long),
                           label: Text('Events'),
                         ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.folder_copy_outlined, key: Key('nav_rail_models')),
+                          selectedIcon: Icon(Icons.folder_copy),
+                          label: Text('Models'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.developer_board_outlined, key: Key('nav_rail_hardware')),
+                          selectedIcon: Icon(Icons.developer_board),
+                          label: Text('Hardware'),
+                        ),
                       ],
                     ),
                     const VerticalDivider(thickness: 1, width: 1),
@@ -153,6 +165,18 @@ class ShellScreen extends StatelessWidget {
                     selectedIcon: Icon(Icons.receipt_long),
                     label: 'Events',
                   ),
+                  NavigationDestination(
+                    key: Key('nav_bar_models'),
+                    icon: Icon(Icons.folder_copy_outlined),
+                    selectedIcon: Icon(Icons.folder_copy),
+                    label: 'Models',
+                  ),
+                  NavigationDestination(
+                    key: Key('nav_bar_hardware'),
+                    icon: Icon(Icons.developer_board_outlined),
+                    selectedIcon: Icon(Icons.developer_board),
+                    label: 'Hardware',
+                  ),
                 ],
               );
             },
@@ -168,6 +192,10 @@ class ShellScreen extends StatelessWidget {
         return SettingsScreen(controller: controller);
       case 2:
         return EventInspectorView(controller: controller);
+      case 3:
+        return ModelManagerScreen(controller: controller);
+      case 4:
+        return HardwareInspectorScreen(controller: controller);
       case 0:
       default:
         return DashboardScreen(controller: controller, embedded: true);

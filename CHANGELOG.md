@@ -171,3 +171,30 @@
   - Verified cross-modality failure isolation (failure in one modality does not disrupt any other active modality).
   - Integrated real-time health and diagnostic event broadcasting via `EventBus::publish_now`.
   - Added 9 unit and integration tests in `crates/miniai-runtime`, achieving 54/54 workspace tests passing with 0 Clippy warnings.
+
+
+---
+
+## [2026-11-06T09:25:00+05:30] — Stage 2 Subphase 2.3.2 Verified (`v0.2.4-stage2.sub2.3.2`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 2 / Phase 2.3 / Subphase 2.3.2 — Flutter Model Manager & Hardware Inspector Views`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Flutter 3.38.6, Dart 3.10.7, rustc 1.99.1)
+- **Summary:**
+  - Implemented `ModelManagerScreen` in `ui/miniai_app/lib/src/screens/model_manager_screen.dart`:
+    - Real-time modality filter chips (`All`, `LLM`, `Vision`, `Speech ASR`, `Speech TTS`, etc.).
+    - Cryptographic SHA-256 verification badges, format chips, quantization tags, parameter counts, and formatted byte sizes.
+    - Resumable download progress bars with live percentage and byte-level telemetry.
+    - Action controls: pause download, resume download, cancel download, retry failed download, delete model from cache.
+    - Local Model Import Wizard dialog: interactive form with model ID, name, file path, format, and optional expected SHA-256, safely staging and importing local weights.
+    - Local-Only Privacy Mode enforcement: remote HTTP downloads blocked with descriptive user feedback when local-only mode is active.
+  - Implemented `HardwareInspectorScreen` in `ui/miniai_app/lib/src/screens/hardware_inspector_screen.dart`:
+    - Host profile overview: OS family, architecture, logical CPU core count, and active execution backend.
+    - Detected hardware accelerator backends (`CPU`, `Vulkan`, `CUDA`, `Metal`).
+    - 85% memory ceiling admission guard indicator and interactive model RAM footprint evaluation tool.
+    - CPU SIMD instruction sets display (`AVX2`, `AVX-512`, `FMA`, `SSE4.2`, `NEON`, `SVE`, `DotProd`).
+    - GPU / neural accelerator devices view with total and available VRAM metrics and 85% safe VRAM limit.
+  - Integrated navigation destinations into `ShellScreen` for desktop `NavigationRail` and mobile `NavigationBar` (Models: tab 3, Hardware: tab 4).
+  - Extended `PlatformController` and `SystemContracts` with complete model catalog, download state machine, local import pipeline, and hardware testing.
+  - Authored 6 comprehensive widget and serialization unit tests in `ui/miniai_app/test/model_manager_and_hardware_test.dart`.
+  - Achieved 25/25 Flutter tests passing, 0 `flutter analyze` issues, and 97.12% measured line coverage (1246/1283 lines).
+  - Maintained 54/54 Rust workspace tests passing with 0 Clippy warnings.

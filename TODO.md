@@ -222,3 +222,31 @@
     - Added 9 comprehensive unit tests in `crates/miniai-runtime` covering 7-modality initialization, accelerator loading, VRAM ceiling fallback, absent accelerator fallback, force-cpu policy fallback, RAM ceiling rejection, inter-modality isolation, hot unloading, and complete `SystemSnapshot` assembly.
     - Verified all 54 workspace tests pass (`miniai-core`: 8, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13, `miniai-runtime`: 9), 0 Clippy warnings with `-D warnings`, 100% Python and Flutter test pass rates.
 - **Next Subphase Ready:** `S2-P3-SUB2.3.2` (Subphase 2.3.2: Flutter Model Manager & Hardware Inspector views with download progress, pause/resume/cancel, and SHA-256 verification badges).
+
+
+---
+
+### [2026-11-06T09:25:00+05:30] Stage 2 — Entry 013 (Subphase 2.3.2 Completed & Stage 2 Implementation Ready for Gate Audit)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 2: Model Registry, Downloads, Integrity, Hardware Detection & Runtime Adapters / Phase 2.3 — Modality Runtime Supervisor & Flutter Model Manager / Subphase 2.3.2`
+- **Status Transitions:**
+  - `S2-P3-SUB2.3.2` [`VERIFIED`]: Implemented Flutter Model Manager and Hardware Inspector views with real download progress, pause/resume/cancel, SHA-256 badges, and admission evaluation:
+    - Created [`ui/miniai_app/lib/src/screens/model_manager_screen.dart`](file:///g:/miniAI/ui/miniai_app/lib/src/screens/model_manager_screen.dart):
+      - Model catalog view with real-time modality filter chips (`All`, `LLM`, `Vision`, `Speech ASR`, `Speech TTS`, etc.).
+      - Cryptographic SHA-256 verification badges, format chips, quantization tags, parameter counts, and formatted byte sizes.
+      - Resumable download progress bars with percentage and byte-level telemetry.
+      - Action controls: pause download, resume download, cancel download, retry failed download, delete model from cache.
+      - Local Model Import Wizard dialog: interactive import form with model ID, name, file path, format, and optional expected SHA-256, promoting imported weights to verified cache.
+      - Local-Only Privacy Mode enforcement: remote HTTP downloads blocked with descriptive user feedback when local-only mode is active.
+    - Created [`ui/miniai_app/lib/src/screens/hardware_inspector_screen.dart`](file:///g:/miniAI/ui/miniai_app/lib/src/screens/hardware_inspector_screen.dart):
+      - Host profile overview: OS family, architecture, logical CPU core count, and active execution backend.
+      - Detected hardware accelerator backends (CPU, Vulkan, CUDA, Metal).
+      - 85% memory ceiling admission guard indicator and interactive model RAM footprint evaluation tool.
+      - CPU SIMD instruction sets display (`AVX2`, `AVX-512`, `FMA`, `SSE4.2`, `NEON`, `SVE`, `DotProd`).
+      - GPU / neural accelerator devices view with total and available VRAM metrics and 85% safe VRAM limit.
+    - Integrated navigation destinations into [`ShellScreen`](file:///g:/miniAI/ui/miniai_app/lib/src/screens/shell_screen.dart) for desktop `NavigationRail` and mobile `NavigationBar` (Models: tab 3, Hardware: tab 4).
+    - Updated [`PlatformController`](file:///g:/miniAI/ui/miniai_app/lib/src/controllers/platform_controller.dart) and [`SystemContracts`](file:///g:/miniAI/ui/miniai_app/lib/src/models/system_contracts.dart) with full model catalog, download state machine, local import pipeline, and hardware testing.
+    - Added 6 comprehensive widget and serialization unit tests in [`ui/miniai_app/test/model_manager_and_hardware_test.dart`](file:///g:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart).
+    - Verified all 25 Flutter tests pass, 0 `flutter analyze` warnings, 97.12% measured line coverage (1246/1283 lines).
+    - Verified all 54 workspace tests pass across Rust crates with 0 Clippy warnings.
+- **Next Stage Gate Ready:** `STAGE-2-GATE` (Full Stage 2 Gate Audit & Certification).

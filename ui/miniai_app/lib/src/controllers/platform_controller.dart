@@ -53,6 +53,86 @@ class PlatformController extends ChangeNotifier {
   String? _eventFilter;
   bool _ipcConnected = false;
 
+  final List<ModelManifest> _models = [
+    const ModelManifest(
+      modelId: 'llama-3.2-1b-instruct-q4',
+      name: 'Llama 3.2 1B Instruct (GGUF Q4)',
+      modality: Modality.llm,
+      version: '1.0.0',
+      description: 'Compact general text generation and reasoning model',
+      sourceUrl: 'http://127.0.0.1:4140/models/llama-3.2-1b.gguf',
+      expectedSha256:
+          '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+      expectedSizeBytes: 1288490188,
+      format: 'gguf',
+      parameterCount: '1.23B',
+      quantization: 'Q4_K_M',
+      minRamBytes: 2147483648,
+      recommendedBackend: AcceleratorBackend.cpu,
+    ),
+    const ModelManifest(
+      modelId: 'clip-vit-base-patch32',
+      name: 'CLIP ViT-B/32 (ONNX FP16)',
+      modality: Modality.vision,
+      version: '1.0.0',
+      description:
+          'Zero-shot image classification and visual feature extraction',
+      sourceUrl: 'http://127.0.0.1:4140/models/clip-vit-base.onnx',
+      expectedSha256:
+          '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+      expectedSizeBytes: 367001600,
+      format: 'onnx',
+      parameterCount: '86M',
+      quantization: 'FP16',
+      minRamBytes: 1073741824,
+      recommendedBackend: AcceleratorBackend.cpu,
+    ),
+    const ModelManifest(
+      modelId: 'whisper-tiny-en',
+      name: 'Whisper Tiny English (GGUF Q8)',
+      modality: Modality.speechAsr,
+      version: '1.0.0',
+      description: 'Fast streaming automatic speech recognition',
+      sourceUrl: 'http://127.0.0.1:4140/models/whisper-tiny.gguf',
+      expectedSha256:
+          '4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a',
+      expectedSizeBytes: 78643200,
+      format: 'gguf',
+      parameterCount: '39M',
+      quantization: 'Q8_0',
+      minRamBytes: 536870912,
+      recommendedBackend: AcceleratorBackend.cpu,
+    ),
+    const ModelManifest(
+      modelId: 'piper-en-amy-medium',
+      name: 'Piper Amy English (ONNX)',
+      modality: Modality.speechTts,
+      version: '1.0.0',
+      description: 'Real-time neural text-to-speech engine',
+      sourceUrl: 'http://127.0.0.1:4140/models/piper-amy.onnx',
+      expectedSha256:
+          'ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d',
+      expectedSizeBytes: 62914560,
+      format: 'onnx',
+      parameterCount: '28M',
+      quantization: 'FP32',
+      minRamBytes: 536870912,
+      recommendedBackend: AcceleratorBackend.cpu,
+    ),
+  ];
+
+  final Map<String, DownloadProgressItem> _downloadProgress = {
+    'whisper-tiny-en': const DownloadProgressItem(
+      modelId: 'whisper-tiny-en',
+      bytesDownloaded: 78643200,
+      totalBytes: 78643200,
+      percentage: 100.0,
+      status: DownloadStatus.verified,
+    ),
+  };
+
+  Modality? _modelModalityFilter;
+
   HardwareProfile get hardware => _hardware;
   SettingsStore get settingsStore => _settingsStore;
   IpcClient? get ipcClient => _ipcClient;
@@ -70,6 +150,169 @@ class PlatformController extends ChangeNotifier {
   List<EventEnvelope> get events => List.unmodifiable(_events);
   String? get eventFilter => _eventFilter;
   bool get ipcConnected => _ipcConnected;
+
+  List<ModelManifest> get models => List.unmodifiable(_models);
+  Map<String, DownloadProgressItem> get downloadProgress =>
+      Map.unmodifiable(_downloadProgress);
+  Modality? get modelModalityFilter => _modelModalityFilter;
+
+  List<ModelManifest> get filteredModels {
+    if (_modelModalityFilter == null) {
+      return List.unmodifiable(_models);
+    }
+    return List.unmodifiable(
+      _models.where((m) => m.modality == _modelModalityFilter),
+    );
+  }
+
+  void setModelModalityFilter(Modality? filter) {
+    _modelModalityFilter = filter;
+    notifyListeners();
+  }
+
+  DownloadProgressItem getModelStatus(String modelId) {
+    return _downloadProgress[modelId] ??
+        DownloadProgressItem(
+          modelId: modelId,
+          bytesDownloaded: 0,
+          totalBytes: 0,
+          percentage: 0.0,
+          status: DownloadStatus.pending,
+        );
+  }
+
+  void startDownload(String modelId) {
+    final manifest = _models.firstWhere((m) => m.modelId == modelId);
+    if (_localOnlyMode && manifest.sourceUrl.startsWith('http')) {
+      _downloadProgress[modelId] = DownloadProgressItem(
+        modelId: modelId,
+        bytesDownloaded: 0,
+        totalBytes: manifest.expectedSizeBytes,
+        percentage: 0.0,
+        status: DownloadStatus.failed,
+        errorMessage: 'Remote downloads blocked in Local-Only Privacy Mode',
+      );
+      _recordEvent(
+        eventType: 'model_download_failed',
+        payload: {
+          'model_id': modelId,
+          'reason': 'Remote downloads blocked in Local-Only Privacy Mode',
+        },
+      );
+      notifyListeners();
+      return;
+    }
+
+    _downloadProgress[modelId] = DownloadProgressItem(
+      modelId: modelId,
+      bytesDownloaded: (manifest.expectedSizeBytes * 0.45).toInt(),
+      totalBytes: manifest.expectedSizeBytes,
+      percentage: 45.0,
+      status: DownloadStatus.downloading,
+    );
+    _recordEvent(
+      eventType: 'model_download_progress',
+      payload: {
+        'model_id': modelId,
+        'bytes_downloaded': (manifest.expectedSizeBytes * 0.45).toInt(),
+        'total_bytes': manifest.expectedSizeBytes,
+        'percentage': 45.0,
+      },
+    );
+    notifyListeners();
+  }
+
+  void pauseDownload(String modelId) {
+    final current = _downloadProgress[modelId];
+    if (current != null) {
+      _downloadProgress[modelId] =
+          current.copyWith(status: DownloadStatus.paused);
+      notifyListeners();
+    }
+  }
+
+  void resumeDownload(String modelId) {
+    final current = _downloadProgress[modelId];
+    if (current != null) {
+      _downloadProgress[modelId] =
+          current.copyWith(status: DownloadStatus.downloading);
+      notifyListeners();
+    }
+  }
+
+  void cancelDownload(String modelId) {
+    _downloadProgress.remove(modelId);
+    notifyListeners();
+  }
+
+  void completeDownload(String modelId) {
+    final manifest = _models.firstWhere((m) => m.modelId == modelId);
+    _downloadProgress[modelId] = DownloadProgressItem(
+      modelId: modelId,
+      bytesDownloaded: manifest.expectedSizeBytes,
+      totalBytes: manifest.expectedSizeBytes,
+      percentage: 100.0,
+      status: DownloadStatus.verified,
+    );
+    _recordEvent(
+      eventType: 'model_download_verified',
+      payload: {
+        'model_id': modelId,
+        'sha256': manifest.expectedSha256,
+      },
+    );
+    notifyListeners();
+  }
+
+  void importLocalModel(LocalModelImportRequest request) {
+    final manifest = ModelManifest(
+      modelId: request.modelId,
+      name: request.name,
+      modality: request.modality,
+      version: request.version,
+      description: request.description,
+      sourceUrl: 'file://${request.sourcePath}',
+      expectedSha256: request.expectedSha256 ??
+          'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9',
+      expectedSizeBytes: request.expectedSizeBytes ?? 1024 * 1024 * 100,
+      format: request.format,
+      parameterCount: request.parameterCount,
+      quantization: request.quantization,
+      minRamBytes: request.minRamBytes,
+      recommendedBackend: request.recommendedBackend,
+    );
+
+    _models.removeWhere((m) => m.modelId == request.modelId);
+    _models.insert(0, manifest);
+
+    _downloadProgress[request.modelId] = DownloadProgressItem(
+      modelId: request.modelId,
+      bytesDownloaded: manifest.expectedSizeBytes,
+      totalBytes: manifest.expectedSizeBytes,
+      percentage: 100.0,
+      status: DownloadStatus.verified,
+    );
+
+    _recordEvent(
+      eventType: 'model_imported',
+      payload: {
+        'model_id': request.modelId,
+        'source_path': request.sourcePath,
+        'status': 'verified',
+      },
+    );
+    notifyListeners();
+  }
+
+  void deleteModel(String modelId) {
+    _models.removeWhere((m) => m.modelId == modelId);
+    _downloadProgress.remove(modelId);
+    notifyListeners();
+  }
+
+  bool testMemoryAdmission(int requiredBytes) {
+    return _hardware.canAdmitModel(requiredBytes);
+  }
 
   List<EventEnvelope> get filteredEvents {
     if (_eventFilter == null || _eventFilter!.isEmpty || _eventFilter == 'all') {

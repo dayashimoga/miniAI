@@ -18,6 +18,18 @@ pub enum RegistryError {
     #[error("Model '{model_id}' not found in registry")]
     ModelNotFound { model_id: String },
 
+    #[error("Model '{model_id}' already exists in registry")]
+    ModelAlreadyExists { model_id: String },
+
+    #[error(
+        "File size mismatch for model '{model_id}': expected {expected} bytes, actual {actual} bytes"
+    )]
+    SizeMismatch {
+        model_id: String,
+        expected: u64,
+        actual: u64,
+    },
+
     #[error("SHA-256 verification failed for model '{model_id}': expected {expected}, computed {actual}")]
     Sha256Mismatch {
         model_id: String,

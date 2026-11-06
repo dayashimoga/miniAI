@@ -7,7 +7,11 @@ use miniai_storage::StorageEngine;
 
 use crate::downloader::ResumableDownloader;
 use crate::error::RegistryError;
-use crate::models::{DownloadProgress, ModelManifest};
+use crate::importer::ModelImporter;
+use crate::models::{
+    DownloadProgress, ImportProgress, LocalModelImportRequest, LocalModelImportResult,
+    ModelManifest,
+};
 
 /// Central model catalog, resumable downloader, and integrity verification supervisor.
 pub struct ModelRegistry {
@@ -151,6 +155,27 @@ impl ModelRegistry {
 
         self.storage.insert_cached_model(&cached_record)?;
         Ok(verified_path)
+    }
+
+    /// Imports a model from the host filesystem into the registry and verified cache.
+    ///
+    /// Staged in quarantine, SHA-256 verified, atomically promoted, and recorded in SQLite.
+    /// Operates fully offline and is permitted even in Local-Only Privacy Mode.
+    pub fn import_local_model<F>(
+        &self,
+        request: LocalModelImportRequest,
+        progress_callback: F,
+    ) -> Result<LocalModelImportResult, RegistryError>
+    where
+        F: FnMut(ImportProgress),
+    {
+        ModelImporter::import(
+            &request,
+            &self.storage,
+            &self.staging_dir,
+            &self.models_dir,
+            progress_callback,
+        )
     }
 
     /// Gets a cached model record from storage.

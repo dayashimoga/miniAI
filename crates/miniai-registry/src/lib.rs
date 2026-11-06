@@ -2,12 +2,17 @@
 
 pub mod downloader;
 pub mod error;
+pub mod importer;
 pub mod models;
 pub mod registry;
 
 pub use downloader::ResumableDownloader;
 pub use error::RegistryError;
-pub use models::{DownloadProgress, DownloadStatus, ModelManifest};
+pub use importer::ModelImporter;
+pub use models::{
+    DownloadProgress, DownloadStatus, ImportProgress, ImportStatus, LocalModelImportRequest,
+    LocalModelImportResult, ModelManifest,
+};
 pub use registry::ModelRegistry;
 
 #[cfg(test)]
@@ -354,5 +359,405 @@ mod tests {
             .get_cached_model("http-resumable-model")
             .unwrap()
             .is_none());
+    }
+
+    #[test]
+    fn test_import_local_model_with_expected_sha256_success() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let privacy = Arc::new(PrivacyPolicyEngine::default());
+        let registry = ModelRegistry::new(storage, privacy, temp.path()).unwrap();
+
+        // 1. Create a dummy model file on host
+        let host_model_file = temp.path().join("local_weights.gguf");
+        let model_bytes = b"GGUF_MAGIC_HEADER_AND_QUANTIZED_TENSORS_123456789";
+        std::fs::write(&host_model_file, model_bytes).unwrap();
+
+        let mut hasher = Sha256::new();
+        hasher.update(model_bytes);
+        let expected_sha256 = format!("{:x}", hasher.finalize());
+
+        let request = LocalModelImportRequest {
+            source_path: host_model_file.clone(),
+            model_id: "imported-llama-01".to_string(),
+            name: "Imported LLaMA 01".to_string(),
+            modality: Modality::Llm,
+            version: "1.0.0".to_string(),
+            description: "Locally imported GGUF weights".to_string(),
+            format: "gguf".to_string(),
+            parameter_count: Some("1B".to_string()),
+            quantization: Some("Q4_K_M".to_string()),
+            min_ram_bytes: 512_000_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: Some(expected_sha256.clone()),
+            expected_size_bytes: Some(model_bytes.len() as u64),
+            overwrite: false,
+        };
+
+        let mut progress_events = Vec::new();
+        let result = registry
+            .import_local_model(request, |p| progress_events.push(p))
+            .expect("import must succeed");
+
+        assert_eq!(result.sha256, expected_sha256);
+        assert_eq!(result.size_bytes, model_bytes.len() as u64);
+        assert!(result.verified_path.is_file());
+        assert_eq!(std::fs::read(&result.verified_path).unwrap(), model_bytes);
+
+        // Verify staging quarantine file was cleaned up
+        let staging_quarantine = registry
+            .staging_dir()
+            .join("imported-llama-01.import.quarantine");
+        assert!(!staging_quarantine.exists());
+
+        // Verify SQLite manifest
+        let manifest = registry
+            .get_manifest("imported-llama-01")
+            .unwrap()
+            .expect("manifest registered");
+        assert_eq!(manifest.expected_sha256, expected_sha256);
+        assert_eq!(manifest.expected_size_bytes, model_bytes.len() as u64);
+
+        // Verify SQLite cached model
+        let cached = registry
+            .get_cached_model("imported-llama-01")
+            .unwrap()
+            .expect("cached model registered");
+        assert_eq!(cached.sha256, expected_sha256);
+
+        // Verify integrity check
+        assert!(registry
+            .verify_cached_model_integrity("imported-llama-01")
+            .unwrap());
+
+        // Verify progress events had all states
+        let statuses: Vec<_> = progress_events.into_iter().map(|p| p.status).collect();
+        assert!(statuses.contains(&ImportStatus::Starting));
+        assert!(statuses.contains(&ImportStatus::StagingQuarantine));
+        assert!(statuses.contains(&ImportStatus::VerifyingSha256));
+        assert!(statuses.contains(&ImportStatus::Promoted));
+    }
+
+    #[test]
+    fn test_import_local_model_auto_computes_sha256() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let privacy = Arc::new(PrivacyPolicyEngine::default());
+        let registry = ModelRegistry::new(storage, privacy, temp.path()).unwrap();
+
+        let host_model_file = temp.path().join("auto_hash.safetensors");
+        let data = b"SAFETENSORS_HEADER_DATA_999";
+        std::fs::write(&host_model_file, data).unwrap();
+
+        let request = LocalModelImportRequest {
+            source_path: host_model_file,
+            model_id: "auto-hash-model".to_string(),
+            name: "Auto Hash Model".to_string(),
+            modality: Modality::Vision,
+            version: "0.1.0".to_string(),
+            description: "Auto hash test".to_string(),
+            format: "safetensors".to_string(),
+            parameter_count: None,
+            quantization: None,
+            min_ram_bytes: 256_000_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: None, // Auto-compute hash
+            expected_size_bytes: None,
+            overwrite: false,
+        };
+
+        let result = registry
+            .import_local_model(request, |_| {})
+            .expect("import succeeds with auto hash");
+
+        assert_eq!(result.sha256.len(), 64);
+        assert!(registry
+            .verify_cached_model_integrity("auto-hash-model")
+            .unwrap());
+    }
+
+    #[test]
+    fn test_import_local_model_tampered_weights_quarantined_and_deleted() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let privacy = Arc::new(PrivacyPolicyEngine::default());
+        let registry = ModelRegistry::new(storage, privacy, temp.path()).unwrap();
+
+        let host_model_file = temp.path().join("tampered.gguf");
+        std::fs::write(&host_model_file, b"MALICIOUS_TAMPERED_CONTENT").unwrap();
+
+        let wrong_sha =
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_string();
+
+        let request = LocalModelImportRequest {
+            source_path: host_model_file,
+            model_id: "tampered-import".to_string(),
+            name: "Tampered Model".to_string(),
+            modality: Modality::Llm,
+            version: "1.0.0".to_string(),
+            description: "Tampered".to_string(),
+            format: "gguf".to_string(),
+            parameter_count: None,
+            quantization: None,
+            min_ram_bytes: 100_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: Some(wrong_sha),
+            expected_size_bytes: None,
+            overwrite: false,
+        };
+
+        let err = registry
+            .import_local_model(request, |_| {})
+            .expect_err("tampered hash must fail");
+
+        match err {
+            RegistryError::Sha256Mismatch { model_id, .. } => {
+                assert_eq!(model_id, "tampered-import");
+            }
+            other => panic!("Expected Sha256Mismatch, got {other:?}"),
+        }
+
+        // Verify quarantined staging file was deleted immediately
+        let staging_file = registry
+            .staging_dir()
+            .join("tampered-import.import.quarantine");
+        assert!(!staging_file.exists());
+
+        // Verify no verified file was created
+        let promoted_dir = registry.models_dir().join("tampered-import");
+        assert!(!promoted_dir.exists());
+
+        // Verify nothing in database
+        assert!(registry.get_manifest("tampered-import").unwrap().is_none());
+        assert!(registry
+            .get_cached_model("tampered-import")
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn test_import_local_model_size_mismatch_rejected() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let privacy = Arc::new(PrivacyPolicyEngine::default());
+        let registry = ModelRegistry::new(storage, privacy, temp.path()).unwrap();
+
+        let host_model_file = temp.path().join("size_test.bin");
+        std::fs::write(&host_model_file, b"12345").unwrap();
+
+        let request = LocalModelImportRequest {
+            source_path: host_model_file,
+            model_id: "size-mismatch-model".to_string(),
+            name: "Size Test".to_string(),
+            modality: Modality::SpeechAsr,
+            version: "1.0.0".to_string(),
+            description: "Size test".to_string(),
+            format: "bin".to_string(),
+            parameter_count: None,
+            quantization: None,
+            min_ram_bytes: 100_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: None,
+            expected_size_bytes: Some(9999), // Wrong size
+            overwrite: false,
+        };
+
+        let err = registry
+            .import_local_model(request, |_| {})
+            .expect_err("size mismatch must fail");
+
+        match err {
+            RegistryError::SizeMismatch {
+                expected, actual, ..
+            } => {
+                assert_eq!(expected, 9999);
+                assert_eq!(actual, 5);
+            }
+            other => panic!("Expected SizeMismatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_import_local_model_collision_and_overwrite() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let privacy = Arc::new(PrivacyPolicyEngine::default());
+        let registry = ModelRegistry::new(storage, privacy, temp.path()).unwrap();
+
+        let host_file_1 = temp.path().join("v1.gguf");
+        std::fs::write(&host_file_1, b"VERSION_1_WEIGHTS").unwrap();
+
+        let req1 = LocalModelImportRequest {
+            source_path: host_file_1,
+            model_id: "colliding-model".to_string(),
+            name: "Colliding Model V1".to_string(),
+            modality: Modality::Llm,
+            version: "1.0.0".to_string(),
+            description: "V1".to_string(),
+            format: "gguf".to_string(),
+            parameter_count: None,
+            quantization: None,
+            min_ram_bytes: 100_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: None,
+            expected_size_bytes: None,
+            overwrite: false,
+        };
+        registry.import_local_model(req1, |_| {}).unwrap();
+
+        // Attempt second import without overwrite
+        let host_file_2 = temp.path().join("v2.gguf");
+        std::fs::write(&host_file_2, b"VERSION_2_UPDATED_WEIGHTS").unwrap();
+
+        let mut req2 = LocalModelImportRequest {
+            source_path: host_file_2.clone(),
+            model_id: "colliding-model".to_string(),
+            name: "Colliding Model V2".to_string(),
+            modality: Modality::Llm,
+            version: "2.0.0".to_string(),
+            description: "V2".to_string(),
+            format: "gguf".to_string(),
+            parameter_count: None,
+            quantization: None,
+            min_ram_bytes: 100_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: None,
+            expected_size_bytes: None,
+            overwrite: false,
+        };
+
+        let err = registry
+            .import_local_model(req2.clone(), |_| {})
+            .expect_err("duplicate without overwrite must fail");
+        match err {
+            RegistryError::ModelAlreadyExists { model_id } => {
+                assert_eq!(model_id, "colliding-model");
+            }
+            other => panic!("Expected ModelAlreadyExists, got {other:?}"),
+        }
+
+        // Now import with overwrite: true
+        req2.overwrite = true;
+        let res2 = registry
+            .import_local_model(req2, |_| {})
+            .expect("overwrite must succeed");
+        assert_eq!(
+            std::fs::read(&res2.verified_path).unwrap(),
+            b"VERSION_2_UPDATED_WEIGHTS"
+        );
+        let manifest = registry.get_manifest("colliding-model").unwrap().unwrap();
+        assert_eq!(manifest.version, "2.0.0");
+    }
+
+    #[test]
+    fn test_import_local_model_path_traversal_and_invalid_params_rejected() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let privacy = Arc::new(PrivacyPolicyEngine::default());
+        let registry = ModelRegistry::new(storage, privacy, temp.path()).unwrap();
+
+        let host_file = temp.path().join("safe.gguf");
+        std::fs::write(&host_file, b"SAFE_DATA").unwrap();
+
+        // 1. Path traversal in model_id
+        let req_traversal = LocalModelImportRequest {
+            source_path: host_file.clone(),
+            model_id: "../../../evil-model".to_string(),
+            name: "Evil Model".to_string(),
+            modality: Modality::Llm,
+            version: "1.0.0".to_string(),
+            description: "Evil".to_string(),
+            format: "gguf".to_string(),
+            parameter_count: None,
+            quantization: None,
+            min_ram_bytes: 100_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: None,
+            expected_size_bytes: None,
+            overwrite: false,
+        };
+        assert!(registry.import_local_model(req_traversal, |_| {}).is_err());
+
+        // 2. Empty file rejected
+        let empty_file = temp.path().join("empty.gguf");
+        std::fs::write(&empty_file, b"").unwrap();
+        let req_empty = LocalModelImportRequest {
+            source_path: empty_file,
+            model_id: "empty-model".to_string(),
+            name: "Empty Model".to_string(),
+            modality: Modality::Llm,
+            version: "1.0.0".to_string(),
+            description: "Empty".to_string(),
+            format: "gguf".to_string(),
+            parameter_count: None,
+            quantization: None,
+            min_ram_bytes: 100_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: None,
+            expected_size_bytes: None,
+            overwrite: false,
+        };
+        assert!(registry.import_local_model(req_empty, |_| {}).is_err());
+
+        // 3. Nonexistent file rejected
+        let req_nonexistent = LocalModelImportRequest {
+            source_path: temp.path().join("does_not_exist.bin"),
+            model_id: "nonexistent-model".to_string(),
+            name: "Nonexistent Model".to_string(),
+            modality: Modality::Llm,
+            version: "1.0.0".to_string(),
+            description: "Nonexistent".to_string(),
+            format: "bin".to_string(),
+            parameter_count: None,
+            quantization: None,
+            min_ram_bytes: 100_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: None,
+            expected_size_bytes: None,
+            overwrite: false,
+        };
+        assert!(registry
+            .import_local_model(req_nonexistent, |_| {})
+            .is_err());
+    }
+
+    #[test]
+    fn test_import_local_model_allowed_in_local_only_privacy_mode() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let mut privacy_engine = PrivacyPolicyEngine::default();
+        privacy_engine.set_local_only_mode(true); // STRICT local-only privacy mode
+        let privacy = Arc::new(privacy_engine);
+        let registry = ModelRegistry::new(storage, privacy, temp.path()).unwrap();
+
+        let host_file = temp.path().join("local_isolated.onnx");
+        std::fs::write(&host_file, b"ISOLATED_LOCAL_ONLY_MODEL_DATA").unwrap();
+
+        let req = LocalModelImportRequest {
+            source_path: host_file,
+            model_id: "isolated-local-onnx".to_string(),
+            name: "Isolated Local ONNX".to_string(),
+            modality: Modality::Vision,
+            version: "1.0.0".to_string(),
+            description: "Runs without network".to_string(),
+            format: "onnx".to_string(),
+            parameter_count: Some("25M".to_string()),
+            quantization: Some("FP16".to_string()),
+            min_ram_bytes: 100_000_000,
+            recommended_backend: AcceleratorBackend::Cpu,
+            expected_sha256: None,
+            expected_size_bytes: None,
+            overwrite: false,
+        };
+
+        // Local import must succeed completely even when local-only mode is active
+        let result = registry
+            .import_local_model(req, |_| {})
+            .expect("local import must succeed in Local-Only Privacy Mode");
+
+        assert!(result.verified_path.is_file());
+        assert!(registry
+            .verify_cached_model_integrity("isolated-local-onnx")
+            .unwrap());
     }
 }

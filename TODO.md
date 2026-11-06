@@ -164,3 +164,24 @@
     - Added 6 integration tests in `crates/miniai-registry` covering manifest validation, lifecycle storage, remote privacy blocking, tampered weight rejection/quarantine, local range resume, and real HTTP loopback range download.
     - Verified all 36 workspace tests pass (`miniai-core`: 7, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 6), 0 Clippy warnings with `-D warnings`, and clean `cargo fmt`.
 - **Next Subphase Ready:** `S2-P1-SUB2.1.2` (Subphase 2.1.2: Offline Local Model Import with Quarantine and Digest Check).
+
+
+---
+
+### [2026-11-06T08:45:00+05:30] Stage 2 — Entry 010 (Subphase 2.1.2 Completed & Phase 2.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 2: Model Registry, Downloads, Integrity, Hardware Detection & Runtime Adapters / Phase 2.1 — Model Registry & Resumable Downloader / Subphase 2.1.2`
+- **Status Transitions:**
+  - `S2-P1-SUB2.1.2` [`VERIFIED`]: Implemented offline local model import with quarantine staging, cryptographic digest verification, and atomic promotion:
+    - Created [`crates/miniai-registry/src/importer.rs`](file:///g:/miniAI/crates/miniai-registry/src/importer.rs):
+      - `ModelImporter`: Implements offline streaming model import from host filesystems (.gguf, .onnx, .safetensors, .pt).
+      - Safe Quarantine Staging: Streams files into isolated quarantine directory (`.staging/<id>.import.quarantine`) while computing SHA-256 in real time.
+      - Integrity Enforcement: Validates against optional `expected_sha256` or computes authoritative hash. Immediately purges quarantined file on mismatch.
+      - Parameter & Path Traversal Validation: Rejects traversal characters, null bytes, absolute paths, empty files, and invalid formats.
+      - Collision Guard: Detects duplicate model registrations in SQLite manifest and cache tables, preventing accidental overwrite unless `overwrite: true` is explicitly requested.
+      - Atomic Promotion: Safely renames/promotes verified files into canonical cache hierarchy (`models/<id>/<id>.<format>`) and stores records in SQLite.
+      - Local-Only Privacy Guarantee: Operates strictly offline without network requests, functioning deterministically even when `LocalOnlyPrivacyMode` is active.
+    - Updated [`ModelRegistry`](file:///g:/miniAI/crates/miniai-registry/src/registry.rs) with `import_local_model` API and real-time `ImportProgress` telemetry.
+    - Added 7 integration tests in `crates/miniai-registry` (13 tests total) covering valid import with expected digest, auto-computed digest, tampered weight quarantine deletion, size mismatch rejection, collision/overwrite handling, path traversal defense, and local-only privacy mode execution.
+    - All 43 workspace tests pass (`miniai-core`: 7, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13), 0 Clippy warnings, 100% Python and Flutter test pass rates.
+- **Next Subphase Ready:** `S2-P2-SUB2.2.1` (Subphase 2.2.1: CPU SIMD feature detection [AVX2, AVX-512, NEON], system RAM & GPU VRAM probing, and 85% memory ceiling admission guard).

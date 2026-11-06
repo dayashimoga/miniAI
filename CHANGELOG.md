@@ -122,3 +122,19 @@
   - Implemented `ModelRegistry` orchestrating metadata persistence and enforcing `LocalOnlyPrivacyMode` to block unconsented outbound model downloads.
   - Authored 6 integration tests in `crates/miniai-registry` verifying range resumes over real loopback HTTP sockets, corruption defense, and privacy enforcement.
   - Verified 36/36 Rust workspace unit and integration tests passing, 0 Clippy warnings, and code formatting compliance.
+
+
+---
+
+## [2026-11-06T08:45:00+05:30] — Stage 2 Subphase 2.1.2 Verified (`v0.2.1-stage2.sub2.1.2`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 2 / Phase 2.1 / Subphase 2.1.2 — Offline Local Model Import with Quarantine and Digest Check`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `ModelImporter` in `crates/miniai-registry` providing streaming host model imports (.gguf, .onnx, .safetensors, .pt).
+  - Added safe quarantine staging in `.staging/<id>.import.quarantine` with streaming SHA-256 calculation.
+  - Implemented immediate deletion of quarantined staging weights when computed SHA-256 does not match `expected_sha256`.
+  - Added collision detection rejecting duplicate model imports unless `overwrite: true` is explicitly passed.
+  - Enforced strict parameter validation, 0-byte file rejection, and path traversal sanitization.
+  - Verified offline model import capability permitted in `LocalOnlyPrivacyMode`.
+  - Added 7 integration tests in `crates/miniai-registry` (13 tests total), achieving 43/43 workspace tests passing with 0 Clippy warnings.

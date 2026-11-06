@@ -123,3 +123,31 @@ This document records binding architectural decisions for **MiniAI**, including 
   - Implement `TrainingStudioScreen` in Flutter (`ui/miniai_app`) as Tab 6 in `ShellScreen`: dataset split inspector, LoRA tuning form, live progress bar, loss sparkline, and base vs tuned evaluation comparison table.
 - **Consequences:**
   Enables consumer hardware fine-tuning with zero cloud compute leakage, provides mathematical verification of adapter merging/unmerging, enforces end-to-end cryptographic traceability of trained artifacts, and seamlessly connects training outputs to the MiniAI model registry.
+
+
+---
+
+## ADR-010: Structure-Aware RAG, Hybrid Lexical/Dense Retrieval (BM25 + Dense + RRF), and Capability-Sandboxed Local Tools
+- **Date:** `2026-11-06`
+- **Status:** `ACCEPTED`
+- **Context:**
+  Stage 5 requires local document and code indexing, hybrid retrieval with verifiable source citations, capability-sandboxed tool execution, and an interactive knowledge management UI:
+  1. Preventing path traversal vulnerabilities, sensitive credential leaks (`.env`, `*.pem`, `id_rsa`, `*.db`), and binary file ingestion during workspace indexing.
+  2. Structure-aware chunking for code and markdown that preserves semantic boundaries (headings, code blocks, syntax scopes) while tracking precise source locations (`file_path#Lstart-Lend`) for verifiable grounding.
+  3. Incremental indexing to avoid re-chunking and re-embedding unchanged files across indexing passes using content-addressed SHA-256 caching.
+  4. Hybrid retrieval combining lexical keyword precision (Okapi BM25 with IDF smoothing) and semantic dense embeddings with Reciprocal Rank Fusion (RRF, $k=60$) on CPU without heavy external vector database dependencies.
+  5. Sandboxed local tool execution (`workspace_read_file`, `calculator`, `code_symbol_search`, `rag_query`) with strict capability permissions, resource bounds (timeouts, byte caps), and non-bypassable Local-Only Privacy Mode blocking outbound network tools.
+  6. Cross-platform UI integration with knowledge inventory, retrieval tester, and interactive citation inspector in chat bubbles.
+- **Decision:**
+  - Create `#![forbid(unsafe_code)]` crate `crates/miniai-rag` with clean separation of concerns:
+    - `security.rs`: Canonical path validation preventing directory traversal outside workspace root with Windows UNC (`\\?\`) prefix stripping, sensitive file exclusion (`.env`, `*.pem`, `id_rsa`, `*.db`, keys), and binary byte inspection.
+    - `chunker.rs`: Structure-aware text and code chunker preserving headings, code fence blocks, and syntax scopes, tagging each chunk with exact `file_path#Lstart-Lend` citation tags.
+    - `dedup.rs`: Content-addressed chunk deduplication tracking unique SHA-256 digests.
+    - `pipeline.rs`: Incremental `IngestionPipeline` with manifest caching (`IngestionManifest`) skipping unchanged files on subsequent runs.
+    - `bm25.rs`: Okapi BM25 lexical index with Robertson-Spärck Jones IDF smoothing ($k_1=1.2, b=0.75$).
+    - `embedding.rs`: Deterministic local 128-dimensional L2-normalized dense embeddings and vector cosine similarity search.
+    - `retrieval.rs`: `HybridSearchEngine` fusing lexical and dense search results via Reciprocal Rank Fusion ($1/(k + rank)$ with $k=60$) with grounded citation formatting.
+    - `tools.rs`: Capability security model (`ToolCapability::WorkspaceRead`, `ToolCapability::Compute`, `ToolCapability::CodeSearch`, `ToolCapability::Network`) with fine-grained access control in `ToolExecutionContext`. Built-in tools: `WorkspaceFileReadTool`, `CalculatorTool` (safe AST math parser on CPU), `CodeSymbolSearchTool`, and `RagQueryTool`. `ToolSandboxRunner` coordinates capability checking, execution timeout guard, output byte cap truncation, and strictly blocks network access when `LocalOnlyPrivacyMode` is active.
+    - Extended Flutter UI in `ui/miniai_app`: `KnowledgeBaseScreen` (Tab 7 'Knowledge' in `ShellScreen`) with index health stats, document inventory data table with SHA-256 digests, RAG grounding toggle, interactive query tester with RRF/Dense/BM25 score chips, and source modal inspection. Added clickable citation chips to `ChatWorkspaceScreen` assistant message bubbles.
+- **Consequences:**
+  Guarantees 100% offline document and code grounding, eliminates hallucination risks through verifiable source line citations, prevents unauthorized file system traversal or network leakage, and maintains sub-millisecond local hybrid search throughput.

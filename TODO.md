@@ -765,3 +765,23 @@
     - Authored 6 comprehensive widget and unit tests in `ui/miniai_app/test/knowledge_base_test.dart` (50/50 Flutter tests passing, 92.46% line coverage).
     - Workspace total: 106/106 Rust tests passing (0 Clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97% coverage, 0 governance errors), 50/50 Flutter tests passing (92.46% coverage).
 - **Next Step:** Stage 5 Master Gate Verification & Independent Audits (`verify_stage5.py`, `ADR-010`, `independent-qa-auditor`, `arch-security-reviewer`).
+
+
+---
+
+### [2026-11-06T19:15:00+05:30] Stage 5 — Entry 043 (Stage 5 Master Gate Certified & Released `v0.5.0`)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 5: RAG, Document/Code Indexing & Secure Tool Integration / Master Gate Release v0.5.0`
+- **Status Transitions:**
+  - `STAGE_5` [`COMPLETED` / `VERIFIED`]:
+    - Certified Phase 5.1 (Structure-Aware Document/Code Indexing Pipeline with Traversal & Secret Defense in `crates/miniai-rag`).
+    - Certified Phase 5.2 (Local Hybrid Retrieval combining Okapi BM25 with RSJ IDF smoothing, 128-dim subword dense embeddings with L2 normalization, and Reciprocal Rank Fusion $k=60$).
+    - Certified Phase 5.3 (Capability-Sandboxed Local Tool Runner with execution timeouts, output byte caps, and `LocalOnlyPrivacyMode` blocking network tools, paired with Flutter Knowledge Base screen Tab 7 and interactive chat citation inspector).
+    - Unanimous `PASS` audit sign-off received from both `independent-qa-auditor` and `arch-security-reviewer`.
+    - Architecture decision formally recorded in `ADR-010`.
+    - Full multi-tier test suite passing with 0 warnings:
+      - Rust workspace: 106 / 106 tests passed, 0 Clippy warnings, 0 format diffs, `#![forbid(unsafe_code)]` across all 7 workspace crates.
+      - Python ML: 39 / 39 pytest tests passed, 97.28% statement coverage, 0 governance errors.
+      - Flutter cross-platform UI: 50 / 50 widget tests passed, 92.46% line coverage, 0 `flutter analyze` issues.
+    - Deterministic verification report generated in `docs/STAGE_5_VERIFICATION_REPORT.json`.
+- **Next Stage Ready:** `STAGE_6` (Vision, OCR, Multimodal Understanding & Cross-Modal Generation under `docs/stage_prompts/STAGE_06_PROMPT.md`).

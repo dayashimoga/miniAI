@@ -514,3 +514,24 @@
   - Added interactive hybrid retrieval tester with RRF score chips, document inventory data table, and citation source modal.
   - Added grounded citation chips to `ChatWorkspaceScreen` assistant messages with snippet inspection dialog.
   - Reached 50/50 Flutter tests passing with 92.46% line coverage and 0 analyzer issues.
+
+
+---
+
+## [2026-11-06T19:15:00+05:30] — Stage 5 Master Gate Release (`v0.5.0`)
+- **Action:** `STAGE_GATE_VERIFIED`
+- **Stage:** `Stage 5 — RAG, Document/Code Indexing & Secure Sandboxed Tool Integration`
+- **Release Version:** `v0.5.0`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, python 3.14.0, flutter 3.32.0-0.2.pre)
+- **Summary:**
+  - Implemented structure-aware document and code indexing pipeline in `crates/miniai-rag` with canonical path traversal prevention, Windows UNC normalization, binary file detection, and sensitive file exclusion (`.env`, `*.pem`, `id_rsa`, `*.db`).
+  - Added incremental ingestion pipeline with content-addressed SHA-256 chunk deduplication and `IngestionManifest` caching.
+  - Implemented Okapi BM25 lexical ranking with Robertson-Spärck Jones IDF smoothing ($k_1=1.2, b=0.75$).
+  - Implemented deterministic local 128-dimensional dense vector embeddings with subword trigram hashing, L2 normalization, and exact cosine similarity vector index.
+  - Implemented Reciprocal Rank Fusion (RRF, $k=60$) search engine returning keyword-aligned contextual excerpts and grounded `file_path#Lstart-Lend` citation tags.
+  - Implemented capability-sandboxed local tool runner (`ToolSandboxRunner`) enforcing execution timeouts, output byte limits with truncation markers, and strict Local-Only Privacy Mode blocking all outbound network tools.
+  - Delivered built-in sandboxed tools: `WorkspaceFileReadTool`, `CalculatorTool` (safe AST math parser on CPU), `CodeSymbolSearchTool`, and `RagQueryTool`.
+  - Added Knowledge Base Screen (Tab 7 'Knowledge' in `ShellScreen`) with document inventory data table, index health metrics, RAG grounding toggle, interactive query tester with score badges, and citation source modal.
+  - Integrated interactive citation chips into `ChatWorkspaceScreen` assistant message bubbles opening source snippet inspection dialogs.
+  - Documented `ADR-010` in `ADR.md`.
+  - Verified 106/106 Rust tests passing, 39/39 Python ML tests passing (97.28% coverage), 50/50 Flutter UI tests passing (92.46% line coverage), and unanimous `PASS` verdicts from `independent-qa-auditor` and `arch-security-reviewer`.

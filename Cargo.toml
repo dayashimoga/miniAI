@@ -9,6 +9,7 @@ members = [
     "crates/miniai-llm",
     "crates/miniai-rag",
     "crates/miniai-vision",
+    "crates/miniai-imagegen",
 ]
 
 [workspace.package]

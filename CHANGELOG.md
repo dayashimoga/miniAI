@@ -560,3 +560,28 @@
   - Implemented `VisionEngine` with OCR bounding-box detection, automated scene descriptions, and grounded VQA.
   - Implemented `VisionAdapter` with `ModalityAdapter` conformance and CPU execution baseline.
   - Reached 123/123 Rust tests passing with 0 Clippy warnings.
+
+
+---
+
+## [2026-11-06T19:40:00+05:30] — Stage 6 Subphase 6.2.1 In Progress (`v0.6.2-stage6.sub6.2.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 6 / Phase 6.2 / Subphase 6.2.1 — Image Generation & Inpainting Runtime Adapter`
+- **Summary:**
+  - Initiated Subphase 6.2.1 in `crates/miniai-imagegen`.
+  - Designing Text-to-Image synthesis, Image-to-Image refinement, and Inpainting engine with deterministic PRNG seeds, per-step progress telemetry, lossless PNG encoding, and cryptographic provenance chunk embedding.
+
+
+---
+
+## [2026-11-06T20:45:00+05:30] — Stage 6 Subphase 6.2.1 Verified (`v0.6.2-stage6.sub6.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 6 / Phase 6.2 / Subphase 6.2.1 — Image Generation & Inpainting Runtime Adapter`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `crates/miniai-imagegen` workspace crate with `#![forbid(unsafe_code)]`.
+  - Added `ImageGenConfig` with validation for multiple-of-64 dimensions, prompt presence, step counts, guidance scale, and img2img strength.
+  - Implemented lossless 24-bit RGB PNG encoder and decoder (`PngEncoder`, `PngDecoder`) with Deflate uncompressed blocks, Adler32/CRC32, and `tEXt` cryptographic provenance chunk injection and retrieval.
+  - Built deterministic CPU synthesis engine (`ImageGenEngine`) supporting Text-to-Image, Image-to-Image, and localized Inpainting with exact unmasked byte retention, deterministic Xorshift64 noise, and per-step progress telemetry.
+  - Implemented `ImageGenAdapter` implementing `ModalityAdapter` with `Modality::ImageGeneration` on CPU.
+  - Reached 141/141 Rust tests passing across the workspace with 0 Clippy warnings and 0 formatting diffs.

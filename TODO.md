@@ -817,3 +817,48 @@
     - Authored 17 comprehensive unit, security boundary, and integration tests across 4 test suites (100% pass rate).
     - Workspace total: 123/123 Rust tests passing across 8 crates (0 Clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% coverage), 50/50 Flutter tests passing (92.46% coverage).
 - **Next Subphase Ready:** `S6-P2-SUB6.2.1` (Phase 6.2 / Subphase 6.2.1: Image Generation & Editing Runtime Adapter in `crates/miniai-imagegen`).
+
+
+---
+
+### [2026-11-06T19:40:00+05:30] Stage 6 — Entry 046 (Subphase 6.2.1 Initiated)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 6: Vision, Image Understanding, Generation & Canvas Studio / Phase 6.2 — Image Generation & Editing Runtime Adapter / Subphase 6.2.1`
+- **Status Transitions:**
+  - `S6-P2-SUB6.2.1` [`IN_PROGRESS`]: Implementing Image Generation & Inpainting runtime adapter in `crates/miniai-imagegen`:
+    - Create new workspace crate `crates/miniai-imagegen` with `#![forbid(unsafe_code)]`.
+    - Implement generation configuration models (`ImageGenConfig`, `GenerationMode::TextToImage`, `GenerationMode::ImageToImage`, `GenerationMode::Inpainting`, dimension step validation, seed reproducibility).
+    - Implement deterministic CPU synthesis engine (`ImageGenEngine`):
+      - Text conditioning and prompt feature extraction.
+      - Xorshift64 PRNG-driven initial latent noise generation.
+      - Iterative scheduled denoising loop with step progress callback reporting.
+      - Forward diffusion noise addition for Image-to-Image refinement.
+      - Binary mask blending for localized Canvas Inpainting.
+      - Cooperative generation cancellation.
+    - Implement lossless PNG encoder (`PngEncoder`) with cryptographic provenance metadata chunk embedding (`tEXt` chunks containing prompt, seed, steps, dimensions, SHA-256, model ID, timestamp).
+    - Implement `ImageGenAdapter` conforming to `ModalityAdapter` with `Modality::ImageGeneration` on CPU.
+    - Author comprehensive unit, boundary, and integration test suites.
+- **Next Step:** Implement crate files and test suites in `crates/miniai-imagegen`.
+
+
+---
+
+### [2026-11-06T20:45:00+05:30] Stage 6 — Entry 047 (Subphase 6.2.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 6: Vision, Image Understanding, Generation & Canvas Studio / Phase 6.2 — Image Generation & Editing Runtime Adapter / Subphase 6.2.1`
+- **Status Transitions:**
+  - `S6-P2-SUB6.2.1` [`VERIFIED`]: Implemented Image Generation & Inpainting runtime adapter in `crates/miniai-imagegen`:
+    - Created workspace crate `crates/miniai-imagegen` with `#![forbid(unsafe_code)]`.
+    - `types.rs`: Defined `GenerationMode` (`TextToImage`, `ImageToImage`, `Inpainting`), `ImageGenConfig` (validating prompt non-emptiness, dimensions as multiples of 64 between 64 and 1024, steps 1..=100, guidance scale 1.0..=30.0, strength 0.0..=1.0), `StepProgress`, `ImageProvenance`, and `ImageGenResult`.
+    - `png.rs`: Lossless 24-bit RGB PNG encoder and decoder (`PngEncoder`, `PngDecoder`) supporting standard PNG headers, raw Deflate uncompressed blocks, Adler32 and CRC32 checksums, and cryptographic provenance chunks (`tEXt` chunks embedding prompt, negative prompt, seed, steps, guidance scale, dimensions, model ID, generation mode, SHA-256 digest, and timestamp).
+    - `engine.rs`: Deterministic CPU image synthesis engine (`ImageGenEngine`):
+      - Text conditioning and prompt feature extraction.
+      - Xorshift64 PRNG-driven initial latent noise generation.
+      - Iterative scheduled denoising loop with step progress callback telemetry.
+      - Forward diffusion noise addition for Image-to-Image refinement.
+      - Binary mask blending for localized Canvas Inpainting preserving unmasked base pixels exactly.
+      - Cooperative cancellation via `CancellationToken` or callback abort flag.
+    - `adapter.rs`: `ImageGenAdapter` implementing `ModalityAdapter` (`Modality::ImageGeneration`), CPU-first execution (`AcceleratorBackend::Cpu`), weights loading with SHA-256 digest verification, and live health check reporting.
+    - Authored 18 comprehensive tests across 4 test suites: `config_tests.rs`, `png_tests.rs`, `engine_tests.rs`, `adapter_tests.rs` (100% pass rate).
+    - Workspace total: 141/141 Rust tests passing across 9 crates (0 Clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% coverage), 50/50 Flutter tests passing (92.46% coverage).
+- **Next Subphase Ready:** `S6-P3-SUB6.3.1` (Phase 6.3 / Subphase 6.3.1: Flutter Vision & Image Canvas Studio in `ui/miniai_app`).

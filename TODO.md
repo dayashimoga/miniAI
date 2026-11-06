@@ -408,3 +408,34 @@
     - Measured Flutter UI line coverage: **95.02%** (1,776/1,869 lines).
     - Verified 100% test pass rate across all suites (74 Rust tests, 6 Python ML tests, 38 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues).
 - **Next Subphase Ready:** `S3-P3-SUB3.3.1` (Phase 3.3: Quantitative LLM Benchmark Suite / Subphase 3.3.1: TTFT, Throughput, and Memory Tracking Harness).
+
+---
+
+### [2026-11-06T11:28:00+05:30] Stage 3 — Entry 023 (Subphase 3.3.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.3 — Quantitative LLM Benchmark Suite / Subphase 3.3.1`
+- **Status Transitions:**
+  - `S3-P3-SUB3.3.1` [`IN_PROGRESS`]: Commenced implementation of Quantitative LLM Benchmark Suite in `crates/miniai-llm/src/benchmark.rs`:
+    - Defining `LlmBenchmarkConfig`, `LlmIterationMetrics`, and `LlmBenchmarkReport` conforming to `miniai-evaluation-benchmarks` schema.
+    - Implementing `LlmBenchmarkHarness` with cold start measurement, warm-up iteration exclusion, per-iteration Time-To-First-Token (TTFT), decoding throughput (tokens/sec), peak memory RSS tracking, and p50/p95/mean statistical aggregation.
+    - Implementing JSON export and automated performance threshold assertions.
+    - Authoring unit and integration tests verifying benchmark execution, metrics accuracy, and schema adherence.
+
+---
+
+### [2026-11-06T12:35:00+05:30] Stage 3 — Entry 024 (Subphase 3.3.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.3 — Quantitative LLM Benchmark Suite / Subphase 3.3.1`
+- **Status Transitions:**
+  - `S3-P3-SUB3.3.1` [`VERIFIED`]: Implemented Quantitative LLM Benchmark Suite in `crates/miniai-llm/src/benchmark.rs`:
+    - Defined `LlmBenchmarkConfig`, `LlmIterationMetrics`, and `LlmBenchmarkReport` conforming to the `miniai-evaluation-benchmarks` schema.
+    - Implemented `LlmBenchmarkHarness::run`:
+      - Cold start model load measurement from disk.
+      - Warm memory verification timing.
+      - Configurable warmup iterations (executed to stabilize execution caches, strictly excluded from reported statistics).
+      - Measured iterations capturing per-iteration Time-To-First-Token (TTFT), decoding duration, completion token counts, throughput (tokens/second), and peak memory footprint.
+      - Statistical aggregation calculating mean, median (p50), and 95th percentile (p95) for both TTFT and throughput.
+      - Structured JSON formatting (`to_json`) and automated file persistence (`save_to_file`).
+    - Added 3 unit tests in `crates/miniai-llm` verifying cold load and TTFT metrics, 0-iteration validation failure rejection, and report JSON disk persistence.
+    - Verified all 77 workspace Rust tests pass with 0 Clippy warnings.
+- **Next Step Ready:** `STAGE_3_GATE_VERIFICATION` (Master verification script `scripts/verify_stage3.py`, independent QA and Security audits, ADR-008, and Stage 3 certification).

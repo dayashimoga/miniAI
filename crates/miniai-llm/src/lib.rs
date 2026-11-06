@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod adapter;
+pub mod benchmark;
 pub mod config;
 pub mod engine;
 pub mod error;
@@ -9,6 +10,9 @@ pub mod sampler;
 pub mod tokenizer;
 
 pub use adapter::LlmAdapter;
+pub use benchmark::{
+    LlmBenchmarkConfig, LlmBenchmarkHarness, LlmBenchmarkReport, LlmIterationMetrics,
+};
 pub use config::{FinishReason, GenerationConfig, GenerationOutput, StreamToken, SwitchReport};
 pub use engine::LlmEngine;
 pub use error::LlmError;
@@ -497,5 +501,101 @@ mod tests {
             )
             .expect("final generate");
         assert_eq!(out.completion_tokens, 4);
+    }
+
+    #[test]
+    fn test_llm_benchmark_harness_cold_load_ttft_and_throughput() {
+        let mut engine = LlmEngine::new();
+        let file = create_dummy_model_file();
+
+        let config = LlmBenchmarkConfig {
+            benchmark_id: "bench-test-01".to_string(),
+            model_id: "test-model-bench".to_string(),
+            model_path: file.path().to_path_buf(),
+            backend: AcceleratorBackend::Cpu,
+            prompt: "Benchmark query test.".to_string(),
+            max_new_tokens: 16,
+            warmup_iterations: 1,
+            measured_iterations: 3,
+            verification_tier: miniai_core::VerificationTier::ProvenOnHost,
+        };
+
+        let report = LlmBenchmarkHarness::run(&config, &mut engine)
+            .expect("benchmark run should succeed");
+
+        assert_eq!(report.benchmark_id, "bench-test-01");
+        assert_eq!(report.model_id, "test-model-bench");
+        assert_eq!(report.backend, AcceleratorBackend::Cpu);
+        assert_eq!(report.modality, miniai_core::Modality::Llm);
+        assert_eq!(report.verification_tier, miniai_core::VerificationTier::ProvenOnHost);
+        assert!(report.cold_start_ms >= 0.0);
+        assert_eq!(report.warmup_iterations, 1);
+        assert_eq!(report.measured_iterations, 3);
+        assert_eq!(report.iterations.len(), 3);
+        assert!(report.peak_memory_bytes > 0);
+        assert!(report.ttft_mean_ms >= 0.0);
+        assert!(report.ttft_p50_ms >= 0.0);
+        assert!(report.ttft_p95_ms >= 0.0);
+        assert!(report.throughput_mean_tok_per_sec >= 0.0);
+
+        // Verify JSON serialization conforms to benchmark schema
+        let json_str = report.to_json().expect("to json");
+        assert!(json_str.contains("\"benchmark_id\": \"bench-test-01\""));
+        assert!(json_str.contains("\"modality\": \"llm\""));
+        assert!(json_str.contains("\"cold_start_ms\""));
+        assert!(json_str.contains("\"ttft_mean_ms\""));
+        assert!(json_str.contains("\"throughput_mean_tok_per_sec\""));
+        assert!(json_str.contains("\"peak_memory_bytes\""));
+    }
+
+    #[test]
+    fn test_llm_benchmark_harness_invalid_iterations_rejected() {
+        let mut engine = LlmEngine::new();
+        let file = create_dummy_model_file();
+
+        let config = LlmBenchmarkConfig {
+            benchmark_id: "bench-fail".to_string(),
+            model_id: "test-model".to_string(),
+            model_path: file.path().to_path_buf(),
+            backend: AcceleratorBackend::Cpu,
+            prompt: "Test".to_string(),
+            max_new_tokens: 8,
+            warmup_iterations: 0,
+            measured_iterations: 0, // Invalid!
+            verification_tier: miniai_core::VerificationTier::ProvenOnHost,
+        };
+
+        let err = LlmBenchmarkHarness::run(&config, &mut engine)
+            .expect_err("should reject 0 measured iterations");
+        assert!(matches!(err, LlmError::InvalidConfig { .. }));
+    }
+
+    #[test]
+    fn test_llm_benchmark_report_file_persistence() {
+        let mut engine = LlmEngine::new();
+        let model_file = create_dummy_model_file();
+
+        let config = LlmBenchmarkConfig {
+            benchmark_id: "bench-persist".to_string(),
+            model_id: "persist-model".to_string(),
+            model_path: model_file.path().to_path_buf(),
+            backend: AcceleratorBackend::Cpu,
+            prompt: "Persistence test".to_string(),
+            max_new_tokens: 8,
+            warmup_iterations: 0,
+            measured_iterations: 2,
+            verification_tier: miniai_core::VerificationTier::ProvenOnHost,
+        };
+
+        let report = LlmBenchmarkHarness::run(&config, &mut engine)
+            .expect("run benchmark");
+
+        let temp_dir = tempfile::tempdir().expect("tempdir");
+        let report_path = temp_dir.path().join("reports").join("benchmark.json");
+        report.save_to_file(&report_path).expect("save to file");
+
+        assert!(report_path.exists());
+        let content = std::fs::read_to_string(&report_path).expect("read file");
+        assert!(content.contains("\"benchmark_id\": \"bench-persist\""));
     }
 }

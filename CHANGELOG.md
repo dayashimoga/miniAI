@@ -306,3 +306,21 @@
   - Created `ui/miniai_app/test/chat_workspace_test.dart` and expanded `test/widget_test.dart` (12 new tests in `chat_workspace_test.dart`, 38 total Flutter tests passing).
   - Measured Flutter UI line coverage: **95.02%** (1,776/1,869 lines).
   - Maintained 100% test pass rate across all suites: 74 Rust tests, 6 Python ML tests, 38 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues.
+
+---
+
+## [2026-11-06T12:35:00+05:30] — Stage 3 Subphase 3.3.1 Verified (`v0.3.3-stage3.sub3.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 3 / Phase 3.3 / Subphase 3.3.1 — Quantitative LLM Benchmark Suite`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `crates/miniai-llm/src/benchmark.rs` with `LlmBenchmarkConfig`, `LlmIterationMetrics`, `LlmBenchmarkReport`, and `LlmBenchmarkHarness`.
+  - Implemented measurement pipeline:
+    - Real cold start model load duration timing.
+    - Warm memory verification timing.
+    - Warmup iteration caching pass (excluded from measurement metrics).
+    - Measured inference iterations capturing per-iteration Time-To-First-Token (TTFT), decoding duration, completion tokens, throughput (tokens/second), and peak memory footprint.
+    - Statistical calculations: mean, median (p50), and 95th percentile (p95) for TTFT and throughput.
+    - Pretty-printed JSON serialization (`to_json`) and report persistence (`save_to_file`).
+  - Authored 3 unit tests in `crates/miniai-llm` verifying cold load and TTFT metrics, configuration validation, and report file persistence.
+  - Reached 77/77 workspace Rust tests passing with 0 Clippy warnings and 0 formatting diffs.

@@ -402,3 +402,19 @@
   - Authored 6 widget and integration tests in `ui/miniai_app/test/training_studio_test.dart`.
   - Reached **92.16% line coverage** across Flutter UI (44/44 Flutter tests passing, 0 analyze issues).
   - Maintained 100% test pass rate across all suites: 77 Rust tests, 39 Python ML tests, 44 Flutter tests, 0 Clippy warnings.
+
+
+---
+
+## [2026-11-06T17:37:00+05:30] — Stage 4 Certified & Released (`v0.4.0`)
+- **Action:** `STAGE_GATE_VERIFIED`
+- **Stage:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Python 3.14.0 uv, PyTorch 2.15.0+cpu, Flutter 3.29.0 / Dart 3.7.0, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Certified Stage 4 following unanimous **PASS** audit verdicts from both the Independent QA Lead (`independent-qa-auditor`) and Principal Architecture & Security Auditor (`arch-security-reviewer`).
+  - Delivered end-to-end dataset curation and validation pipeline in `ml/src/miniai_ml/dataset.py` with multi-format support, strict UTF-8 decoding, content-based deduplication, and deterministic cryptographic partitioning.
+  - Delivered parameter-efficient fine-tuning (LoRA) and teacher-student knowledge distillation in `ml/src/miniai_ml/training.py` with mathematically proven identity initialization, exact in-place weight merging/unmerging, and $T^2$-scaled softened distillation loss.
+  - Delivered cryptographic provenance manifest generation (`checkpoint_provenance.json`), adapter packaging, and Stage 2 Model Registry export in `ml/src/miniai_ml/provenance.py`.
+  - Delivered Flutter Training Studio Screen in `ui/miniai_app` with interactive dataset inspector, tuning controls, live progress tracking, and evaluation comparison.
+  - Verified 77 Rust tests (0 warnings), 39 Python ML tests (**97.28%** coverage), and 44 Flutter tests (**92.16%** coverage).
+  - Recorded ADR-009 in `ADR.md` and compiled `docs/STAGE_4_VERIFICATION_REPORT.json`.

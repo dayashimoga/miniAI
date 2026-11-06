@@ -587,3 +587,24 @@
     - Measured Flutter UI line coverage: **92.16%** (2,186 / 2,372 lines hit).
     - Maintained 100% test pass rate across all workspace test suites (77 Rust tests, 39 Python ML tests, 44 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues).
 - **Next Step Ready:** `STAGE_4_GATE_VERIFICATION` (Master verification script `scripts/verify_stage4.py`, independent QA and Security audits, ADR-009, and Stage 4 certification).
+
+
+---
+
+### [2026-11-06T17:37:00+05:30] Stage 4 — Entry 034 (Stage 4 Gate Verified & Certified)
+- **Entry Type:** `STAGE_GATE_VERIFIED`
+- **Stage / Phase:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation`
+- **Status Transitions:**
+  - `STAGE_4` [`VERIFIED` & `COMPLETED`]: Full Stage 4 delivery verified, audited, certified, and closed:
+    - Phase 4.1: Dataset Curation, Validation & Splitting (`ml/src/miniai_ml/dataset.py`): multi-format (.jsonl, .csv) ingestion, strict UTF-8 validation, key normalization (`prompt`/`response`, `instruction`/`output`), content deduplication, deterministic seeded PRNG train/val/test partitioning, and cryptographic SHA-256 dataset manifests (`manifest.json`).
+    - Phase 4.2: LoRA Fine-Tuning, Distillation & Provenance (`ml/src/miniai_ml/training.py`, `provenance.py`): PyTorch CPU/GPU low-rank adapters (`LoraLinear`) with identity initialization ($B=0, A \sim \text{Kaiming uniform}$) and reversible in-place weight merging (`merge`/`unmerge`), Hinton knowledge distillation loss with temperature $T^2$ scaling, CPU AdamW Trainer with gradient accumulation and clipping, cryptographic manifests (`checkpoint_provenance.json`), and Stage 2 Model Registry catalog export.
+    - Phase 4.3: Training Studio UI & Evaluation Comparison (`ui/miniai_app`): Tab 6 in `ShellScreen` with Dataset Split Inspector, LoRA hyperparameter tuning form, live progress bar, telemetry badges, loss sparkline, and base vs tuned evaluation comparison table.
+    - Master verification script `scripts/verify_stage4.py` executed and generated `docs/STAGE_4_VERIFICATION_REPORT.json` (all steps passed, 0 governance errors).
+    - Recorded `ADR-009` in `ADR.md`.
+    - Both specialist subagents (`independent-qa-auditor` and `arch-security-reviewer`) returned formal **PASS** verdicts.
+- **Verification Evidence:**
+  - Rust workspace: 77/77 tests passing, 0 Clippy warnings (`-D warnings`), 0 formatting diffs, `#![forbid(unsafe_code)]` enforced across all crates.
+  - Python ML suite: 39/39 tests passing, **97.28%** statement coverage (`dataset.py` 100%, `provenance.py` 99%, `training.py` 96%, `contracts.py` 100%).
+  - Flutter UI: 44/44 widget/contract tests passing, 0 analyze issues, **92.16%** measured line coverage (2,186 / 2,372 lines hit).
+  - Absolute zero-mock policy strictly verified.
+- **Next Stage Ready:** `STAGE-05-BACKLOG` (Stage 5: RAG, Document/Code Indexing & Secure Tool Integration).

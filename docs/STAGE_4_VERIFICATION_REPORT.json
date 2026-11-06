@@ -1,0 +1,188 @@
+{
+  "stage": "Stage 4",
+  "stage_title": "Dataset Pipeline, LoRA/QLoRA Fine-Tuning, Training, Distillation & Evaluation",
+  "timestamp_utc": "2026-11-06T11:57:38.371927+00:00",
+  "verification_tier": "PROVEN_ON_HOST",
+  "overall_passed": true,
+  "governance_audit": {
+    "passed": true,
+    "governance_files_checked": 19,
+    "rules_checked": 6,
+    "skills_checked": 18,
+    "stage_prompts_checked": 11,
+    "errors": []
+  },
+  "flutter_coverage": {
+    "present": true,
+    "lines_found": 2372,
+    "lines_hit": 2186,
+    "percent": 92.16
+  },
+  "stage4_contracts": {
+    "phase_4_1_dataset_curation_and_validation": {
+      "module": "ml/src/miniai_ml/dataset.py",
+      "multi_format_loader_jsonl_csv": true,
+      "utf8_strict_enforcement": true,
+      "flexible_field_mapping": true,
+      "content_based_deduplication": true,
+      "deterministic_prng_splitting": true,
+      "sha256_dataset_manifest_integrity": true,
+      "tamper_detection": true
+    },
+    "phase_4_2_lora_and_distillation_engine": {
+      "module": "ml/src/miniai_ml/training.py",
+      "lora_linear_layer": true,
+      "zero_delta_initialization_b_zeros": true,
+      "scaling_factor_alpha_over_r": true,
+      "in_place_weight_merging_unmerging": true,
+      "selective_model_instrumentation": true,
+      "hinton_distillation_loss_t2_kl_div": true,
+      "ground_truth_task_cross_entropy": true,
+      "cpu_first_trainer_with_adamw": true,
+      "gradient_accumulation_and_clipping": true,
+      "atomic_checkpoint_persistence_resumption": true,
+      "cooperative_cancellation_callback": true,
+      "provenance_module": "ml/src/miniai_ml/provenance.py",
+      "checkpoint_provenance_json_spec_conformance": true,
+      "base_model_and_dataset_sha256_fingerprinting": true,
+      "stage_2_model_registry_export_compatibility": true
+    },
+    "phase_4_3_training_studio_ui": {
+      "app_directory": "ui/miniai_app",
+      "training_contracts": "ui/miniai_app/lib/src/models/system_contracts.dart",
+      "training_studio_screen": "ui/miniai_app/lib/src/screens/training_studio_screen.dart",
+      "dataset_split_inspector": true,
+      "lora_hyperparameter_tuning_form": true,
+      "realtime_training_progress_bar": true,
+      "live_telemetry_step_epoch_loss_badges": true,
+      "sparkline_loss_history_view": true,
+      "base_vs_tuned_evaluation_comparison_card": true,
+      "model_catalog_registration_trigger": true,
+      "shell_screen_tab_6_integration": true
+    }
+  },
+  "steps": [
+    {
+      "name": "rust_fmt_check",
+      "command": "cargo fmt --all -- --check",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": []
+    },
+    {
+      "name": "rust_clippy",
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": [
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.27s"
+      ]
+    },
+    {
+      "name": "rust_tests",
+      "command": "cargo test --workspace",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "stderr_tail": [
+        "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.33s",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_core-23fd1064eb6c79e2.exe)",
+        "     Running tests\\contract_tests.rs (target\\debug\\deps\\contract_tests-2aeb00c5cdd446a3.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_llm-4c5c818d31195ef7.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_registry-5d2e89ab5a6835ba.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_runtime-b8755a80018f305b.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_server-ee2f4d936ad80b44.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_storage-76b036769d943651.exe)",
+        "   Doc-tests miniai_core",
+        "   Doc-tests miniai_llm",
+        "   Doc-tests miniai_registry",
+        "   Doc-tests miniai_runtime",
+        "   Doc-tests miniai_server",
+        "   Doc-tests miniai_storage"
+      ]
+    },
+    {
+      "name": "python_pytest_coverage",
+      "command": "uv run pytest --cov=miniai_ml --cov-report=term-missing --cov-fail-under=90",
+      "cwd": "ml",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "_______________ coverage: platform win32, python 3.14.0-final-0 _______________",
+        "",
+        "Name                             Stmts   Miss  Cover   Missing",
+        "--------------------------------------------------------------",
+        "src\\miniai_ml\\__init__.py            7      0   100%",
+        "src\\miniai_ml\\contracts.py         101      0   100%",
+        "src\\miniai_ml\\dataset.py           162      0   100%",
+        "src\\miniai_ml\\governance.py         95      4    96%   124, 149-150, 171",
+        "src\\miniai_ml\\provenance.py        150      1    99%   318",
+        "src\\miniai_ml\\runtime_probe.py      29      5    83%   23-24, 30-32",
+        "src\\miniai_ml\\training.py          374     15    96%   43-45, 60, 62, 68, 72, 560-561, 571, 638-639, 646, 650-651",
+        "--------------------------------------------------------------",
+        "TOTAL                              918     25    97%",
+        "Required test coverage of 90% reached. Total coverage: 97.28%",
+        "39 passed in 7.45s"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_analyze",
+      "command": "flutter analyze --no-pub",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "Analyzing miniai_app...                                         ",
+        "No issues found! (ran in 2.3s)"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_test_coverage",
+      "command": "flutter test --coverage",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "00:07 +30: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests Local Model Import Wizard opens dialog, registers model, and adds to catalog",
+        "00:08 +31: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests Local Model Import Wizard opens dialog, registers model, and adds to catalog",
+        "00:08 +32: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests Local Model Import Wizard opens dialog, registers model, and adds to catalog",
+        "00:08 +33: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests Local Model Import Wizard opens dialog, registers model, and adds to catalog",
+        "00:08 +34: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests Local Model Import Wizard opens dialog, registers model, and adds to catalog",
+        "00:08 +35: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests Local Model Import Wizard opens dialog, registers model, and adds to catalog",
+        "00:09 +36: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests SettingsScreen buttons, toggles, consent controls, and diagnostics",
+        "00:09 +37: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:09 +38: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:09 +39: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:10 +40: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:10 +41: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests ShellScreen navigates to Models (tab 3) and Hardware (tab 4)",
+        "00:10 +42: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests IpcClient connects to real loopback server, authenticates, and handles offline",
+        "00:10 +43: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests IpcClient connects to real loopback server, authenticates, and handles offline",
+        "00:11 +44: All tests passed!"
+      ],
+      "stderr_tail": []
+    }
+  ]
+}

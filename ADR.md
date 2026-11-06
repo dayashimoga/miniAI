@@ -97,3 +97,29 @@ This document records binding architectural decisions for **MiniAI**, including 
   - Integrate a responsive Flutter Chat Workspace (`ChatWorkspaceScreen`) with real-time token streaming badges, live tokens/second telemetry, and immediate cooperative generation cancellation (`cancel_generation_button`).
   - Implement `LlmBenchmarkHarness` in `crates/miniai-llm/src/benchmark.rs` to measure real cold load times from disk, warm memory reloads, and per-iteration TTFT and throughput. Enforce strict warmup iteration exclusion from reported p50, p95, and mean statistics, persisting output in conformance with `miniai-evaluation-benchmarks` JSON schema.
 - **Consequences:** Eliminates memory exhaustion during model transitions, guarantees non-destructive conversation branching and editing, maintains offline-first privacy guarantees with zero cloud leakage, and provides mathematically honest performance benchmarks.
+
+
+---
+
+## ADR-009: Dataset Curation, Parameter-Efficient Fine-Tuning (LoRA), Hinton Knowledge Distillation, and Cryptographic Checkpoint Provenance
+- **Date:** `2026-11-06`
+- **Status:** `ACCEPTED`
+- **Context:**
+  Stage 4 requires a robust dataset curation pipeline, local-first parameter-efficient fine-tuning (PEFT), teacher-student knowledge distillation, cryptographic model provenance tracking, and an interactive Flutter training studio. Key engineering challenges include:
+  1. Ingestion of untrusted datasets with variable schemas (`prompt`/`response`, `instruction`/`output`, `input_text`/`target_text`) without malformed UTF-8 characters or path traversal.
+  2. Executing fine-tuning on consumer CPU hardware where full parameter updating of large models is intractable.
+  3. Ensuring identity initialization in LoRA adapters ($h = W_0 x$ at $t=0$) so un-tuned adapters do not degrade base model weights before training commences.
+  4. Teacher-student distillation loss balancing task accuracy with temperature-scaled soft distributions preserving $T^2$ gradient scale.
+  5. Cryptographic reproducibility: every produced adapter checkpoint must record exact base model SHA-256, dataset SHA-256, random seed, hyperparameters, and convergence metrics.
+  6. Seamless export and integration of fine-tuned weights into the Stage 2 Model Registry without manual reconfiguration.
+- **Decision:**
+  - Build `miniai_ml` in Python (`ml/src/miniai_ml/`) managed via `uv`, with PyTorch CPU-first execution (`torch>=2.15.0+cpu`).
+  - Implement `miniai_ml/dataset.py`: multi-format loader (`.jsonl`, `.csv`), UTF-8 strict decoding, flexible field normalization, content-based deduplication, and deterministic PRNG splitting with cryptographic SHA-256 manifest verification.
+  - Implement `miniai_ml/training.py`:
+    - `LoraLinear`: low-rank matrix decomposition ($W_0 + \frac{\alpha}{r} B A$), initialized with $A \sim \text{Kaiming uniform}$ and $B = 0$ (identity initialization). In-place weight merging (`merge`) and unmerging (`unmerge`) preserving exact numerical equivalence.
+    - `DistillationLoss`: $\mathcal{L}_{total} = \alpha_{task} \mathcal{L}_{task} + (1 - \alpha_{task}) T^2 \mathcal{L}_{KD}$ over softened teacher logits with $T^2$ gradient scale preservation.
+    - `Trainer`: forward/backward optimization loop with AdamW, gradient accumulation, gradient norm clipping, periodic validation evaluation, atomic checkpoint persistence/resumption, and cooperative cancellation callback.
+  - Implement `miniai_ml/provenance.py`: cryptographic manifest `checkpoint_provenance.json` tracking base model SHA-256, dataset SHA-256, random seed, device info, hyperparameters, and convergence metrics. Export catalog manifests directly compatible with Stage 2 `ModelManifest`.
+  - Implement `TrainingStudioScreen` in Flutter (`ui/miniai_app`) as Tab 6 in `ShellScreen`: dataset split inspector, LoRA tuning form, live progress bar, loss sparkline, and base vs tuned evaluation comparison table.
+- **Consequences:**
+  Enables consumer hardware fine-tuning with zero cloud compute leakage, provides mathematical verification of adapter merging/unmerging, enforces end-to-end cryptographic traceability of trained artifacts, and seamlessly connects training outputs to the MiniAI model registry.

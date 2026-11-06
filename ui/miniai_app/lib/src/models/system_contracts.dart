@@ -1286,3 +1286,274 @@ class KnowledgeBaseStats {
         lastIndexedAtEpochSecs: json['last_indexed_at_epoch_secs'] as int? ?? 0,
       );
 }
+
+/// OCR detected bounding box contract.
+class OcrBoxContract {
+  const OcrBoxContract({
+    required this.text,
+    required this.confidence,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+
+  final String text;
+  final double confidence;
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        'confidence': confidence,
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+      };
+
+  factory OcrBoxContract.fromJson(Map<String, dynamic> json) => OcrBoxContract(
+        text: json['text'] as String? ?? '',
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+        x: (json['x'] as num?)?.toDouble() ?? 0.0,
+        y: (json['y'] as num?)?.toDouble() ?? 0.0,
+        width: (json['width'] as num?)?.toDouble() ?? 0.0,
+        height: (json['height'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// Visual understanding analysis result contract.
+class VisionAnalysisResultContract {
+  const VisionAnalysisResultContract({
+    required this.imageSha256,
+    required this.width,
+    required this.height,
+    required this.format,
+    required this.description,
+    required this.tags,
+    required this.ocrBoxes,
+    this.qaAnswer,
+  });
+
+  final String imageSha256;
+  final int width;
+  final int height;
+  final String format;
+  final String description;
+  final List<String> tags;
+  final List<OcrBoxContract> ocrBoxes;
+  final String? qaAnswer;
+
+  Map<String, dynamic> toJson() => {
+        'image_sha256': imageSha256,
+        'width': width,
+        'height': height,
+        'format': format,
+        'description': description,
+        'tags': tags,
+        'ocr_boxes': ocrBoxes.map((b) => b.toJson()).toList(),
+        if (qaAnswer != null) 'qa_answer': qaAnswer,
+      };
+
+  factory VisionAnalysisResultContract.fromJson(Map<String, dynamic> json) =>
+      VisionAnalysisResultContract(
+        imageSha256: json['image_sha256'] as String? ?? '',
+        width: json['width'] as int? ?? 0,
+        height: json['height'] as int? ?? 0,
+        format: json['format'] as String? ?? 'UNKNOWN',
+        description: json['description'] as String? ?? '',
+        tags: (json['tags'] as List<dynamic>?)?.map((t) => t.toString()).toList() ?? const [],
+        ocrBoxes: (json['ocr_boxes'] as List<dynamic>?)
+                ?.map((b) => OcrBoxContract.fromJson(b as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        qaAnswer: json['qa_answer'] as String?,
+      );
+}
+
+/// Image generation mode contract.
+enum GenerationModeContract {
+  textToImage('text_to_image', 'Text-to-Image'),
+  imageToImage('image_to_image', 'Image-to-Image'),
+  inpainting('inpainting', 'Inpainting Canvas');
+
+  const GenerationModeContract(this.wireValue, this.displayName);
+  final String wireValue;
+  final String displayName;
+
+  static GenerationModeContract fromWire(String value) {
+    for (final mode in GenerationModeContract.values) {
+      if (mode.wireValue == value.toLowerCase()) return mode;
+    }
+    return GenerationModeContract.textToImage;
+  }
+}
+
+/// Image generation task parameters.
+class ImageGenTaskConfig {
+  const ImageGenTaskConfig({
+    required this.prompt,
+    this.negativePrompt = '',
+    this.width = 256,
+    this.height = 256,
+    this.steps = 20,
+    this.guidanceScale = 7.5,
+    this.seed = 42,
+    this.strength = 0.75,
+    this.mode = GenerationModeContract.textToImage,
+  });
+
+  final String prompt;
+  final String negativePrompt;
+  final int width;
+  final int height;
+  final int steps;
+  final double guidanceScale;
+  final int seed;
+  final double strength;
+  final GenerationModeContract mode;
+
+  bool get isValid =>
+      prompt.trim().isNotEmpty &&
+      (width % 64 == 0) &&
+      (height % 64 == 0) &&
+      width >= 64 &&
+      width <= 1024 &&
+      height >= 64 &&
+      height <= 1024 &&
+      steps >= 1 &&
+      steps <= 100 &&
+      guidanceScale >= 1.0 &&
+      guidanceScale <= 30.0 &&
+      strength >= 0.0 &&
+      strength <= 1.0;
+
+  ImageGenTaskConfig copyWith({
+    String? prompt,
+    String? negativePrompt,
+    int? width,
+    int? height,
+    int? steps,
+    double? guidanceScale,
+    int? seed,
+    double? strength,
+    GenerationModeContract? mode,
+  }) {
+    return ImageGenTaskConfig(
+      prompt: prompt ?? this.prompt,
+      negativePrompt: negativePrompt ?? this.negativePrompt,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      steps: steps ?? this.steps,
+      guidanceScale: guidanceScale ?? this.guidanceScale,
+      seed: seed ?? this.seed,
+      strength: strength ?? this.strength,
+      mode: mode ?? this.mode,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'prompt': prompt,
+        'negative_prompt': negativePrompt,
+        'width': width,
+        'height': height,
+        'steps': steps,
+        'guidance_scale': guidanceScale,
+        'seed': seed,
+        'strength': strength,
+        'mode': mode.wireValue,
+      };
+
+  factory ImageGenTaskConfig.fromJson(Map<String, dynamic> json) => ImageGenTaskConfig(
+        prompt: json['prompt'] as String? ?? '',
+        negativePrompt: json['negative_prompt'] as String? ?? '',
+        width: json['width'] as int? ?? 256,
+        height: json['height'] as int? ?? 256,
+        steps: json['steps'] as int? ?? 20,
+        guidanceScale: (json['guidance_scale'] as num?)?.toDouble() ?? 7.5,
+        seed: json['seed'] as int? ?? 42,
+        strength: (json['strength'] as num?)?.toDouble() ?? 0.75,
+        mode: GenerationModeContract.fromWire(json['mode'] as String? ?? 'text_to_image'),
+      );
+}
+
+/// Generated image artifact in local canvas gallery.
+class GeneratedImageItem {
+  const GeneratedImageItem({
+    required this.id,
+    required this.prompt,
+    required this.negativePrompt,
+    required this.mode,
+    required this.width,
+    required this.height,
+    required this.steps,
+    required this.guidanceScale,
+    required this.seed,
+    required this.sha256,
+    required this.timestampEpochSecs,
+    required this.base64Png,
+    required this.provenanceSummary,
+    required this.sizeBytes,
+  });
+
+  final String id;
+  final String prompt;
+  final String negativePrompt;
+  final GenerationModeContract mode;
+  final int width;
+  final int height;
+  final int steps;
+  final double guidanceScale;
+  final int seed;
+  final String sha256;
+  final int timestampEpochSecs;
+  final String base64Png;
+  final String provenanceSummary;
+  final int sizeBytes;
+
+  String get formattedSize {
+    if (sizeBytes >= 1024 * 1024) {
+      return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    if (sizeBytes >= 1024) {
+      return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '$sizeBytes B';
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'prompt': prompt,
+        'negative_prompt': negativePrompt,
+        'mode': mode.wireValue,
+        'width': width,
+        'height': height,
+        'steps': steps,
+        'guidance_scale': guidanceScale,
+        'seed': seed,
+        'sha256': sha256,
+        'timestamp_epoch_secs': timestampEpochSecs,
+        'base64_png': base64Png,
+        'provenance_summary': provenanceSummary,
+        'size_bytes': sizeBytes,
+      };
+
+  factory GeneratedImageItem.fromJson(Map<String, dynamic> json) => GeneratedImageItem(
+        id: json['id'] as String? ?? '',
+        prompt: json['prompt'] as String? ?? '',
+        negativePrompt: json['negative_prompt'] as String? ?? '',
+        mode: GenerationModeContract.fromWire(json['mode'] as String? ?? 'text_to_image'),
+        width: json['width'] as int? ?? 256,
+        height: json['height'] as int? ?? 256,
+        steps: json['steps'] as int? ?? 20,
+        guidanceScale: (json['guidance_scale'] as num?)?.toDouble() ?? 7.5,
+        seed: json['seed'] as int? ?? 42,
+        sha256: json['sha256'] as String? ?? '',
+        timestampEpochSecs: json['timestamp_epoch_secs'] as int? ?? 0,
+        base64Png: json['base64_png'] as String? ?? '',
+        provenanceSummary: json['provenance_summary'] as String? ?? '',
+        sizeBytes: json['size_bytes'] as int? ?? 0,
+      );
+}

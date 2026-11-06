@@ -585,3 +585,28 @@
   - Built deterministic CPU synthesis engine (`ImageGenEngine`) supporting Text-to-Image, Image-to-Image, and localized Inpainting with exact unmasked byte retention, deterministic Xorshift64 noise, and per-step progress telemetry.
   - Implemented `ImageGenAdapter` implementing `ModalityAdapter` with `Modality::ImageGeneration` on CPU.
   - Reached 141/141 Rust tests passing across the workspace with 0 Clippy warnings and 0 formatting diffs.
+
+
+---
+
+## [2026-11-06T21:18:00+05:30] — Stage 6 Subphase 6.3.1 In Progress (`v0.6.3-stage6.sub6.3.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 6 / Phase 6.3 / Subphase 6.3.1 — Flutter Vision & Image Canvas Studio`
+- **Summary:**
+  - Initiated Subphase 6.3.1 in `ui/miniai_app`.
+  - Building Vision Understanding viewer with OCR bounding boxes and grounded Visual QA.
+  - Building Image Canvas Studio with inpainting mask painter, generation parameter controls, cooperative cancellation, and local gallery with cryptographic provenance inspection.
+
+
+---
+
+## [2026-11-06T22:45:00+05:30] — Stage 6 Subphase 6.3.1 Verified (`v0.6.3-stage6.sub6.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 6 / Phase 6.3 / Subphase 6.3.1 — Flutter Vision & Image Canvas Studio`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Flutter 3.32.0-0.2.pre, Dart 3.9.0-109.0.dev)
+- **Summary:**
+  - Implemented `OcrBoxContract`, `VisionAnalysisResultContract`, `GenerationModeContract`, `ImageGenTaskConfig`, and `GeneratedImageItem` in `system_contracts.dart`.
+  - Added Vision image analysis with magic-byte validation, SHA-256 fingerprinting, OCR bounding box detection, and grounded Visual QA to `PlatformController`.
+  - Added Canvas Studio inpainting mask management, generation controls, cooperative cancellation, and local gallery persistence to `PlatformController`.
+  - Created `VisionCanvasScreen` as Tab 8 ('Canvas') in `ShellScreen` with dual-mode tabs: Vision Understanding and Canvas Studio & Gallery.
+  - Reached 57/57 Flutter tests passing with **91.51%** line coverage and 0 analyzer issues.

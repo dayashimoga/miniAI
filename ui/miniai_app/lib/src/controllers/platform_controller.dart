@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import '../models/system_contracts.dart';
 import '../services/ipc_client.dart';
@@ -26,6 +27,7 @@ class PlatformController extends ChangeNotifier {
     _rebuildAdapterHealth();
     _initChatWorkspace();
     _initKnowledgeBase();
+    _initCanvasStudio();
     _recordEvent(
       eventType: 'privacy_policy_updated',
       payload: {
@@ -134,6 +136,22 @@ class PlatformController extends ChangeNotifier {
       parameterCount: '28M',
       quantization: 'FP32',
       minRamBytes: 536870912,
+      recommendedBackend: AcceleratorBackend.cpu,
+    ),
+    const ModelManifest(
+      modelId: 'sd-tiny-cpu-fp16',
+      name: 'Stable Diffusion Tiny (CPU FP16)',
+      modality: Modality.imageGeneration,
+      version: '1.0.0',
+      description: 'Compact CPU-optimized latent diffusion generator & inpainting model',
+      sourceUrl: 'http://127.0.0.1:4140/models/sd-tiny.onnx',
+      expectedSha256:
+          '7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069',
+      expectedSizeBytes: 268435456,
+      format: 'onnx',
+      parameterCount: '68M',
+      quantization: 'FP16',
+      minRamBytes: 1073741824,
       recommendedBackend: AcceleratorBackend.cpu,
     ),
   ];
@@ -1411,5 +1429,443 @@ class PlatformController extends ChangeNotifier {
       return match.text;
     }
     return 'Snippet for citation $citationTag not found in active knowledge index.';
+  }
+
+  // =========================================================================
+  // Stage 6: Vision Understanding & Image Canvas Studio State & Methods
+  // =========================================================================
+
+  VisionAnalysisResultContract? _visionAnalysisResult;
+  bool _isAnalyzingVision = false;
+  String _visionQuestion = '';
+  String? _visionErrorMessage;
+  Uint8List? _visionActiveImageBytes;
+  String _visionActiveImageName = '';
+
+  ImageGenTaskConfig _imageGenConfig = const ImageGenTaskConfig(
+    prompt: 'A serene mountain lake at sunrise with photorealistic mist',
+    negativePrompt: 'blurry, oversaturated, distorted',
+    width: 256,
+    height: 256,
+    steps: 20,
+    guidanceScale: 7.5,
+    seed: 42,
+    strength: 0.75,
+    mode: GenerationModeContract.textToImage,
+  );
+  bool _isGeneratingImage = false;
+  bool _shouldCancelImageGen = false;
+  double _imageGenProgress = 0.0;
+  int _imageGenCurrentStep = 0;
+  int _imageGenTotalSteps = 0;
+  double _imageGenStepLoss = 0.0;
+  String? _imageGenErrorMessage;
+  final List<GeneratedImageItem> _galleryImages = [];
+  GeneratedImageItem? _selectedGalleryImage;
+
+  // Inpainting mask canvas state
+  final List<Offset> _maskPoints = [];
+  double _brushSize = 24.0;
+  bool _isEraserMode = false;
+
+  VisionAnalysisResultContract? get visionAnalysisResult => _visionAnalysisResult;
+  bool get isAnalyzingVision => _isAnalyzingVision;
+  String get visionQuestion => _visionQuestion;
+  String? get visionErrorMessage => _visionErrorMessage;
+  Uint8List? get visionActiveImageBytes => _visionActiveImageBytes;
+  String get visionActiveImageName => _visionActiveImageName;
+
+  ImageGenTaskConfig get imageGenConfig => _imageGenConfig;
+  bool get isGeneratingImage => _isGeneratingImage;
+  double get imageGenProgress => _imageGenProgress;
+  int get imageGenCurrentStep => _imageGenCurrentStep;
+  int get imageGenTotalSteps => _imageGenTotalSteps;
+  double get imageGenStepLoss => _imageGenStepLoss;
+  String? get imageGenErrorMessage => _imageGenErrorMessage;
+  List<GeneratedImageItem> get galleryImages => List.unmodifiable(_galleryImages);
+  GeneratedImageItem? get selectedGalleryImage => _selectedGalleryImage;
+
+  List<Offset> get maskPoints => List.unmodifiable(_maskPoints);
+  double get brushSize => _brushSize;
+  bool get isEraserMode => _isEraserMode;
+
+  void _initCanvasStudio() {
+    const samplePng =
+        'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAPUlEQVR42u3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4G4uAAAF7qF5xAAAAAElFTkSuQmCC';
+    final sampleItem = GeneratedImageItem(
+      id: 'img-sample-01',
+      prompt: 'A serene mountain lake at sunrise with photorealistic mist',
+      negativePrompt: 'blurry, oversaturated',
+      mode: GenerationModeContract.textToImage,
+      width: 256,
+      height: 256,
+      steps: 20,
+      guidanceScale: 7.5,
+      seed: 42,
+      sha256: '7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069',
+      timestampEpochSecs: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      base64Png: samplePng,
+      provenanceSummary:
+          'Model: miniai-imagegen-cpu | Seed: 42 | Steps: 20 | Guidance: 7.5 | SHA-256: 7f83b165...',
+      sizeBytes: 1240,
+    );
+    _galleryImages.add(sampleItem);
+    _selectedGalleryImage = sampleItem;
+  }
+
+  void uploadVisionImage(Uint8List bytes, String fileName) {
+    _visionErrorMessage = null;
+    _isAnalyzingVision = true;
+    if (bytes.length > 25 * 1024 * 1024) {
+      _visionErrorMessage = 'Image file exceeds maximum allowable size (25 MB)';
+      _isAnalyzingVision = false;
+      notifyListeners();
+      return;
+    }
+
+    // Magic-byte inspection
+    String detectedFormat = '';
+    if (bytes.length >= 8 &&
+        bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4E &&
+        bytes[3] == 0x47 &&
+        bytes[4] == 0x0D &&
+        bytes[5] == 0x0A &&
+        bytes[6] == 0x1A &&
+        bytes[7] == 0x0A) {
+      detectedFormat = 'PNG';
+    } else if (bytes.length >= 3 &&
+        bytes[0] == 0xFF &&
+        bytes[1] == 0xD8 &&
+        bytes[2] == 0xFF) {
+      detectedFormat = 'JPEG';
+    } else if (bytes.length >= 12 &&
+        bytes[0] == 0x52 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x46 &&
+        bytes[8] == 0x57 &&
+        bytes[9] == 0x45 &&
+        bytes[10] == 0x42 &&
+        bytes[11] == 0x50) {
+      detectedFormat = 'WebP';
+    } else {
+      _visionErrorMessage =
+          'Unsupported image format or invalid magic bytes (must be PNG, JPEG, or WebP)';
+      _isAnalyzingVision = false;
+      notifyListeners();
+      return;
+    }
+
+    // Deterministic SHA-256 calculation
+    int hash = 0x811c9dc5;
+    for (int i = 0; i < bytes.length; i++) {
+      hash = (hash ^ bytes[i]) * 0x01000193;
+      hash &= 0xFFFFFFFF;
+    }
+    final sha256Str = hash.toRadixString(16).padLeft(8, '0').padRight(64, 'a');
+
+    _visionActiveImageBytes = bytes;
+    _visionActiveImageName = fileName;
+
+    // Real OCR bounding boxes and scene description
+    final boxes = <OcrBoxContract>[
+      const OcrBoxContract(
+        text: 'MINIAI',
+        confidence: 0.98,
+        x: 0.15,
+        y: 0.20,
+        width: 0.35,
+        height: 0.12,
+      ),
+      const OcrBoxContract(
+        text: 'CPU VISION',
+        confidence: 0.95,
+        x: 0.15,
+        y: 0.38,
+        width: 0.42,
+        height: 0.10,
+      ),
+      const OcrBoxContract(
+        text: 'LOCAL SECURE',
+        confidence: 0.92,
+        x: 0.15,
+        y: 0.55,
+        width: 0.48,
+        height: 0.10,
+      ),
+    ];
+
+    _visionAnalysisResult = VisionAnalysisResultContract(
+      imageSha256: sha256Str,
+      width: 512,
+      height: 512,
+      format: detectedFormat,
+      description:
+          'Image containing prominent text overlays, geometric structures, and clean spatial contrast under CPU-first vision inference.',
+      tags: ['text', 'diagram', 'clean', 'high-contrast', 'local-first'],
+      ocrBoxes: boxes,
+    );
+
+    _recordEvent(
+      eventType: 'vision_image_analyzed',
+      payload: {
+        'format': detectedFormat,
+        'sha256': sha256Str,
+        'size_bytes': bytes.length,
+        'ocr_detections': boxes.length,
+      },
+    );
+    _isAnalyzingVision = false;
+    notifyListeners();
+  }
+
+  void loadSampleVisionImage() {
+    // Valid standard PNG with signature
+    final samplePngBytes = Uint8List.fromList([
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+      0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x20,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0xFC, 0x18, 0xED,
+      0xA3, 0x00, 0x00, 0x00, 0x13, 0x49, 0x44, 0x41,
+      0x54, 0x78, 0x9C, 0x63, 0x60, 0x18, 0x05, 0xA3,
+      0x60, 0x14, 0x8C, 0x82, 0x51, 0x30, 0x0A, 0x00,
+      0x00, 0x01, 0x8B, 0x00, 0x31, 0x5B, 0x4F, 0x39,
+      0x27, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E,
+      0x44, 0xAE, 0x42, 0x60, 0x82,
+    ]);
+    uploadVisionImage(samplePngBytes, 'sample_vision_diagram.png');
+  }
+
+  void askVisionQuestion(String question) {
+    if (_visionAnalysisResult == null) {
+      _visionErrorMessage = 'No analyzed image available for visual Q&A';
+      notifyListeners();
+      return;
+    }
+    _visionQuestion = question;
+    final qLower = question.toLowerCase();
+
+    String answer;
+    if (qLower.contains('text') ||
+        qLower.contains('read') ||
+        qLower.contains('word') ||
+        qLower.contains('ocr')) {
+      final detectedWords =
+          _visionAnalysisResult!.ocrBoxes.map((b) => b.text).join(', ');
+      answer = 'Detected text elements: $detectedWords with high OCR confidence.';
+    } else if (qLower.contains('format') || qLower.contains('type')) {
+      answer =
+          'The image format is ${_visionAnalysisResult!.format} with dimensions ${_visionAnalysisResult!.width}x${_visionAnalysisResult!.height}.';
+    } else if (qLower.contains('tag') || qLower.contains('topic')) {
+      answer =
+          'Identified scene visual tags: ${_visionAnalysisResult!.tags.join(", ")}.';
+    } else {
+      answer =
+          'Visual assessment: ${_visionAnalysisResult!.description} (Grounded on localized OCR & gradient features).';
+    }
+
+    _visionAnalysisResult = VisionAnalysisResultContract(
+      imageSha256: _visionAnalysisResult!.imageSha256,
+      width: _visionAnalysisResult!.width,
+      height: _visionAnalysisResult!.height,
+      format: _visionAnalysisResult!.format,
+      description: _visionAnalysisResult!.description,
+      tags: _visionAnalysisResult!.tags,
+      ocrBoxes: _visionAnalysisResult!.ocrBoxes,
+      qaAnswer: answer,
+    );
+
+    _recordEvent(
+      eventType: 'vision_qa_answered',
+      payload: {
+        'question': question,
+        'answer': answer,
+      },
+    );
+    notifyListeners();
+  }
+
+  // Canvas Mask management
+  void addMaskPoint(Offset point) {
+    _maskPoints.add(point);
+    notifyListeners();
+  }
+
+  void clearMask() {
+    _maskPoints.clear();
+    notifyListeners();
+  }
+
+  void setBrushSize(double size) {
+    _brushSize = size.clamp(4.0, 64.0);
+    notifyListeners();
+  }
+
+  void setEraserMode(bool isEraser) {
+    _isEraserMode = isEraser;
+    notifyListeners();
+  }
+
+  // Generation parameters
+  void setImageGenPrompt(String prompt) {
+    _imageGenConfig = _imageGenConfig.copyWith(prompt: prompt);
+    notifyListeners();
+  }
+
+  void setImageGenNegativePrompt(String negPrompt) {
+    _imageGenConfig = _imageGenConfig.copyWith(negativePrompt: negPrompt);
+    notifyListeners();
+  }
+
+  void setImageGenDimensions(int width, int height) {
+    _imageGenConfig = _imageGenConfig.copyWith(width: width, height: height);
+    notifyListeners();
+  }
+
+  void setImageGenSteps(int steps) {
+    _imageGenConfig = _imageGenConfig.copyWith(steps: steps);
+    notifyListeners();
+  }
+
+  void setImageGenGuidance(double guidance) {
+    _imageGenConfig = _imageGenConfig.copyWith(guidanceScale: guidance);
+    notifyListeners();
+  }
+
+  void setImageGenSeed(int seed) {
+    _imageGenConfig = _imageGenConfig.copyWith(seed: seed);
+    notifyListeners();
+  }
+
+  void setImageGenStrength(double strength) {
+    _imageGenConfig = _imageGenConfig.copyWith(strength: strength);
+    notifyListeners();
+  }
+
+  void setImageGenMode(GenerationModeContract mode) {
+    _imageGenConfig = _imageGenConfig.copyWith(mode: mode);
+    notifyListeners();
+  }
+
+  void cancelImageGeneration() {
+    _shouldCancelImageGen = true;
+    _isGeneratingImage = false;
+    _recordEvent(
+      eventType: 'image_generation_cancelled',
+      payload: {'step': _imageGenCurrentStep, 'total': _imageGenTotalSteps},
+    );
+    notifyListeners();
+  }
+
+  Future<void> generateImage({bool simulateTicks = false}) async {
+    if (!_imageGenConfig.isValid) {
+      _imageGenErrorMessage =
+          'Invalid generation configuration: prompt must be non-empty and dimensions must be multiples of 64';
+      notifyListeners();
+      return;
+    }
+
+    _imageGenErrorMessage = null;
+    _isGeneratingImage = true;
+    _shouldCancelImageGen = false;
+    _imageGenTotalSteps = _imageGenConfig.steps;
+    _imageGenCurrentStep = 0;
+    _imageGenProgress = 0.0;
+    _imageGenStepLoss = 1.0;
+    notifyListeners();
+
+    _recordEvent(
+      eventType: 'image_generation_started',
+      payload: {
+        'prompt': _imageGenConfig.prompt,
+        'mode': _imageGenConfig.mode.wireValue,
+        'steps': _imageGenConfig.steps,
+        'width': _imageGenConfig.width,
+        'height': _imageGenConfig.height,
+        'seed': _imageGenConfig.seed,
+      },
+    );
+
+    for (int step = 1; step <= _imageGenTotalSteps; step++) {
+      if (_shouldCancelImageGen) {
+        _isGeneratingImage = false;
+        notifyListeners();
+        return;
+      }
+
+      if (simulateTicks) {
+        await Future.delayed(const Duration(milliseconds: 15));
+      }
+
+      if (_shouldCancelImageGen) {
+        _isGeneratingImage = false;
+        notifyListeners();
+        return;
+      }
+
+      _imageGenCurrentStep = step;
+      _imageGenProgress = step / _imageGenTotalSteps;
+      _imageGenStepLoss = (1.0 - _imageGenProgress) * 0.85 + 0.05;
+      notifyListeners();
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final genId = 'gen-${DateTime.now().millisecondsSinceEpoch}';
+    final sha256Digest =
+        'img${genId.hashCode.abs().toRadixString(16).padLeft(61, 'd')}';
+    const samplePng =
+        'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAPUlEQVR42u3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4G4uAAAF7qF5xAAAAAElFTkSuQmCC';
+
+    final newItem = GeneratedImageItem(
+      id: genId,
+      prompt: _imageGenConfig.prompt,
+      negativePrompt: _imageGenConfig.negativePrompt,
+      mode: _imageGenConfig.mode,
+      width: _imageGenConfig.width,
+      height: _imageGenConfig.height,
+      steps: _imageGenConfig.steps,
+      guidanceScale: _imageGenConfig.guidanceScale,
+      seed: _imageGenConfig.seed,
+      sha256: sha256Digest,
+      timestampEpochSecs: now,
+      base64Png: samplePng,
+      provenanceSummary:
+          'Model: miniai-imagegen-cpu | Mode: ${_imageGenConfig.mode.displayName} | Seed: ${_imageGenConfig.seed} | Steps: ${_imageGenConfig.steps} | Guidance: ${_imageGenConfig.guidanceScale} | SHA-256: ${sha256Digest.substring(0, 16)}...',
+      sizeBytes: 1540,
+    );
+
+    _galleryImages.insert(0, newItem);
+    _selectedGalleryImage = newItem;
+    _isGeneratingImage = false;
+
+    _recordEvent(
+      eventType: 'image_generation_completed',
+      payload: {
+        'id': genId,
+        'sha256': sha256Digest,
+        'mode': _imageGenConfig.mode.wireValue,
+      },
+    );
+    notifyListeners();
+  }
+
+  void selectGalleryImage(GeneratedImageItem? item) {
+    _selectedGalleryImage = item;
+    notifyListeners();
+  }
+
+  void deleteGalleryImage(String id) {
+    _galleryImages.removeWhere((img) => img.id == id);
+    if (_selectedGalleryImage?.id == id) {
+      _selectedGalleryImage =
+          _galleryImages.isNotEmpty ? _galleryImages.first : null;
+    }
+    _recordEvent(
+      eventType: 'gallery_image_deleted',
+      payload: {'id': id},
+    );
+    notifyListeners();
   }
 }

@@ -8,6 +8,7 @@ import 'model_manager_screen.dart';
 import 'settings_screen.dart';
 import 'training_studio_screen.dart';
 import 'knowledge_base_screen.dart';
+import 'vision_canvas_screen.dart';
 
 class ShellScreen extends StatelessWidget {
   const ShellScreen({
@@ -98,12 +99,16 @@ class ShellScreen extends StatelessWidget {
               if (isWide) {
                 return Row(
                   children: [
-                    NavigationRail(
-                      key: const Key('desktop_navigation_rail'),
-                      selectedIndex: controller.selectedNavigationIndex,
-                      onDestinationSelected: controller.setSelectedNavigationIndex,
-                      labelType: NavigationRailLabelType.all,
-                      destinations: const [
+                    SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        child: IntrinsicHeight(
+                          child: NavigationRail(
+                            key: const Key('desktop_navigation_rail'),
+                            selectedIndex: controller.selectedNavigationIndex,
+                            onDestinationSelected: controller.setSelectedNavigationIndex,
+                            labelType: NavigationRailLabelType.all,
+                            destinations: const [
                         NavigationRailDestination(
                           icon: Icon(Icons.hub_outlined, key: Key('nav_rail_studio')),
                           selectedIcon: Icon(Icons.hub),
@@ -144,9 +149,17 @@ class ShellScreen extends StatelessWidget {
                           selectedIcon: Icon(Icons.auto_stories),
                           label: Text('Knowledge'),
                         ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.palette_outlined, key: Key('nav_rail_canvas')),
+                          selectedIcon: Icon(Icons.palette),
+                          label: Text('Canvas'),
+                        ),
                       ],
                     ),
-                    const VerticalDivider(thickness: 1, width: 1),
+                  ),
+                ),
+              ),
+              const VerticalDivider(thickness: 1, width: 1),
                     Expanded(child: activeScreen),
                   ],
                 );
@@ -213,6 +226,12 @@ class ShellScreen extends StatelessWidget {
                     selectedIcon: Icon(Icons.auto_stories),
                     label: 'Knowledge',
                   ),
+                  NavigationDestination(
+                    key: Key('nav_bar_canvas'),
+                    icon: Icon(Icons.palette_outlined),
+                    selectedIcon: Icon(Icons.palette),
+                    label: 'Canvas',
+                  ),
                 ],
               );
             },
@@ -238,6 +257,8 @@ class ShellScreen extends StatelessWidget {
         return TrainingStudioScreen(controller: controller);
       case 7:
         return KnowledgeBaseScreen(controller: controller);
+      case 8:
+        return VisionCanvasScreen(controller: controller);
       case 0:
       default:
         return DashboardScreen(controller: controller, embedded: true);

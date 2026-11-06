@@ -418,3 +418,29 @@
   - Delivered Flutter Training Studio Screen in `ui/miniai_app` with interactive dataset inspector, tuning controls, live progress tracking, and evaluation comparison.
   - Verified 77 Rust tests (0 warnings), 39 Python ML tests (**97.28%** coverage), and 44 Flutter tests (**92.16%** coverage).
   - Recorded ADR-009 in `ADR.md` and compiled `docs/STAGE_4_VERIFICATION_REPORT.json`.
+
+
+---
+
+## [2026-11-06T17:40:00+05:30] — Stage 5 Initiated & Subphase 5.1.1 In Progress (`v0.5.0-stage5.init`)
+- **Action:** `STAGE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 5 / Phase 5.1 / Subphase 5.1.1 — Document & Code Ingestion Pipeline with Content-Addressed Chunking`
+- **Summary:**
+  - Initiated Stage 5: RAG, Document/Code Indexing & Secure Tool Integration.
+  - Commencing Subphase 5.1.1 in `crates/miniai-rag`.
+  - Creating syntax-aware document/code chunker, content-addressed SHA-256 chunk deduplication, sensitive file filter, and incremental ingestion engine.
+
+
+---
+
+## [2026-11-06T18:00:00+05:30] — Stage 5 Subphase 5.1.1 Verified (`v0.5.1-stage5.sub5.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 5 / Phase 5.1 / Subphase 5.1.1 — Document & Code Ingestion Pipeline with Content-Addressed Chunking`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `crates/miniai-rag` workspace crate with `#![forbid(unsafe_code)]`.
+  - Implemented structure-aware text chunking for Markdown, source code (Rust, Python, Dart, JS, TS, C/C++, JSON, YAML, TOML), and plain/PDF text in `chunker.rs`.
+  - Built content-addressed chunk deduplication engine in `dedup.rs`.
+  - Built strict security validators in `security.rs` for path traversal, UNC prefix normalization, binary rejection, and credential/secret exclusion.
+  - Built `IngestionPipeline` in `pipeline.rs` with incremental SHA-256 file caching and manifest export.
+  - Authored 15 unit and integration tests in `miniai-rag`, expanding workspace Rust tests to 92/92 passing with 0 warnings.

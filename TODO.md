@@ -608,3 +608,52 @@
   - Flutter UI: 44/44 widget/contract tests passing, 0 analyze issues, **92.16%** measured line coverage (2,186 / 2,372 lines hit).
   - Absolute zero-mock policy strictly verified.
 - **Next Stage Ready:** `STAGE-05-BACKLOG` (Stage 5: RAG, Document/Code Indexing & Secure Tool Integration).
+
+
+---
+
+### [2026-11-06T17:40:00+05:30] Stage 5 — Entry 035 (Stage 5 Registration & Subphase 5.1.1 Initiated)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 5: RAG, Document/Code Indexing & Secure Tool Integration / Phase 5.1 — Document & Code Ingestion Pipeline / Subphase 5.1.1`
+- **Status Transitions:**
+  - `STAGE_5` [`INITIAL_REGISTRATION`]: Registered Stage 5 roadmap backlog in accordance with `docs/stage_prompts/STAGE_05_PROMPT.md` and `ROADMAP.md`:
+    - Phase 5.1: Document & Code Ingestion Pipeline (`crates/miniai-rag`): incremental ingestion of Markdown, plain text, extracted PDF text, and source code with syntax-aware line spans, content-addressed SHA-256 chunk deduplication, and sensitive file exclusion.
+    - Phase 5.2: Hybrid Retrieval & Verifiable Citations: local CPU-first embedding adapter + BM25 lexical index with Reciprocal Rank Fusion (RRF) and exact `file_path#Lstart-Lend` citation spans.
+    - Phase 5.3: Sandboxed Local Tool Runner & Knowledge UI: capability allowlist, timeout/byte limits, zero network in Local-Only Privacy Mode, and Flutter Knowledge Base index manager with citation inspector.
+  - `S5-P1-SUB5.1.1` [`IN_PROGRESS`]: Implementing incremental document and source code ingestion pipeline in `crates/miniai-rag`:
+    - Workspace crate `crates/miniai-rag` with `#![forbid(unsafe_code)]`.
+    - Document scanners for Markdown, source code (`.rs`, `.py`, `.dart`, `.js`, `.ts`, `.json`, `.yaml`, `.toml`, `.c`, `.cpp`), and plain text.
+    - Line-aware and syntax-boundary chunker producing chunk records with exact `file_path`, `line_start`, `line_end`, `char_count`, `token_estimate`, and content-addressed SHA-256 digest.
+    - Content-addressed chunk deduplication engine.
+    - Security scanner excluding `.env*`, `.pem`, `.key`, `id_rsa*`, `.git/`, and binary files.
+    - Incremental indexing change detector skipping unchanged files by cryptographic SHA-256 digest comparison.
+- **Next Step:** Implement and test `crates/miniai-rag`.
+
+
+---
+
+### [2026-11-06T18:00:00+05:30] Stage 5 — Entry 036 (Subphase 5.1.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 5: RAG, Document/Code Indexing & Secure Tool Integration / Phase 5.1 — Document & Code Ingestion Pipeline / Subphase 5.1.1`
+- **Status Transitions:**
+  - `S5-P1-SUB5.1.1` [`VERIFIED`]: Implemented incremental document and code ingestion pipeline with content-addressed chunking and exact line citations in `crates/miniai-rag`:
+    - Workspace crate `crates/miniai-rag` with `#![forbid(unsafe_code)]`.
+    - Document type categorization (`Markdown`, `Code { language }`, `PlainText`, `PdfText`) based on file extension.
+    - Structure-aware text and code chunker (`Chunker` in `chunker.rs`):
+      - Markdown: preserves heading boundaries (`# `, `## `, `### `), code fence blocks (` ``` `), and blank lines.
+      - Source code: preserves function/class scopes, block boundaries (`}`), and indentation.
+      - Exact line range tracking producing faithful citation tags: `file_path#Lstart-Lend`.
+      - Character and token estimation.
+    - Content-addressed chunk deduplication (`ChunkDeduplicator` in `dedup.rs`): tracks chunk `content_sha256` to skip redundant text blocks across documents.
+    - Security validation (`security.rs`):
+      - Path traversal and workspace escape defense (`validate_safe_workspace_path`) with UNC prefix normalization.
+      - Sensitive file exclusion (`.env*`, `.pem`, `.key`, `id_rsa*`, `secrets*`, `credentials*`, `.git/`, build/cache dirs).
+      - Binary content detector (`is_binary_content`) rejecting null bytes and high-control-byte files.
+      - Size limit guard (`max_file_size_bytes`).
+    - Incremental ingestion engine (`IngestionPipeline` in `pipeline.rs`):
+      - Caches document records with SHA-256 digests.
+      - Skips unchanged files on subsequent passes (`files_skipped_unchanged`).
+      - Exports verifiable cryptographic manifest (`IngestionManifest` in `index_manifest.json`).
+    - Authored 15 unit and integration tests in `crates/miniai-rag` (7 unit + 8 integration in `tests/ingestion_tests.rs`).
+    - Workspace verification: 92/92 Rust tests passing, 0 Clippy warnings, 0 formatting diffs, 39/39 Python ML tests passing (97.28% coverage), 44/44 Flutter tests passing (0 analyze issues).
+- **Next Subphase Ready:** `S5-P2-SUB5.2.1` (Phase 5.2 / Subphase 5.2.1: Local CPU-first embedding adapter + BM25 lexical index with Reciprocal Rank Fusion [RRF] and verifiable citation spans).

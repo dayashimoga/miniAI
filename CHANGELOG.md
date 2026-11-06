@@ -535,3 +535,28 @@
   - Integrated interactive citation chips into `ChatWorkspaceScreen` assistant message bubbles opening source snippet inspection dialogs.
   - Documented `ADR-010` in `ADR.md`.
   - Verified 106/106 Rust tests passing, 39/39 Python ML tests passing (97.28% coverage), 50/50 Flutter UI tests passing (92.46% line coverage), and unanimous `PASS` verdicts from `independent-qa-auditor` and `arch-security-reviewer`.
+
+
+---
+
+## [2026-11-06T19:22:00+05:30] — Stage 6 Subphase 6.1.1 In Progress (`v0.6.1-stage6.sub6.1.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 6 / Phase 6.1 / Subphase 6.1.1 — Vision Understanding Runtime Adapter & Image Preprocessing`
+- **Summary:**
+  - Initiated Subphase 6.1.1 in `crates/miniai-vision`.
+  - Creating image format sanitizer, magic-byte inspection (PNG/JPEG/WebP), decompression bomb protection, tensor normalizer, and CPU-first visual QA/OCR adapter.
+
+
+---
+
+## [2026-11-06T19:35:00+05:30] — Stage 6 Subphase 6.1.1 Verified (`v0.6.1-stage6.sub6.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 6 / Phase 6.1 / Subphase 6.1.1 — Vision Understanding Runtime Adapter & Image Preprocessing`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `crates/miniai-vision` with `#![forbid(unsafe_code)]`.
+  - Added `ImageSanitizer` checking magic bytes for PNG, JPEG, WebP, dimension limits ($\le 4096\times 4096$), file size ($\le 25\text{ MB}$), and decompression bombs.
+  - Added `ImageTensor` with bilinear resampling and ImageNet normalization.
+  - Implemented `VisionEngine` with OCR bounding-box detection, automated scene descriptions, and grounded VQA.
+  - Implemented `VisionAdapter` with `ModalityAdapter` conformance and CPU execution baseline.
+  - Reached 123/123 Rust tests passing with 0 Clippy warnings.

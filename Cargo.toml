@@ -8,6 +8,7 @@ members = [
     "crates/miniai-runtime",
     "crates/miniai-llm",
     "crates/miniai-rag",
+    "crates/miniai-vision",
 ]
 
 [workspace.package]

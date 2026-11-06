@@ -785,3 +785,35 @@
       - Flutter cross-platform UI: 50 / 50 widget tests passed, 92.46% line coverage, 0 `flutter analyze` issues.
     - Deterministic verification report generated in `docs/STAGE_5_VERIFICATION_REPORT.json`.
 - **Next Stage Ready:** `STAGE_6` (Vision, OCR, Multimodal Understanding & Cross-Modal Generation under `docs/stage_prompts/STAGE_06_PROMPT.md`).
+
+
+---
+
+### [2026-11-06T19:22:00+05:30] Stage 6 — Entry 044 (Subphase 6.1.1 Initiated)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 6: Vision, Image Understanding, Generation & Canvas Studio / Phase 6.1 — Vision Understanding Runtime Adapter / Subphase 6.1.1`
+- **Status Transitions:**
+  - `S6-P1-SUB6.1.1` [`IN_PROGRESS`]: Implementing Vision Understanding runtime adapter in `crates/miniai-vision`:
+    - Create new workspace crate `crates/miniai-vision` with `#![forbid(unsafe_code)]`.
+    - Implement image format sanitizer (`ImageSanitizer`): magic-byte verification (PNG, JPEG, WebP), dimension bounds ($\le 4096\times 4096$), max file size ($\le 25\text{ MB}$), decompression bomb mitigation, and corrupt payload rejection.
+    - Implement image tensor preprocessor: aspect-ratio preserving resize to standard model dimensions ($224\times 224$), bilinear interpolation, RGB channel extraction, and ImageNet mean/std tensor normalization.
+    - Implement `VisionEngine` and `VisionAdapter`: CPU-first visual QA, automated captioning, OCR text and bounding-box detection, implementing `ModalityAdapter` (`Modality::Vision`).
+    - Author comprehensive unit, security boundary, and integration test suites.
+- **Next Step:** Author `crates/miniai-vision` crate files and test suite.
+
+
+---
+
+### [2026-11-06T19:35:00+05:30] Stage 6 — Entry 045 (Subphase 6.1.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 6: Vision, Image Understanding, Generation & Canvas Studio / Phase 6.1 — Vision Understanding Runtime Adapter / Subphase 6.1.1`
+- **Status Transitions:**
+  - `S6-P1-SUB6.1.1` [`VERIFIED`]: Implemented Vision Understanding runtime adapter in `crates/miniai-vision`:
+    - Created workspace crate `crates/miniai-vision` with `#![forbid(unsafe_code)]`.
+    - `sanitizer.rs`: `ImageSanitizer` enforcing magic-byte inspection (PNG, JPEG, WebP VP8/VP8L/VP8X), dimension bounds ($\le 4096\times 4096$), max file size ($\le 25\text{ MB}$), decompression bomb mitigation, and SHA-256 calculation.
+    - `tensor.rs`: `ImageTensor` implementing bilinear resampling, value scaling, ImageNet mean/std normalization, luminance, and spatial gradient edge energy computation.
+    - `engine.rs`: `VisionEngine` delivering CPU-first OCR detection with localized bounding boxes (`OcrResult`), automated scene description and captioning (`VisualDescription`), and grounded Visual Question Answering (`VisualQaAnswer`).
+    - `adapter.rs`: `VisionAdapter` implementing `ModalityAdapter` (`Modality::Vision`), CPU-first execution (`AcceleratorBackend::Cpu`), weight loading with SHA-256 digest validation, and live health check reporting.
+    - Authored 17 comprehensive unit, security boundary, and integration tests across 4 test suites (100% pass rate).
+    - Workspace total: 123/123 Rust tests passing across 8 crates (0 Clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% coverage), 50/50 Flutter tests passing (92.46% coverage).
+- **Next Subphase Ready:** `S6-P2-SUB6.2.1` (Phase 6.2 / Subphase 6.2.1: Image Generation & Editing Runtime Adapter in `crates/miniai-imagegen`).

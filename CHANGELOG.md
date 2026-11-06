@@ -468,3 +468,26 @@
   - Implemented `HybridSearchEngine` in `crates/miniai-rag/src/retrieval.rs` combining dense semantic vector search and sparse BM25 scores via Reciprocal Rank Fusion ($k=60$).
   - Built grounded citation generator producing accurate `file_path#Lstart-Lend` tags and keyword excerpts.
   - Reached 100/100 passing Rust tests across the workspace with 0 Clippy warnings.
+
+
+---
+
+## [2026-11-06T18:12:00+05:30] — Stage 5 Subphase 5.3.1 In Progress (`v0.5.3-stage5.sub5.3.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 5 / Phase 5.3 / Subphase 5.3.1 — Capability-Sandboxed Local Tool Runner`
+- **Summary:**
+  - Initiated Subphase 5.3.1 in `crates/miniai-rag`.
+  - Designing capability security model, timeout and byte caps, safe arithmetic evaluator, workspace reader, symbol searcher, and RAG retrieval tool.
+
+
+---
+
+## [2026-11-06T18:17:00+05:30] — Stage 5 Subphase 5.3.1 Verified (`v0.5.3-stage5.sub5.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 5 / Phase 5.3 / Subphase 5.3.1 — Capability-Sandboxed Local Tool Runner`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented capability-sandboxed tool runner in `crates/miniai-rag/src/tools.rs`.
+  - Added built-in tools: `WorkspaceFileReadTool`, `CalculatorTool`, `CodeSymbolSearchTool`, and `RagQueryTool`.
+  - Enforced strict Local-Only Privacy Mode blocking all network tools, execution timeouts, and output byte limits with truncation markers.
+  - Reached 106/106 Rust tests passing across the workspace with 0 Clippy warnings.

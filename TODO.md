@@ -692,3 +692,43 @@
     - Authored 23 tests in `crates/miniai-rag` (14 unit tests, 8 ingestion tests, 1 end-to-end hybrid retrieval test) with 100% pass rate.
     - Workspace total: 100/100 Rust tests passing, 0 Clippy warnings, 0 formatting diffs, 39/39 Python ML tests passing, 44/44 Flutter tests passing.
 - **Next Subphase Ready:** `S5-P3-SUB5.3.1` (Phase 5.3 / Subphase 5.3.1: Capability-sandboxed local tool runner with execution timeouts, output caps, and zero network access in `LocalOnlyPrivacyMode`).
+
+
+---
+
+### [2026-11-06T18:12:00+05:30] Stage 5 — Entry 039 (Subphase 5.3.1 Initiated)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 5: RAG, Document/Code Indexing & Secure Tool Integration / Phase 5.3 — Sandboxed Local Tool Runner & Knowledge UI / Subphase 5.3.1`
+- **Status Transitions:**
+  - `S5-P3-SUB5.3.1` [`IN_PROGRESS`]: Implementing capability-sandboxed local tool runner with execution timeouts, output caps, and zero network access in `crates/miniai-rag`:
+    - Capability security model (`ToolCapability::WorkspaceRead`, `ToolCapability::Compute`, `ToolCapability::CodeSearch`, `ToolCapability::Network`).
+    - Privacy policy enforcement: `Network` capability strictly blocked in `LocalOnlyPrivacyMode`.
+    - Resource controls: execution timeouts, maximum output bytes cap with truncation indicator.
+    - Built-in sandboxed tools:
+      - `WorkspaceFileReadTool`: workspace-scoped line-bounded file reader with path traversal and sensitive pattern defense.
+      - `CalculatorTool`: safe AST expression evaluator without shell/eval injection.
+      - `CodeSymbolSearchTool`: deterministic regex/symbol definition locator with line coordinates.
+      - `RagQueryTool`: local hybrid search executor injecting grounded citations into LLM context.
+    - `ToolSandboxRunner` coordinating execution, capability verification, telemetry, and error reporting.
+- **Next Step:** Implement tool sandbox in `crates/miniai-rag`.
+
+
+---
+
+### [2026-11-06T18:17:00+05:30] Stage 5 — Entry 040 (Subphase 5.3.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 5: RAG, Document/Code Indexing & Secure Tool Integration / Phase 5.3 — Sandboxed Local Tool Runner & Knowledge UI / Subphase 5.3.1`
+- **Status Transitions:**
+  - `S5-P3-SUB5.3.1` [`VERIFIED`]: Implemented capability-sandboxed local tool runner with execution timeouts, output caps, and zero network access in `crates/miniai-rag`:
+    - Security capability model (`ToolCapability::WorkspaceRead`, `ToolCapability::Compute`, `ToolCapability::CodeSearch`, `ToolCapability::Network`) with fine-grained access control in `ToolExecutionContext`.
+    - Local-Only Privacy Mode enforcement: `ToolCapability::Network` is strictly blocked when `local_only_mode` is active.
+    - Resource bounds: execution timeout guard and output byte cap with automatic truncation markers.
+    - Built-in sandboxed tools:
+      - `WorkspaceFileReadTool` (`workspace_read_file`): line-bounded file slice reader with path traversal and sensitive pattern exclusion.
+      - `CalculatorTool` (`calculator`): safe recursive-descent mathematical parser and evaluator (+, -, *, /, %, ^, parentheses) on CPU with zero shell/eval injection.
+      - `CodeSymbolSearchTool` (`code_symbol_search`): definition locator scanning workspace code for `fn`, `struct`, `class`, `def`, `enum` with line numbers.
+      - `RagQueryTool` (`rag_query`): hybrid search query executor returning grounded citations (`file_path#Lstart-Lend`) and excerpts.
+    - `ToolSandboxRunner`: orchestrates capability checking, tool lookup, timeout measurement, and structured `ToolExecutionResult` delivery.
+    - Authored 29 tests in `crates/miniai-rag` (18 unit, 8 ingestion, 1 retrieval, 2 tool tests) with 100% pass rate.
+    - Workspace total: 106/106 Rust tests passing, 0 Clippy warnings, 0 formatting diffs, 39/39 Python ML tests passing, 44/44 Flutter tests passing.
+- **Next Subphase Ready:** `S5-P3-SUB5.3.2` (Phase 5.3 / Subphase 5.3.2: Flutter Knowledge Base index manager, RAG query integration, and citation inspector in Chat UI).

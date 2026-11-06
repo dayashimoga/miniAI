@@ -485,3 +485,33 @@
     - Created `ml/tests/test_dataset.py` with 11 comprehensive unit and property tests verifying schema validation, format parsing, corrupt line handling, deduplication, deterministic splitting, and tamper detection.
     - Achieved **100% statement coverage** on `miniai_ml/dataset.py` and **99% total coverage** across `miniai_ml` (17/17 pytest tests passing).
 - **Next Subphase Ready:** `S4-P2-SUB4.2.1` (Phase 4.2: LoRA/QLoRA Fine-Tuning & Knowledge Distillation Engine / Subphase 4.2.1: PyTorch CPU/GPU LoRA Trainer & Teacher-Student Distillation Pipeline).
+
+---
+
+### [2026-11-06T15:18:00+05:30] Stage 4 — Entry 028 (Subphase 4.2.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation / Phase 4.2 — LoRA/QLoRA Fine-Tuning & Knowledge Distillation Engine / Subphase 4.2.1`
+- **Status Transitions:**
+  - `S4-P2-SUB4.2.1` [`IN_PROGRESS`]: Commenced implementation of LoRA/QLoRA parameter-efficient fine-tuning and teacher-student knowledge distillation in `ml/src/miniai_ml/training.py`:
+    - Implementing `LoraConfig` ($r$, $\alpha$, dropout, target modules) and `LoraLinear` low-rank adapter layer with scaling factor $\frac{\alpha}{r}$ and zero-initialized $B$ matrix.
+    - Implementing `TrainingConfig` (learning rate, weight decay, batch size, gradient accumulation, max steps, seed, device auto-selection with CPU baseline).
+    - Implementing `Trainer` with forward/backward optimization loop, evaluation loop, loss recording, and checkpoint save/resume.
+    - Implementing `DistillationLoss` combining task cross-entropy and temperature-scaled KL divergence over soft teacher logits: $\mathcal{L}_{total} = \alpha \mathcal{L}_{task} + (1 - \alpha) T^2 \mathcal{L}_{KD}$.
+    - Authoring unit and convergence tests under `ml/tests/test_training.py` ensuring >=90% test coverage.
+
+
+---
+
+### [2026-11-06T16:15:00+05:30] Stage 4 — Entry 029 (Subphase 4.2.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation / Phase 4.2 — LoRA/QLoRA Fine-Tuning & Knowledge Distillation Engine / Subphase 4.2.1`
+- **Status Transitions:**
+  - `S4-P2-SUB4.2.1` [`VERIFIED`]: Implemented LoRA parameter-efficient fine-tuning, Hinton teacher-student distillation loss, and training orchestration in `ml/src/miniai_ml/training.py`:
+    - Defined `LoraConfig` ($r$, $\alpha$, dropout, target modules, bias setting) and `LoraLinear` low-rank adapter layer with scaling factor $\frac{\alpha}{r}$, identity initialization ($B = 0$, $A \sim \text{Kaiming uniform}$), in-place weight merging (`merge`), and unmerging (`unmerge`).
+    - Implemented `apply_lora_to_model` for selective module instrumentation and base parameter freezing, `merge_lora_weights`, `unmerge_lora_weights`, `extract_lora_state_dict`, and `count_trainable_parameters`.
+    - Implemented `DistillationLoss` combining task cross-entropy and temperature-scaled KL divergence over softened teacher logits: $\mathcal{L}_{total} = \alpha_{task} \mathcal{L}_{task} + \alpha_{kd} T^2 \mathcal{L}_{KD}$.
+    - Implemented `TrainingConfig` (learning rate, weight decay, batch size, gradient accumulation steps, max epochs, max steps, seed, device auto-selection with CPU baseline).
+    - Implemented `Trainer` with forward/backward optimization loop, gradient clipping, evaluation loop (`EvaluationMetrics`), loss telemetry (`TrainingStepLog`), atomic checkpoint saving (`save_checkpoint`), checkpoint resumption (`load_checkpoint`), and cooperative cancellation support (`should_stop`).
+    - Authored 16 unit, property, and mathematical convergence tests in `ml/tests/test_training.py` verifying zero-delta initialization, exact weight merging/unmerging, distillation loss gradients, cooperative cancellation, checkpoint resume, and significant loss reduction on CPU.
+    - Achieved **96% line coverage** on `miniai_ml/training.py` and **97% total coverage** across `miniai_ml` (33/33 pytest tests passing).
+- **Next Subphase Ready:** `S4-P2-SUB4.2.2` (Phase 4.2: LoRA/QLoRA Fine-Tuning & Knowledge Distillation Engine / Subphase 4.2.2: Cryptographic Provenance Manifest & Model Registry Export).

@@ -356,3 +356,18 @@
   - Implemented `save_splits_and_manifest` and `verify_dataset_manifest` generating partitioned JSONL files and a cryptographic `manifest.json`.
   - Authored 11 unit and property tests in `ml/tests/test_dataset.py` verifying schema validation, format parsing, corrupt line handling, deduplication, deterministic splitting, and tamper detection.
   - Reached **100% statement coverage** on `miniai_ml/dataset.py` and **99% total coverage** across `miniai_ml` (17/17 pytest tests passing).
+
+
+---
+
+## [2026-11-06T16:15:00+05:30] — Stage 4 Subphase 4.2.1 Verified (`v0.4.2-stage4.sub4.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 4 / Phase 4.2 / Subphase 4.2.1 — PyTorch CPU/GPU LoRA Trainer & Teacher-Student Distillation Pipeline`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Python 3.14.0 uv, PyTorch 2.15.0+cpu, pytest 9.2.0)
+- **Summary:**
+  - Implemented `ml/src/miniai_ml/training.py` with `LoraConfig`, `LoraLinear`, `apply_lora_to_model`, `merge_lora_weights`, `unmerge_lora_weights`, `extract_lora_state_dict`, and `count_trainable_parameters`.
+  - Implemented `DistillationLoss` supporting simultaneous ground truth task cross-entropy and temperature-scaled KL divergence over softened teacher distributions with $T^2$ gradient preservation.
+  - Implemented `TrainingConfig` and `Trainer` supporting mini-batching, gradient accumulation, gradient clipping, periodic validation evaluation, atomic checkpoint persistence and resumption, and non-blocking cooperative cancellation.
+  - Authored 16 unit and convergence tests in `ml/tests/test_training.py` proving deterministic seeding, zero initialization delta ($B=0$), bidirectional weight merging/unmerging, sequence token support, and loss decrease on CPU.
+  - Reached **96% statement coverage** on `miniai_ml/training.py` and **97% total coverage** across `miniai_ml` (33/33 pytest tests passing).
+  - Maintained 100% test pass rate across all workspace test suites (77 Rust tests, 33 Python ML tests, 38 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues).

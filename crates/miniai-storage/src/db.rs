@@ -7,8 +7,9 @@ use rusqlite::{params, Connection, OpenFlags};
 use crate::error::StorageError;
 use crate::migrations::{MigrationRunner, MIGRATIONS};
 use crate::models::{
-    AppSetting, CachedModelRecord, ChatSessionRecord, ConsentAuditEvent, DiagnosticEventRecord,
-    IntegrityReport, ModelManifestRecord, QuarantineResult, Workspace,
+    AppSetting, CachedModelRecord, ChatMessageRecord, ChatSessionExport, ChatSessionRecord,
+    ConsentAuditEvent, DiagnosticEventRecord, IntegrityReport, MessageRole, ModelManifestRecord,
+    QuarantineResult, Workspace,
 };
 
 /// A thread-safe, transactional SQLite storage engine with WAL mode and migration support.
@@ -920,6 +921,250 @@ impl StorageEngine {
             min_ram_bytes: row.get::<_, i64>(11)? as u64,
             recommended_backend,
             created_at_epoch_secs: row.get::<_, i64>(13)? as u64,
+        })
+    }
+
+    // =========================================================================
+    // Chat Messages Repository & Branching Tree
+    // =========================================================================
+
+    pub fn create_chat_message(&self, message: &ChatMessageRecord) -> Result<(), StorageError> {
+        let conn = self.lock_conn()?;
+        conn.execute(
+            "INSERT INTO chat_messages (id, session_id, parent_id, role, content, token_count, model_id, created_at_epoch_secs, updated_at_epoch_secs, is_pinned)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+             ON CONFLICT(id) DO UPDATE SET
+                 content = excluded.content,
+                 token_count = excluded.token_count,
+                 updated_at_epoch_secs = excluded.updated_at_epoch_secs,
+                 is_pinned = excluded.is_pinned",
+            params![
+                message.id,
+                message.session_id,
+                message.parent_id,
+                message.role.as_str(),
+                message.content,
+                message.token_count as i64,
+                message.model_id,
+                message.created_at_epoch_secs as i64,
+                message.updated_at_epoch_secs as i64,
+                if message.is_pinned { 1 } else { 0 },
+            ],
+        )?;
+
+        // Bump session updated_at timestamp
+        let _ = conn.execute(
+            "UPDATE chat_sessions SET updated_at_epoch_secs = ?2 WHERE id = ?1",
+            params![message.session_id, message.updated_at_epoch_secs as i64],
+        );
+
+        Ok(())
+    }
+
+    pub fn get_chat_message(&self, id: &str) -> Result<Option<ChatMessageRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, parent_id, role, content, token_count, model_id, created_at_epoch_secs, updated_at_epoch_secs, is_pinned
+             FROM chat_messages WHERE id = ?1",
+        )?;
+        let mut rows = stmt.query(params![id])?;
+        if let Some(row) = rows.next()? {
+            Ok(Some(Self::decode_message_row(row)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn list_chat_messages(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<ChatMessageRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, parent_id, role, content, token_count, model_id, created_at_epoch_secs, updated_at_epoch_secs, is_pinned
+             FROM chat_messages WHERE session_id = ?1 ORDER BY created_at_epoch_secs ASC, id ASC",
+        )?;
+        let rows = stmt.query_map(params![session_id], Self::decode_message_row)?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    }
+
+    pub fn update_chat_message_content(
+        &self,
+        id: &str,
+        new_content: &str,
+        new_token_count: usize,
+        updated_at_epoch_secs: u64,
+    ) -> Result<bool, StorageError> {
+        let conn = self.lock_conn()?;
+        let affected = conn.execute(
+            "UPDATE chat_messages SET content = ?2, token_count = ?3, updated_at_epoch_secs = ?4 WHERE id = ?1",
+            params![id, new_content, new_token_count as i64, updated_at_epoch_secs as i64],
+        )?;
+        Ok(affected > 0)
+    }
+
+    pub fn delete_chat_message(&self, id: &str) -> Result<bool, StorageError> {
+        let conn = self.lock_conn()?;
+        let affected = conn.execute("DELETE FROM chat_messages WHERE id = ?1", params![id])?;
+        Ok(affected > 0)
+    }
+
+    pub fn delete_chat_messages_for_session(
+        &self,
+        session_id: &str,
+    ) -> Result<usize, StorageError> {
+        let conn = self.lock_conn()?;
+        let affected = conn.execute(
+            "DELETE FROM chat_messages WHERE session_id = ?1",
+            params![session_id],
+        )?;
+        Ok(affected)
+    }
+
+    /// Traverses up the `parent_id` hierarchy starting from `leaf_message_id` to assemble
+    /// the full linear conversation branch from root to leaf in chronological order.
+    pub fn get_message_branch(
+        &self,
+        leaf_message_id: &str,
+    ) -> Result<Vec<ChatMessageRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut branch = Vec::new();
+        let mut current_id = Some(leaf_message_id.to_string());
+
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, parent_id, role, content, token_count, model_id, created_at_epoch_secs, updated_at_epoch_secs, is_pinned
+             FROM chat_messages WHERE id = ?1",
+        )?;
+
+        while let Some(id) = current_id {
+            let mut rows = stmt.query(params![id])?;
+            if let Some(row) = rows.next()? {
+                let msg = Self::decode_message_row(row)?;
+                current_id = msg.parent_id.clone();
+                branch.push(msg);
+            } else {
+                break;
+            }
+        }
+
+        // Reverse so branch is in chronological order [root -> ... -> leaf]
+        branch.reverse();
+        Ok(branch)
+    }
+
+    /// Finds alternative child messages that branch off from a specified parent message.
+    pub fn get_child_branches(
+        &self,
+        parent_message_id: &str,
+    ) -> Result<Vec<ChatMessageRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, parent_id, role, content, token_count, model_id, created_at_epoch_secs, updated_at_epoch_secs, is_pinned
+             FROM chat_messages WHERE parent_id = ?1 ORDER BY created_at_epoch_secs ASC",
+        )?;
+        let rows = stmt.query_map(params![parent_message_id], Self::decode_message_row)?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r?);
+        }
+        Ok(out)
+    }
+
+    /// Exports a conversation session to formatted Markdown.
+    pub fn export_session_markdown(
+        &self,
+        session_id: &str,
+        leaf_message_id: Option<&str>,
+    ) -> Result<String, StorageError> {
+        let session = self
+            .get_chat_session(session_id)?
+            .ok_or_else(|| StorageError::NotFound {
+                entity: "ChatSession",
+                key: session_id.to_string(),
+            })?;
+
+        let messages = if let Some(leaf_id) = leaf_message_id {
+            self.get_message_branch(leaf_id)?
+        } else {
+            self.list_chat_messages(session_id)?
+        };
+
+        let mut md = String::new();
+        md.push_str(&format!("# Chat Session: {}\n\n", session.title));
+        md.push_str(&format!("*Session ID:* `{}`  \n", session.id));
+        md.push_str(&format!(
+            "*Exported Messages:* {}\n\n---\n\n",
+            messages.len()
+        ));
+
+        for msg in messages {
+            let header = match msg.role {
+                MessageRole::System => "### ⚙️ System".to_string(),
+                MessageRole::User => "### 👤 User".to_string(),
+                MessageRole::Assistant => {
+                    if let Some(ref m) = msg.model_id {
+                        format!("### 🤖 Assistant (`{m}`)")
+                    } else {
+                        "### 🤖 Assistant".to_string()
+                    }
+                }
+            };
+            md.push_str(&format!("{header}\n\n{}\n\n", msg.content.trim()));
+        }
+
+        Ok(md)
+    }
+
+    /// Exports a conversation session and all its messages to JSON.
+    pub fn export_session_json(&self, session_id: &str) -> Result<String, StorageError> {
+        let session = self
+            .get_chat_session(session_id)?
+            .ok_or_else(|| StorageError::NotFound {
+                entity: "ChatSession",
+                key: session_id.to_string(),
+            })?;
+
+        let messages = self.list_chat_messages(session_id)?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        let export = ChatSessionExport {
+            session,
+            messages,
+            exported_at_epoch_secs: now,
+        };
+
+        serde_json::to_string_pretty(&export).map_err(|e| StorageError::SerializationError {
+            message: e.to_string(),
+        })
+    }
+
+    fn decode_message_row(row: &rusqlite::Row) -> rusqlite::Result<ChatMessageRecord> {
+        let role_raw: String = row.get(3)?;
+        let role = match role_raw.to_ascii_lowercase().as_str() {
+            "system" => MessageRole::System,
+            "assistant" => MessageRole::Assistant,
+            _ => MessageRole::User,
+        };
+        let is_pinned_int: i64 = row.get(9)?;
+
+        Ok(ChatMessageRecord {
+            id: row.get(0)?,
+            session_id: row.get(1)?,
+            parent_id: row.get(2)?,
+            role,
+            content: row.get(4)?,
+            token_count: row.get::<_, i64>(5)? as usize,
+            model_id: row.get(6)?,
+            created_at_epoch_secs: row.get::<_, i64>(7)? as u64,
+            updated_at_epoch_secs: row.get::<_, i64>(8)? as u64,
+            is_pinned: is_pinned_int != 0,
         })
     }
 }

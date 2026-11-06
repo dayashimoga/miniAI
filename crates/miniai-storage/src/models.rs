@@ -85,6 +85,63 @@ pub struct ChatSessionRecord {
     pub updated_at_epoch_secs: u64,
 }
 
+/// Canonical conversation role for chat messages.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MessageRole {
+    System,
+    User,
+    Assistant,
+}
+
+impl MessageRole {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            MessageRole::System => "system",
+            MessageRole::User => "user",
+            MessageRole::Assistant => "assistant",
+        }
+    }
+}
+
+impl std::str::FromStr for MessageRole {
+    type Err = crate::error::StorageError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_lowercase().as_str() {
+            "system" => Ok(MessageRole::System),
+            "user" => Ok(MessageRole::User),
+            "assistant" => Ok(MessageRole::Assistant),
+            other => Err(crate::error::StorageError::SerializationError {
+                message: format!("Unknown message role: {other}"),
+            }),
+        }
+    }
+}
+
+/// Record of an individual chat message in a conversation session.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChatMessageRecord {
+    pub id: String,
+    pub session_id: String,
+    pub parent_id: Option<String>,
+    pub role: MessageRole,
+    pub content: String,
+    pub token_count: usize,
+    pub model_id: Option<String>,
+    pub created_at_epoch_secs: u64,
+    pub updated_at_epoch_secs: u64,
+    pub is_pinned: bool,
+}
+
+/// Full conversation session export payload.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChatSessionExport {
+    pub session: ChatSessionRecord,
+    pub messages: Vec<ChatMessageRecord>,
+    pub exported_at_epoch_secs: u64,
+}
+
 /// Database integrity verification report.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntegrityReport {

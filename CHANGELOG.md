@@ -264,3 +264,25 @@
   - Implemented `RuntimeSupervisor::switch_model` in `crates/miniai-runtime/src/supervisor.rs` for atomic model replacement across registered modalities.
   - Authored 4 unit tests in `crates/miniai-llm` and 1 test in `crates/miniai-runtime` verifying explicit memory release, corrupt file recovery, admission guard fallback, and rapid consecutive switches (5 models in sequence with 0 memory leaks).
   - Reached 71/71 workspace Rust tests passing with 0 Clippy warnings and 0 formatting diffs.
+
+
+---
+
+## [2026-11-06T10:37:00+05:30] — Stage 3 Subphase 3.2.1 Verified (`v0.3.2-stage3.sub3.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 3 / Phase 3.2 / Subphase 3.2.1 — SQLite Conversation History, Message Branching & Session Export`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Added Migration 4 (`004_chat_messages.sql`) in `crates/miniai-storage` defining the `chat_messages` table with session foreign keys, parent pointers (`parent_id`) for branch regeneration, roles (`system`, `user`, `assistant`), token counts, model tracking, and compound indexes.
+  - Implemented `ChatMessageRecord`, `MessageRole`, and `ChatSessionExport` domain models.
+  - Implemented `StorageEngine` repository methods:
+    - `create_chat_message`: inserts or updates message content, auto-updating session `updated_at_epoch_secs`.
+    - `get_chat_message` and `list_chat_messages`: retrieves messages by ID or session in chronological order.
+    - `update_chat_message_content`: in-place message editing with token count recalculation.
+    - `delete_chat_message` and `delete_chat_messages_for_session`: message deletion with foreign key cascading.
+    - `get_message_branch`: traverses parent pointers upwards from any leaf node to root, returning the full linear conversation branch in chronological order.
+    - `get_child_branches`: retrieves alternative regenerated completions branching from a parent node.
+    - `export_session_markdown`: generates formatted Markdown document with session title, ID, and styled role headers (`### 👤 User`, `### 🤖 Assistant (<model>)`).
+    - `export_session_json`: exports full structured JSON conversation tree with session metadata.
+  - Added 3 unit tests in `crates/miniai-storage` verifying migration schema version 4, message branching and tree traversal, editing and deletion, and Markdown/JSON export.
+  - Reached 74/74 workspace Rust tests passing with 0 Clippy warnings and 0 formatting diffs.

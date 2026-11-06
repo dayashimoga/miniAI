@@ -337,3 +337,40 @@
     - Added 4 new unit tests in `crates/miniai-llm` and 1 integration test in `crates/miniai-runtime` verifying explicit memory release, corrupt file recovery, admission guard fallback, and rapid consecutive switches (5 models in sequence with 0 leaks).
     - Verified all 71 workspace tests pass (`miniai-core`: 9, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13, `miniai-runtime`: 10, `miniai-llm`: 16) with 0 Clippy warnings and 100% Python and Flutter test pass rates.
 - **Next Subphase Ready:** `S3-P2-SUB3.2.1` (Phase 3.2 / Subphase 3.2.1: SQLite conversation history with message editing, branch regeneration, and JSON/Markdown export).
+
+
+---
+
+### [2026-11-06T10:27:00+05:30] Stage 3 — Entry 019 (Subphase 3.2.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.2 — Multi-Session Chat Persistence & Streaming UI / Subphase 3.2.1`
+- **Status Transitions:**
+  - `S3-P2-SUB3.2.1` [`IN_PROGRESS`]: Commenced implementation of SQLite conversation history, branching, and export:
+    - Designing Migration 4 (`004_chat_messages.sql`) in `crates/miniai-storage` with foreign keys, parent pointers (`parent_id`) for branch regeneration, roles (`system`, `user`, `assistant`), and indexing.
+    - Implementing `ChatMessageRecord` model and `MessageRole` enum with Serde serialization.
+    - Implementing `Database` repository methods for message insertion, editing, deletion, branch history resolution (`get_message_branch`), and alternative child branches (`get_child_branches`).
+    - Implementing structured Markdown and JSON export pipelines (`export_session_markdown`, `export_session_json`).
+    - Authoring unit and contract tests verifying database migration checksums, message CRUD, branch traversal, and export formatting.
+
+
+---
+
+### [2026-11-06T10:37:00+05:30] Stage 3 — Entry 020 (Subphase 3.2.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.2 — Multi-Session Chat Persistence & Streaming UI / Subphase 3.2.1`
+- **Status Transitions:**
+  - `S3-P2-SUB3.2.1` [`VERIFIED`]: Implemented SQLite conversation history with branching and export in `crates/miniai-storage`:
+    - Added Migration 4 (`004_chat_messages.sql`) with foreign keys referencing `chat_sessions`, parent message pointers (`parent_id`) for branch regeneration, roles (`system`, `user`, `assistant`), token counts, model tracking, and compound indexes.
+    - Added `ChatMessageRecord`, `MessageRole`, and `ChatSessionExport` models with Serde serialization.
+    - Implemented repository methods on `StorageEngine`:
+      - `create_chat_message`: inserts or updates message content, auto-bumping session `updated_at_epoch_secs`.
+      - `get_chat_message` and `list_chat_messages`: retrieves messages by ID or session in chronological order.
+      - `update_chat_message_content`: in-place message editing with token count recalculation.
+      - `delete_chat_message` and `delete_chat_messages_for_session`: single and session-wide message deletion.
+      - `get_message_branch`: traverses parent pointers upwards from any leaf node to root, returning the full linear conversation branch in chronological order.
+      - `get_child_branches`: retrieves alternative regenerated completions branching from a parent node.
+      - `export_session_markdown`: generates formatted Markdown document with session title, ID, and styled role headers (`### 👤 User`, `### 🤖 Assistant (<model>)`).
+      - `export_session_json`: exports full structured JSON conversation tree with session metadata.
+    - Added 3 unit tests in `crates/miniai-storage` verifying migration schema version 4, message branching and tree traversal, editing and deletion, and Markdown/JSON export.
+    - Verified all 74 workspace tests pass (`miniai-core`: 9, `miniai-storage`: 18, `miniai-server`: 8, `miniai-registry`: 13, `miniai-runtime`: 10, `miniai-llm`: 16) with 0 Clippy warnings and 100% Python and Flutter test pass rates.
+- **Next Subphase Ready:** `S3-P2-SUB3.2.2` (Subphase 3.2.2: Flutter Chat Workspace with real-time token streaming, cancellation button, and live tokens/sec badge).

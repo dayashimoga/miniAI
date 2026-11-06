@@ -108,6 +108,27 @@ pub const MIGRATIONS: &[Migration] = &[
         );
         "#,
     ),
+    Migration::new(
+        4,
+        "004_chat_messages",
+        r#"
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+            parent_id TEXT REFERENCES chat_messages(id) ON DELETE SET NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            token_count INTEGER NOT NULL DEFAULT 0,
+            model_id TEXT,
+            created_at_epoch_secs INTEGER NOT NULL,
+            updated_at_epoch_secs INTEGER NOT NULL,
+            is_pinned INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at_epoch_secs);
+        CREATE INDEX IF NOT EXISTS idx_chat_messages_parent ON chat_messages(parent_id);
+        "#,
+    ),
 ];
 
 /// Manages and executes database schema migrations.

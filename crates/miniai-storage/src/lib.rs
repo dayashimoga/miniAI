@@ -14,8 +14,9 @@ pub use db::StorageEngine;
 pub use error::StorageError;
 pub use migrations::{Migration, MigrationRunner, MIGRATIONS};
 pub use models::{
-    AppSetting, CachedModelRecord, ChatSessionRecord, ConsentAuditEvent, DiagnosticEventRecord,
-    IntegrityReport, QuarantineResult, Workspace,
+    AppSetting, CachedModelRecord, ChatMessageRecord, ChatSessionExport, ChatSessionRecord,
+    ConsentAuditEvent, DiagnosticEventRecord, IntegrityReport, MessageRole, ModelManifestRecord,
+    QuarantineResult, Workspace,
 };
 
 #[cfg(test)]
@@ -28,7 +29,7 @@ mod tests {
         let engine = StorageEngine::in_memory().expect("in-memory engine init");
         assert!(engine.is_in_memory());
         assert!(engine.path().is_none());
-        assert_eq!(engine.schema_version().expect("schema version"), 3);
+        assert_eq!(engine.schema_version().expect("schema version"), 4);
 
         let integrity = engine.check_integrity().expect("integrity check");
         assert!(integrity.is_healthy);
@@ -44,7 +45,7 @@ mod tests {
         let engine = StorageEngine::open(&db_path).expect("open on-disk storage");
         assert!(!engine.is_in_memory());
         assert_eq!(engine.path().unwrap(), db_path.as_path());
-        assert_eq!(engine.schema_version().expect("schema version"), 3);
+        assert_eq!(engine.schema_version().expect("schema version"), 4);
 
         // Verify WAL mode was enabled on disk
         let integrity = engine.check_integrity().expect("integrity check");
@@ -416,7 +417,7 @@ mod tests {
         assert!(quarantine_result.recreated_healthy);
         assert!(std::path::Path::new(&quarantine_result.quarantined_backup_path).exists());
         assert!(recovered_engine.check_integrity().unwrap().is_healthy);
-        assert_eq!(recovered_engine.schema_version().unwrap(), 3);
+        assert_eq!(recovered_engine.schema_version().unwrap(), 4);
 
         // Verify recovered database accepts new writes
         recovered_engine
@@ -651,5 +652,205 @@ mod tests {
         let deleted = engine.delete_model_manifest("qwen2.5-0.5b").unwrap();
         assert!(deleted);
         assert!(engine.get_model_manifest("qwen2.5-0.5b").unwrap().is_none());
+    }
+
+    #[test]
+    fn test_chat_messages_crud_and_branch_traversal() {
+        let engine = StorageEngine::in_memory().expect("engine init");
+
+        let session = ChatSessionRecord {
+            id: "session-branch".to_string(),
+            title: "Branching Dialogue".to_string(),
+            created_at_epoch_secs: 1000,
+            updated_at_epoch_secs: 1000,
+        };
+        engine.create_chat_session(&session).unwrap();
+
+        // Root message: System
+        let msg_sys = ChatMessageRecord {
+            id: "msg-0".to_string(),
+            session_id: "session-branch".to_string(),
+            parent_id: None,
+            role: MessageRole::System,
+            content: "You are MiniAI assistant.".to_string(),
+            token_count: 5,
+            model_id: None,
+            created_at_epoch_secs: 1001,
+            updated_at_epoch_secs: 1001,
+            is_pinned: false,
+        };
+        engine.create_chat_message(&msg_sys).unwrap();
+
+        // User prompt (parent = msg-0)
+        let msg_user = ChatMessageRecord {
+            id: "msg-1".to_string(),
+            session_id: "session-branch".to_string(),
+            parent_id: Some("msg-0".to_string()),
+            role: MessageRole::User,
+            content: "Explain quantum computing simply.".to_string(),
+            token_count: 6,
+            model_id: None,
+            created_at_epoch_secs: 1002,
+            updated_at_epoch_secs: 1002,
+            is_pinned: false,
+        };
+        engine.create_chat_message(&msg_user).unwrap();
+
+        // Completion A (parent = msg-1)
+        let msg_ast_a = ChatMessageRecord {
+            id: "msg-2a".to_string(),
+            session_id: "session-branch".to_string(),
+            parent_id: Some("msg-1".to_string()),
+            role: MessageRole::Assistant,
+            content: "Quantum computing uses qubits that can be in superposition.".to_string(),
+            token_count: 10,
+            model_id: Some("qwen-0.5b".to_string()),
+            created_at_epoch_secs: 1003,
+            updated_at_epoch_secs: 1003,
+            is_pinned: false,
+        };
+        engine.create_chat_message(&msg_ast_a).unwrap();
+
+        // Regenerated Completion B (parent = msg-1, alternative branch)
+        let msg_ast_b = ChatMessageRecord {
+            id: "msg-2b".to_string(),
+            session_id: "session-branch".to_string(),
+            parent_id: Some("msg-1".to_string()),
+            role: MessageRole::Assistant,
+            content: "Think of a coin spinning in the air instead of lying flat.".to_string(),
+            token_count: 12,
+            model_id: Some("llama-1b".to_string()),
+            created_at_epoch_secs: 1004,
+            updated_at_epoch_secs: 1004,
+            is_pinned: false,
+        };
+        engine.create_chat_message(&msg_ast_b).unwrap();
+
+        // Verify alternative branches branching from msg-1
+        let branches = engine.get_child_branches("msg-1").unwrap();
+        assert_eq!(branches.len(), 2);
+        assert_eq!(branches[0].id, "msg-2a");
+        assert_eq!(branches[1].id, "msg-2b");
+
+        // Verify linear branch traversal up to root for branch A
+        let branch_a = engine.get_message_branch("msg-2a").unwrap();
+        assert_eq!(branch_a.len(), 3);
+        assert_eq!(branch_a[0].id, "msg-0");
+        assert_eq!(branch_a[1].id, "msg-1");
+        assert_eq!(branch_a[2].id, "msg-2a");
+
+        // Verify linear branch traversal up to root for branch B
+        let branch_b = engine.get_message_branch("msg-2b").unwrap();
+        assert_eq!(branch_b.len(), 3);
+        assert_eq!(branch_b[0].id, "msg-0");
+        assert_eq!(branch_b[1].id, "msg-1");
+        assert_eq!(branch_b[2].id, "msg-2b");
+
+        // Verify session updated_at was bumped
+        let sess = engine.get_chat_session("session-branch").unwrap().unwrap();
+        assert_eq!(sess.updated_at_epoch_secs, 1004);
+    }
+
+    #[test]
+    fn test_chat_message_editing_and_deletion() {
+        let engine = StorageEngine::in_memory().expect("engine init");
+        let session = ChatSessionRecord {
+            id: "s-edit".to_string(),
+            title: "Edit Test".to_string(),
+            created_at_epoch_secs: 1000,
+            updated_at_epoch_secs: 1000,
+        };
+        engine.create_chat_session(&session).unwrap();
+
+        let msg = ChatMessageRecord {
+            id: "m-1".to_string(),
+            session_id: "s-edit".to_string(),
+            parent_id: None,
+            role: MessageRole::User,
+            content: "Original text".to_string(),
+            token_count: 2,
+            model_id: None,
+            created_at_epoch_secs: 1000,
+            updated_at_epoch_secs: 1000,
+            is_pinned: false,
+        };
+        engine.create_chat_message(&msg).unwrap();
+
+        // Edit message
+        let updated = engine
+            .update_chat_message_content("m-1", "Edited content with more tokens", 6, 1050)
+            .unwrap();
+        assert!(updated);
+
+        let fetched = engine.get_chat_message("m-1").unwrap().unwrap();
+        assert_eq!(fetched.content, "Edited content with more tokens");
+        assert_eq!(fetched.token_count, 6);
+        assert_eq!(fetched.updated_at_epoch_secs, 1050);
+
+        // Delete single message
+        assert!(engine.delete_chat_message("m-1").unwrap());
+        assert_eq!(engine.get_chat_message("m-1").unwrap(), None);
+    }
+
+    #[test]
+    fn test_chat_session_export_markdown_and_json() {
+        let engine = StorageEngine::in_memory().expect("engine init");
+        let session = ChatSessionRecord {
+            id: "s-export".to_string(),
+            title: "Exportable Conversation".to_string(),
+            created_at_epoch_secs: 2000,
+            updated_at_epoch_secs: 2050,
+        };
+        engine.create_chat_session(&session).unwrap();
+
+        let user_msg = ChatMessageRecord {
+            id: "m-user".to_string(),
+            session_id: "s-export".to_string(),
+            parent_id: None,
+            role: MessageRole::User,
+            content: "What is MiniAI?".to_string(),
+            token_count: 5,
+            model_id: None,
+            created_at_epoch_secs: 2000,
+            updated_at_epoch_secs: 2000,
+            is_pinned: false,
+        };
+        let ast_msg = ChatMessageRecord {
+            id: "m-ast".to_string(),
+            session_id: "s-export".to_string(),
+            parent_id: Some("m-user".to_string()),
+            role: MessageRole::Assistant,
+            content: "MiniAI is a local-first multimodal platform.".to_string(),
+            token_count: 8,
+            model_id: Some("test-model".to_string()),
+            created_at_epoch_secs: 2010,
+            updated_at_epoch_secs: 2010,
+            is_pinned: false,
+        };
+
+        engine.create_chat_message(&user_msg).unwrap();
+        engine.create_chat_message(&ast_msg).unwrap();
+
+        // Test Markdown export for whole session
+        let md = engine.export_session_markdown("s-export", None).unwrap();
+        assert!(md.contains("# Chat Session: Exportable Conversation"));
+        assert!(md.contains("### 👤 User"));
+        assert!(md.contains("What is MiniAI?"));
+        assert!(md.contains("### 🤖 Assistant (`test-model`)"));
+        assert!(md.contains("MiniAI is a local-first multimodal platform."));
+
+        // Test Markdown export along specific leaf branch
+        let md_branch = engine
+            .export_session_markdown("s-export", Some("m-ast"))
+            .unwrap();
+        assert!(md_branch.contains("Exported Messages:* 2"));
+
+        // Test JSON export
+        let json_str = engine.export_session_json("s-export").unwrap();
+        let export: ChatSessionExport = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(export.session.title, "Exportable Conversation");
+        assert_eq!(export.messages.len(), 2);
+        assert_eq!(export.messages[0].role, MessageRole::User);
+        assert_eq!(export.messages[1].role, MessageRole::Assistant);
     }
 }

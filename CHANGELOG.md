@@ -341,3 +341,18 @@
     - Governance audit: 19 files, 6 rules, 18 skills verified with 0 errors.
   - Published Stage 3 Verification Report (`docs/STAGE_3_VERIFICATION_REPORT.json`) and Gate Report (`stage_3_gate_report.md`).
   - Merged `develop` branch into `main` and tagged release `v0.3.0`.
+
+---
+
+## [2026-11-06T15:12:00+05:30] — Stage 4 Subphase 4.1.1 Verified (`v0.4.1-stage4.sub4.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 4 / Phase 4.1 / Subphase 4.1.1 — Dataset Curation, Validation & Splitting`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Python 3.14.0 uv, pytest 9.2.0)
+- **Summary:**
+  - Implemented `ml/src/miniai_ml/dataset.py` with `DatasetRecord` and `DatasetManifest`.
+  - Implemented multi-format parsing for `.jsonl` and `.csv` datasets with flexible field mapping (`prompt`/`response`, `instruction`/`output`, `input_text`/`target_text`), strict non-empty content validation, and UTF-8 enforcement.
+  - Implemented content-based deduplication (`deduplicate_records`) dropping redundant samples and tracking removed counts.
+  - Implemented deterministic PRNG partitioner (`split_dataset`) dividing records into `train`, `val`, and `test` splits according to configurable ratios and reproducible seeds.
+  - Implemented `save_splits_and_manifest` and `verify_dataset_manifest` generating partitioned JSONL files and a cryptographic `manifest.json`.
+  - Authored 11 unit and property tests in `ml/tests/test_dataset.py` verifying schema validation, format parsing, corrupt line handling, deduplication, deterministic splitting, and tamper detection.
+  - Reached **100% statement coverage** on `miniai_ml/dataset.py` and **99% total coverage** across `miniai_ml` (17/17 pytest tests passing).

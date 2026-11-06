@@ -455,3 +455,33 @@
     - Security & Architecture Reviewer (`arch-security-reviewer`) issued formal **PASS** verdict (zero data leakage, bounds check DoS defense, two-phase drop memory safety, parameterized SQL).
     - Recorded `ADR-008` in `ADR.md` and published `stage_3_gate_report.md`.
 - **Next Stage Ready:** `STAGE_4` (Stage 4: Dataset Pipeline, LoRA/QLoRA Fine-Tuning, Training, Distillation & Evaluation).
+
+---
+
+### [2026-11-06T14:46:00+05:30] Stage 4 — Entry 026 (Subphase 4.1.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation / Phase 4.1 — Dataset Curation, Validation & Splitting / Subphase 4.1.1`
+- **Status Transitions:**
+  - `STAGE_4` [`IN_PROGRESS`]: Commenced execution of Stage 4.
+  - `S4-P1-SUB4.1.1` [`IN_PROGRESS`]: Commenced implementation of dataset curation, schema validation, deduplication, and deterministic splitting in `ml/src/miniai_ml/dataset.py`:
+    - Defining `DatasetRecord` and `DatasetManifest` with cryptographic SHA-256 integrity checks.
+    - Implementing multi-format loader supporting `.jsonl` and `.csv` datasets with UTF-8 enforcement.
+    - Implementing content normalization and deduplication.
+    - Implementing deterministic PRNG partitioning into `train`, `val`, and `test` splits given configurable ratios and seed.
+    - Authoring unit and validation tests under `ml/tests/test_dataset.py` ensuring >=90% test coverage.
+
+---
+
+### [2026-11-06T15:12:00+05:30] Stage 4 — Entry 027 (Subphase 4.1.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation / Phase 4.1 — Dataset Curation, Validation & Splitting / Subphase 4.1.1`
+- **Status Transitions:**
+  - `S4-P1-SUB4.1.1` [`VERIFIED`]: Implemented dataset curation, schema validation, deduplication, and deterministic splitting in `ml/src/miniai_ml/dataset.py`:
+    - Defined `DatasetRecord` and `DatasetManifest` with cryptographic SHA-256 fingerprinting.
+    - Implemented multi-format loader (`load_dataset_file`) for `.jsonl` and `.csv` datasets with flexible field mapping (`prompt`/`response`, `instruction`/`output`, `input_text`/`target_text`), strict non-empty content validation, and UTF-8 enforcement.
+    - Implemented content-based deduplication (`deduplicate_records`) dropping redundant samples and tracking removed counts.
+    - Implemented deterministic PRNG partitioner (`split_dataset`) dividing records into `train`, `val`, and `test` splits according to configurable ratios and reproducible seeds.
+    - Implemented `save_splits_and_manifest` and `verify_dataset_manifest` generating partitioned JSONL files and a cryptographic `manifest.json`.
+    - Created `ml/tests/test_dataset.py` with 11 comprehensive unit and property tests verifying schema validation, format parsing, corrupt line handling, deduplication, deterministic splitting, and tamper detection.
+    - Achieved **100% statement coverage** on `miniai_ml/dataset.py` and **99% total coverage** across `miniai_ml` (17/17 pytest tests passing).
+- **Next Subphase Ready:** `S4-P2-SUB4.2.1` (Phase 4.2: LoRA/QLoRA Fine-Tuning & Knowledge Distillation Engine / Subphase 4.2.1: PyTorch CPU/GPU LoRA Trainer & Teacher-Student Distillation Pipeline).

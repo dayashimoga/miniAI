@@ -657,3 +657,38 @@
     - Authored 15 unit and integration tests in `crates/miniai-rag` (7 unit + 8 integration in `tests/ingestion_tests.rs`).
     - Workspace verification: 92/92 Rust tests passing, 0 Clippy warnings, 0 formatting diffs, 39/39 Python ML tests passing (97.28% coverage), 44/44 Flutter tests passing (0 analyze issues).
 - **Next Subphase Ready:** `S5-P2-SUB5.2.1` (Phase 5.2 / Subphase 5.2.1: Local CPU-first embedding adapter + BM25 lexical index with Reciprocal Rank Fusion [RRF] and verifiable citation spans).
+
+
+---
+
+### [2026-11-06T18:02:00+05:30] Stage 5 — Entry 037 (Subphase 5.2.1 Initiated)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 5: RAG, Document/Code Indexing & Secure Tool Integration / Phase 5.2 — Hybrid Retrieval & Verifiable Citations / Subphase 5.2.1`
+- **Status Transitions:**
+  - `S5-P2-SUB5.2.1` [`IN_PROGRESS`]: Implementing local CPU-first embedding adapter, BM25 Okapi lexical index, and Reciprocal Rank Fusion (RRF) hybrid retrieval with exact line citation spans in `crates/miniai-rag`:
+    - BM25 Okapi ranking engine with inverted index, term frequencies, and document length normalization ($k_1=1.2, b=0.75$).
+    - CPU-first embedding adapter producing L2-normalized dense representations with cosine similarity search.
+    - Reciprocal Rank Fusion combiner integrating dense semantic scoring with lexical BM25 matching ($k=60$).
+    - Grounded citation resolver returning verified `file_path#Lstart-Lend` source spans.
+- **Next Step:** Implement BM25, embedding adapter, and RRF search in `crates/miniai-rag`.
+
+
+---
+
+### [2026-11-06T18:10:00+05:30] Stage 5 — Entry 038 (Subphase 5.2.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 5: RAG, Document/Code Indexing & Secure Tool Integration / Phase 5.2 — Hybrid Retrieval & Verifiable Citations / Subphase 5.2.1`
+- **Status Transitions:**
+  - `S5-P2-SUB5.2.1` [`VERIFIED`]: Implemented local CPU-first embedding adapter, BM25 Okapi lexical index, and Reciprocal Rank Fusion (RRF) hybrid retrieval with exact line citation spans in `crates/miniai-rag`:
+    - BM25 Okapi search index (`Bm25Index` in `bm25.rs`): tokenization, document frequency calculation, Robertson-Spärck Jones IDF smoothing, and length normalization ($k_1=1.2, b=0.75$).
+    - Local CPU-first deterministic embedding model (`LocalEmbeddingModel` in `embedding.rs`): 128-dimensional dense vector generator with subword trigram hashing, positional salience decay, and L2 normalization ($\|v\|_2=1.0$).
+    - Vector index (`VectorIndex` in `embedding.rs`): exact cosine similarity search over chunk embeddings.
+    - Unified hybrid search engine (`HybridSearchEngine` in `retrieval.rs`):
+      - Executes concurrent BM25 lexical ranking and dense vector semantic retrieval.
+      - Fuses rank candidates using Reciprocal Rank Fusion ($k=60$).
+      - Generates contextual snippet excerpts highlighting search terms.
+      - Resolves grounded source line citations: `file_path#Lstart-Lend`.
+    - Bulk pipeline indexing integration (`index_pipeline_chunks`).
+    - Authored 23 tests in `crates/miniai-rag` (14 unit tests, 8 ingestion tests, 1 end-to-end hybrid retrieval test) with 100% pass rate.
+    - Workspace total: 100/100 Rust tests passing, 0 Clippy warnings, 0 formatting diffs, 39/39 Python ML tests passing, 44/44 Flutter tests passing.
+- **Next Subphase Ready:** `S5-P3-SUB5.3.1` (Phase 5.3 / Subphase 5.3.1: Capability-sandboxed local tool runner with execution timeouts, output caps, and zero network access in `LocalOnlyPrivacyMode`).

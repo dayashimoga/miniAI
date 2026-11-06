@@ -444,3 +444,27 @@
   - Built strict security validators in `security.rs` for path traversal, UNC prefix normalization, binary rejection, and credential/secret exclusion.
   - Built `IngestionPipeline` in `pipeline.rs` with incremental SHA-256 file caching and manifest export.
   - Authored 15 unit and integration tests in `miniai-rag`, expanding workspace Rust tests to 92/92 passing with 0 warnings.
+
+
+---
+
+## [2026-11-06T18:02:00+05:30] — Stage 5 Subphase 5.2.1 In Progress (`v0.5.2-stage5.sub5.2.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 5 / Phase 5.2 / Subphase 5.2.1 — Local Hybrid Retrieval (BM25 + Dense Embeddings + RRF)`
+- **Summary:**
+  - Initiated Subphase 5.2.1 in `crates/miniai-rag`.
+  - Designing BM25 Okapi lexical inverted index, local CPU-first embedding adapter, and Reciprocal Rank Fusion (RRF) hybrid retrieval engine.
+
+
+---
+
+## [2026-11-06T18:10:00+05:30] — Stage 5 Subphase 5.2.1 Verified (`v0.5.2-stage5.sub5.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 5 / Phase 5.2 / Subphase 5.2.1 — Local Hybrid Retrieval (BM25 + Dense Embeddings + RRF)`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented BM25 Okapi lexical ranking in `crates/miniai-rag/src/bm25.rs`.
+  - Implemented local CPU-first embedding generator and vector index in `crates/miniai-rag/src/embedding.rs`.
+  - Implemented `HybridSearchEngine` in `crates/miniai-rag/src/retrieval.rs` combining dense semantic vector search and sparse BM25 scores via Reciprocal Rank Fusion ($k=60$).
+  - Built grounded citation generator producing accurate `file_path#Lstart-Lend` tags and keyword excerpts.
+  - Reached 100/100 passing Rust tests across the workspace with 0 Clippy warnings.

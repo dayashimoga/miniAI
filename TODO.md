@@ -439,3 +439,19 @@
     - Added 3 unit tests in `crates/miniai-llm` verifying cold load and TTFT metrics, 0-iteration validation failure rejection, and report JSON disk persistence.
     - Verified all 77 workspace Rust tests pass with 0 Clippy warnings.
 - **Next Step Ready:** `STAGE_3_GATE_VERIFICATION` (Master verification script `scripts/verify_stage3.py`, independent QA and Security audits, ADR-008, and Stage 3 certification).
+
+---
+
+### [2026-11-06T14:02:00+05:30] Stage 3 — Entry 025 (Stage 3 Gate Verified & Certified)
+- **Entry Type:** `STAGE_GATE_VERIFIED`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking`
+- **Status Transitions:**
+  - `STAGE_3` [`VERIFIED` & `COMPLETED`]: Full Stage 3 delivery verified, audited, certified, and closed:
+    - Phase 3.1: Local LLM Runtime Adapter (`miniai-llm`), autoregressive decoder, GGUF magic validation, BPE subword tokenizer, deterministic sampler, cooperative cancellation, two-phase drop hot model switching, and AdmissionGuard CPU fallback.
+    - Phase 3.2: Multi-Session Chat Persistence & Streaming UI (`miniai-storage`, `ui/miniai_app`), Migration 4 (`004_chat_messages.sql`), branch tree traversal (`get_message_branch`), Markdown/JSON export, and `ChatWorkspaceScreen` with live streaming telemetry, tokens/sec counter, cancellation button, and Tab 5 integration in `ShellScreen`.
+    - Phase 3.3: Quantitative LLM Benchmark Suite (`benchmark.rs`), cold start vs warm reload timing, warmup exclusion, TTFT, throughput, peak memory RSS tracking, and p50/p95/mean statistical aggregation.
+    - Master verification script `scripts/verify_stage3.py` executed and generated `docs/STAGE_3_VERIFICATION_REPORT.json` (all steps passed 100%).
+    - Independent QA Lead (`independent-qa-auditor`) issued formal **PASS** verdict (77/77 Rust tests, 6/6 Python ML tests, 38/38 Flutter tests, 95.02% Flutter line coverage, 0 warnings/lint issues).
+    - Security & Architecture Reviewer (`arch-security-reviewer`) issued formal **PASS** verdict (zero data leakage, bounds check DoS defense, two-phase drop memory safety, parameterized SQL).
+    - Recorded `ADR-008` in `ADR.md` and published `stage_3_gate_report.md`.
+- **Next Stage Ready:** `STAGE_4` (Stage 4: Dataset Pipeline, LoRA/QLoRA Fine-Tuning, Training, Distillation & Evaluation).

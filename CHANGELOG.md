@@ -324,3 +324,20 @@
     - Pretty-printed JSON serialization (`to_json`) and report persistence (`save_to_file`).
   - Authored 3 unit tests in `crates/miniai-llm` verifying cold load and TTFT metrics, configuration validation, and report file persistence.
   - Reached 77/77 workspace Rust tests passing with 0 Clippy warnings and 0 formatting diffs.
+
+---
+
+## [2026-11-06T14:02:00+05:30] — Stage 3 Certified & Released (`v0.3.0`)
+- **Action:** `STAGE_GATE_VERIFIED`
+- **Stage:** `Stage 3: Offline LLM Inference, Chat, Streaming, Model Switching & Benchmarking`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1, Flutter 3.29.0 / Dart 3.7.0, Python 3.14.0 uv)
+- **Summary:**
+  - Certified Stage 3 following unanimous **PASS** audit verdicts from both the Independent QA Lead (`independent-qa-auditor`) and the Security Reviewer (`arch-security-reviewer`).
+  - Recorded Architectural Decision Record `ADR-008` in `ADR.md`.
+  - Master verification pipeline (`scripts/verify_stage3.py`) passed all 6 verification stages:
+    - Rust workspace: 77/77 tests passed, 0 Clippy warnings, 0 formatting diffs.
+    - Python ML tooling: 6/6 pytest tests passed, 98.16% statement coverage.
+    - Flutter UI: 38/38 widget/contract tests passed, 0 analyze issues, **95.02%** line coverage.
+    - Governance audit: 19 files, 6 rules, 18 skills verified with 0 errors.
+  - Published Stage 3 Verification Report (`docs/STAGE_3_VERIFICATION_REPORT.json`) and Gate Report (`stage_3_gate_report.md`).
+  - Merged `develop` branch into `main` and tagged release `v0.3.0`.

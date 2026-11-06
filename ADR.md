@@ -79,3 +79,21 @@ This document records binding architectural decisions for **MiniAI**, including 
   - Automatically fall back to `AcceleratorBackend::Cpu` when accelerator VRAM is insufficient, accelerators are absent, or `force_cpu_only` mode is set. Reject models with `MiniAiError::InsufficientMemory` if available system RAM is breached.
   - Orchestrate all 7 modalities via independent `ManagedAdapter` instances in `crates/miniai-runtime`, ensuring model switching or failure in one modality never degrades or crashes other active modalities.
 - **Consequences:** Eliminates corruption risks in the model cache, guarantees system memory stability, prevents data leakage under local-only privacy mode, and ensures complete fault isolation across multimodal runtimes.
+
+---
+
+## ADR-008: Local LLM Engine Architecture, Hot Model Switching with Two-Phase Drop, Conversation Tree Traversal & Quantitative Benchmarking
+- **Date:** `2026-11-06`
+- **Status:** `ACCEPTED`
+- **Context:** Stage 3 requires production-grade offline LLM text generation, multi-session conversation persistence, and quantitative performance benchmarking on resource-constrained consumer hardware without cloud dependencies. Specific challenges include:
+  1. Preventing Out-Of-Memory (OOM) spikes during model switching when two large models might temporarily coexist in memory.
+  2. Supporting conversation branching, in-place message editing, and Markdown/JSON export without complex relational schemas.
+  3. Achieving responsive token streaming (<10ms cancellation responsiveness) without thread blocking or memory leaks.
+  4. Delivering quantitative benchmark metrics (cold start, TTFT, tokens/sec, memory RSS) with statistical integrity.
+- **Decision:**
+  - Implement a dedicated `#![forbid(unsafe_code)]` LLM crate (`crates/miniai-llm`) with an autoregressive decoder, GGUF magic verification (`0x46554747`), subword BPE tokenization, and a configurable sampler supporting greedy sampling, temperature scaling, nucleus top-p filtering, and exponential frequency repetition penalties.
+  - Enforce a strict **Two-Phase Drop Pattern** for hot model switching: `LlmEngine::switch_model` calls `unload_model()` and asserts `self.weights.is_none()` before opening or mapping the replacement model file. This guarantees that peak memory during model transitions never exceeds the size of a single loaded model.
+  - Implement SQLite Migration 4 (`004_chat_messages.sql`) utilizing a self-referential `parent_id` column on `chat_messages`. Linear conversation history is reconstructed via upward recursive traversal (`get_message_branch`), while alternative completions are indexed via child queries (`get_child_branches`), eliminating separate tree-link tables.
+  - Integrate a responsive Flutter Chat Workspace (`ChatWorkspaceScreen`) with real-time token streaming badges, live tokens/second telemetry, and immediate cooperative generation cancellation (`cancel_generation_button`).
+  - Implement `LlmBenchmarkHarness` in `crates/miniai-llm/src/benchmark.rs` to measure real cold load times from disk, warm memory reloads, and per-iteration TTFT and throughput. Enforce strict warmup iteration exclusion from reported p50, p95, and mean statistics, persisting output in conformance with `miniai-evaluation-benchmarks` JSON schema.
+- **Consequences:** Eliminates memory exhaustion during model transitions, guarantees non-destructive conversation branching and editing, maintains offline-first privacy guarantees with zero cloud leakage, and provides mathematically honest performance benchmarks.

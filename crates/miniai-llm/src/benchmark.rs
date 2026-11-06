@@ -41,7 +41,8 @@ impl Default for LlmBenchmarkConfig {
             model_id: "llama-3.2-1b-instruct-q4".to_string(),
             model_path: PathBuf::from("models/llama-3.2-1b.gguf"),
             backend: AcceleratorBackend::Cpu,
-            prompt: "Explain the architectural principles of local-first multimodal computing.".to_string(),
+            prompt: "Explain the architectural principles of local-first multimodal computing."
+                .to_string(),
             max_new_tokens: 32,
             warmup_iterations: 1,
             measured_iterations: 3,
@@ -98,9 +99,7 @@ impl LlmBenchmarkReport {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let json = self
-            .to_json()
-            .map_err(std::io::Error::other)?;
+        let json = self.to_json().map_err(std::io::Error::other)?;
         std::fs::write(path, json)
     }
 }
@@ -198,7 +197,11 @@ impl LlmBenchmarkHarness {
         Ok(LlmBenchmarkReport {
             benchmark_id: config.benchmark_id.clone(),
             modality: Modality::Llm,
-            adapter_id: format!("{}-{}-adapter", config.backend.display_name(), config.model_id),
+            adapter_id: format!(
+                "{}-{}-adapter",
+                config.backend.display_name(),
+                config.model_id
+            ),
             model_id: config.model_id.clone(),
             backend: config.backend,
             verification_tier: config.verification_tier,

@@ -520,14 +520,17 @@ mod tests {
             verification_tier: miniai_core::VerificationTier::ProvenOnHost,
         };
 
-        let report = LlmBenchmarkHarness::run(&config, &mut engine)
-            .expect("benchmark run should succeed");
+        let report =
+            LlmBenchmarkHarness::run(&config, &mut engine).expect("benchmark run should succeed");
 
         assert_eq!(report.benchmark_id, "bench-test-01");
         assert_eq!(report.model_id, "test-model-bench");
         assert_eq!(report.backend, AcceleratorBackend::Cpu);
         assert_eq!(report.modality, miniai_core::Modality::Llm);
-        assert_eq!(report.verification_tier, miniai_core::VerificationTier::ProvenOnHost);
+        assert_eq!(
+            report.verification_tier,
+            miniai_core::VerificationTier::ProvenOnHost
+        );
         assert!(report.cold_start_ms >= 0.0);
         assert_eq!(report.warmup_iterations, 1);
         assert_eq!(report.measured_iterations, 3);
@@ -587,8 +590,7 @@ mod tests {
             verification_tier: miniai_core::VerificationTier::ProvenOnHost,
         };
 
-        let report = LlmBenchmarkHarness::run(&config, &mut engine)
-            .expect("run benchmark");
+        let report = LlmBenchmarkHarness::run(&config, &mut engine).expect("run benchmark");
 
         let temp_dir = tempfile::tempdir().expect("tempdir");
         let report_path = temp_dir.path().join("reports").join("benchmark.json");

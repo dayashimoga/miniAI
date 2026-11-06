@@ -1,0 +1,180 @@
+{
+  "stage": "Stage 2",
+  "stage_title": "Model Registry, Downloads, Integrity, Hardware Detection & Runtime Adapters",
+  "timestamp_utc": "2026-11-06T04:01:29.923369+00:00",
+  "verification_tier": "PROVEN_ON_HOST",
+  "overall_passed": true,
+  "governance_audit": {
+    "passed": true,
+    "governance_files_checked": 19,
+    "rules_checked": 6,
+    "skills_checked": 18,
+    "stage_prompts_checked": 11,
+    "errors": []
+  },
+  "flutter_coverage": {
+    "present": true,
+    "lines_found": 1283,
+    "lines_hit": 1246,
+    "percent": 97.12
+  },
+  "stage2_contracts": {
+    "phase_2_1_registry_and_downloads": {
+      "crate": "crates/miniai-registry",
+      "model_manifest_crud": true,
+      "resumable_range_downloader": true,
+      "streaming_sha256_verification": true,
+      "atomic_staging_promotion": true,
+      "local_model_importer": true,
+      "quarantine_and_deletion_on_tamper": true,
+      "offline_local_only_mode_enforced": true,
+      "collision_and_path_traversal_guards": true
+    },
+    "phase_2_2_hardware_and_admission": {
+      "crate": "crates/miniai-core",
+      "cpu_features_simd_probing": true,
+      "sysinfo_host_probing": true,
+      "vram_and_ram_metrics": true,
+      "admission_guard_85_percent_ceiling": true,
+      "cpu_fallback_deterministic": true,
+      "insufficient_ram_rejection": true
+    },
+    "phase_2_3_runtime_and_ui": {
+      "crate_and_app": [
+        "crates/miniai-runtime",
+        "ui/miniai_app"
+      ],
+      "process_isolated_adapter_lifecycle": true,
+      "runtime_supervisor_seven_modalities": true,
+      "modality_decoupling_failure_isolation": true,
+      "eventbus_realtime_telemetry": true,
+      "flutter_model_manager_screen": true,
+      "flutter_hardware_inspector_screen": true,
+      "interactive_import_wizard": true,
+      "interactive_memory_testing": true,
+      "modality_filter_chips_and_badges": true,
+      "pause_resume_cancel_controls": true
+    }
+  },
+  "steps": [
+    {
+      "name": "rust_fmt_check",
+      "command": "cargo fmt --all -- --check",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": []
+    },
+    {
+      "name": "rust_clippy",
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": [
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.16s"
+      ]
+    },
+    {
+      "name": "rust_tests",
+      "command": "cargo test --workspace",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "stderr_tail": [
+        "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.24s",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_core-23fd1064eb6c79e2.exe)",
+        "     Running tests\\contract_tests.rs (target\\debug\\deps\\contract_tests-2aeb00c5cdd446a3.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_registry-5d2e89ab5a6835ba.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_runtime-b8755a80018f305b.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_server-ee2f4d936ad80b44.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_storage-76b036769d943651.exe)",
+        "   Doc-tests miniai_core",
+        "   Doc-tests miniai_registry",
+        "   Doc-tests miniai_runtime",
+        "   Doc-tests miniai_server",
+        "   Doc-tests miniai_storage"
+      ]
+    },
+    {
+      "name": "python_pytest_coverage",
+      "command": "uv run pytest --cov=miniai_ml --cov-report=term-missing --cov-fail-under=90",
+      "cwd": "ml",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "......                                                                   [100%]",
+        "=============================== tests coverage ================================",
+        "_______________ coverage: platform win32, python 3.14.0-final-0 _______________",
+        "",
+        "Name                             Stmts   Miss  Cover   Missing",
+        "--------------------------------------------------------------",
+        "src\\miniai_ml\\__init__.py            4      0   100%",
+        "src\\miniai_ml\\contracts.py         101      0   100%",
+        "src\\miniai_ml\\governance.py         95      4    96%   124, 149-150, 171",
+        "src\\miniai_ml\\runtime_probe.py      17      0   100%",
+        "--------------------------------------------------------------",
+        "TOTAL                              217      4    98%",
+        "Required test coverage of 90% reached. Total coverage: 98.16%",
+        "6 passed in 0.50s"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_analyze",
+      "command": "flutter analyze --no-pub",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "Analyzing miniai_app...                                         ",
+        "No issues found! (ran in 1.6s)"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_test_coverage",
+      "command": "flutter test --coverage",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "00:03 +11: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:03 +12: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:03 +13: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:04 +14: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests Desktop layout (1024x768) renders NavigationRail and navigates between tabs",
+        "00:04 +15: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests Local Model Import Wizard opens dialog, registers model, and adds to catalog",
+        "00:05 +16: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests Local Model Import Wizard opens dialog, registers model, and adds to catalog",
+        "00:05 +17: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests Local Model Import Wizard opens dialog, registers model, and adds to catalog",
+        "00:05 +18: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests SettingsScreen buttons, toggles, consent controls, and diagnostics",
+        "00:06 +19: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests HardwareInspectorScreen renders hardware profile, SIMD features, and admission guard",
+        "00:06 +20: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests EventInspectorView inspects JSON payload dialog and handles empty state",
+        "00:06 +21: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests ShellScreen navigates to Models (tab 3) and Hardware (tab 4)",
+        "00:06 +22: G:/miniAI/ui/miniai_app/test/model_manager_and_hardware_test.dart: Subphase 2.3.2 Model Manager & Hardware Inspector Widget Tests ShellScreen navigates to Models (tab 3) and Hardware (tab 4)",
+        "00:06 +23: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests IpcClient connects to real loopback server, authenticates, and handles offline",
+        "00:06 +24: G:/miniAI/ui/miniai_app/test/shell_and_settings_test.dart: ShellScreen Navigation & Multi-Pane Widget Tests IpcClient connects to real loopback server, authenticates, and handles offline",
+        "00:07 +25: All tests passed!"
+      ],
+      "stderr_tail": []
+    }
+  ]
+}

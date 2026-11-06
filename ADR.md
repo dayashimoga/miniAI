@@ -64,3 +64,18 @@ This document records binding architectural decisions for **MiniAI**, including 
   - Implement a typed asynchronous event bus (`tokio::sync::broadcast`) with bounded backpressure and late-subscriber replay ring buffers in `crates/miniai-server`.
   - Expose a localhost-only HTTP/SSE IPC server bound strictly to loopback (`127.0.0.1`), protected by per-session bearer nonce authentication (`Authorization: Bearer <nonce>`) on all endpoints.
 - **Consequences:** Eliminates external network attack surfaces, prevents database locking under concurrent UI reads, ensures offline self-healing resilience, and provides real-time event streaming to the Flutter UI shell.
+
+
+---
+
+## ADR-007: Cryptographic Staging, Quarantine Isolation, Memory Admission Ceilings & Decoupled Modality Runtimes
+- **Date:** `2026-11-06`
+- **Status:** `ACCEPTED`
+- **Context:** Managing multi-gigabyte neural network weights across 7 independent modalities requires rigorous protection against partial downloads, corrupted weights, unauthorized network exfiltration, system out-of-memory crashes, and cascading runtime failures.
+- **Decision:**
+  - Enforce isolated quarantine staging (`.part` for downloads, `.import.quarantine` for local file imports) in `crates/miniai-registry`. Streaming SHA-256 digests are computed during transfer, and files are atomically promoted to verified cache only upon exact digest validation. Corrupted or tampered files are purged immediately.
+  - Reject remote downloads when `LocalOnlyPrivacyMode` is active while permitting fully offline local model imports.
+  - Probe CPU SIMD instruction sets (`AVX2`, `AVX-512`, `NEON`) and host memory via `sysinfo` in `crates/miniai-core`. Enforce strict 85% available RAM and VRAM admission ceilings via `AdmissionGuard`.
+  - Automatically fall back to `AcceleratorBackend::Cpu` when accelerator VRAM is insufficient, accelerators are absent, or `force_cpu_only` mode is set. Reject models with `MiniAiError::InsufficientMemory` if available system RAM is breached.
+  - Orchestrate all 7 modalities via independent `ManagedAdapter` instances in `crates/miniai-runtime`, ensuring model switching or failure in one modality never degrades or crashes other active modalities.
+- **Consequences:** Eliminates corruption risks in the model cache, guarantees system memory stability, prevents data leakage under local-only privacy mode, and ensures complete fault isolation across multimodal runtimes.

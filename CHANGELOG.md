@@ -198,3 +198,35 @@
   - Authored 6 comprehensive widget and serialization unit tests in `ui/miniai_app/test/model_manager_and_hardware_test.dart`.
   - Achieved 25/25 Flutter tests passing, 0 `flutter analyze` issues, and 97.12% measured line coverage (1246/1283 lines).
   - Maintained 54/54 Rust workspace tests passing with 0 Clippy warnings.
+
+
+---
+
+## [2026-11-06T09:30:00+05:30] — Stage 2 Gate Certified (`v0.2.0-stage2.gate`)
+- **Action:** `STAGE_GATE_VERIFIED`
+- **Stage:** `Stage 2 — Model Registry, Downloads, Integrity, Hardware Detection & Runtime Adapters`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1, Flutter 3.38.6 / Dart 3.10.7, Python 3.14.0 uv)
+- **Summary:**
+  - **Phase 2.1 (Model Catalog & Resumable Downloads)**:
+    - Implemented `ResumableDownloader` in `crates/miniai-registry` supporting HTTP `Range: bytes={offset}-` headers, handling HTTP 206 and 200, calculating streaming SHA-256 checksums, quarantining `.part` files, and atomically promoting verified weights.
+    - Implemented `ModelImporter` for offline host files (`.gguf`, `.onnx`, `.safetensors`, `.pt`) with `.import.quarantine` staging, immediate deletion on checksum mismatch, path traversal defense, and collision handling.
+    - Added Migration 3 (`003_model_manifests.sql`) to `crates/miniai-storage` recording model manifests and file paths.
+    - Enforced `LocalOnlyPrivacyMode` blocking remote HTTP downloads while allowing fully offline local file imports.
+  - **Phase 2.2 (Hardware Probing & Admission Guard)**:
+    - Implemented `CpuFeatures` in `crates/miniai-core` probing native SIMD extensions (`AVX2`, `AVX-512`, `FMA`, `SSE4.2`, `NEON`, `SVE`, `DotProd`).
+    - Integrated `sysinfo` dynamically querying physical RAM, available memory, CPU cores, and GPU VRAM.
+    - Implemented `AdmissionGuard` strictly enforcing 85% available RAM and VRAM admission ceilings.
+    - Enforced deterministic automatic fallback to `AcceleratorBackend::Cpu` when VRAM is insufficient, accelerators are absent, or `force_cpu_only` mode is set.
+    - Rejects admission with `MiniAiError::InsufficientMemory` if available system RAM is breached.
+  - **Phase 2.3 (Modality Runtime Supervisor & Flutter Model Manager)**:
+    - Created `crates/miniai-runtime` with `#![forbid(unsafe_code)]`.
+    - Implemented `ManagedAdapter` managing process-isolated lifecycle states (`Unloaded`, `Loading`, `Loaded`, `Degraded`, `Failed`) across all 7 modalities (`Llm`, `Vision`, `ImageGeneration`, `SpeechAsr`, `SpeechTts`, `Music`, `Video`).
+    - Implemented `RuntimeSupervisor` orchestrating independent execution, memory admission evaluation, and inter-modality fault isolation.
+    - Dispatched real-time health and diagnostic events via non-blocking `EventBus::publish_now`.
+    - Implemented `ModelManagerScreen` in `ui/miniai_app` with live modality filter chips, SHA-256 badges, progress bars, pause/resume/cancel controls, and Local Model Import Wizard.
+    - Implemented `HardwareInspectorScreen` with SIMD chips, GPU metrics, and interactive memory admission evaluation.
+  - **Independent Audits & Certification**:
+    - `independent-qa-auditor` and `arch-security-reviewer` subagents issued unanimous **PASS** verdicts.
+    - Formally recorded ADR-007 in `ADR.md`.
+    - Generated Stage 2 Gate Report artifact `stage_2_gate_report.md`.
+    - 54/54 Rust tests passing, 25/25 Flutter tests passing (97.12% coverage), 6/6 Python ML tests passing (98.16% coverage), 0 compiler or linter warnings, 0 mocks.

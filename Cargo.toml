@@ -5,6 +5,7 @@ members = [
     "crates/miniai-storage",
     "crates/miniai-server",
     "crates/miniai-registry",
+    "crates/miniai-runtime",
 ]
 
 [workspace.package]

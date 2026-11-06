@@ -203,3 +203,22 @@
     - Updated contract tests and added comprehensive unit tests for `AdmissionGuard`, `CpuFeatures`, and CPU fallback semantics.
     - Verified all 45 workspace tests pass (`miniai-core`: 9, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13), 0 Clippy warnings with `-D warnings`, 100% Python and Flutter test pass rates.
 - **Next Subphase Ready:** `S2-P3-SUB2.3.1` (Subphase 2.3.1: Independent lifecycle supervisor for all 7 modalities with automatic CPU fallback on accelerator failure).
+
+
+---
+
+### [2026-11-06T09:20:00+05:30] Stage 2 — Entry 012 (Subphase 2.3.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 2: Model Registry, Downloads, Integrity, Hardware Detection & Runtime Adapters / Phase 2.3 — Modality Runtime Supervisor & Flutter Model Manager / Subphase 2.3.1`
+- **Status Transitions:**
+  - `S2-P3-SUB2.3.1` [`VERIFIED`]: Implemented process-isolated modality adapter lifecycle supervisor with automatic CPU fallback across all 7 modalities:
+    - Created [`crates/miniai-runtime`](file:///g:/miniAI/crates/miniai-runtime) with `#![forbid(unsafe_code)]`:
+      - `ManagedAdapter`: Manages lifecycle states (`Unloaded`, `Loading`, `Loaded`, `Degraded`, `Failed`) for each modality independently.
+      - `RuntimeSupervisor`: Central supervisor orchestrating all 7 modalities (`Llm`, `Vision`, `ImageGeneration`, `SpeechAsr`, `SpeechTts`, `Music`, `Video`).
+      - Memory Admission & Fallback Enforcement: Coordinates with `AdmissionGuard`, evaluating RAM and VRAM footprints before model loading. Automatically executes fallback to `AcceleratorBackend::Cpu` when accelerator VRAM exceeds the 85% ceiling, when accelerators are absent on the host, or when `force_cpu_only` privacy mode is active. Rejects models with `InsufficientMemory` if available system RAM is breached.
+      - Runtime Modality Decoupling: Proven that hot model switching, failures, or degradation in one modality (e.g. Music) never disrupt or crash active models in another modality (e.g. LLM).
+      - Event Bus Integration: Dispatches real-time `AdapterHealthChanged` and `DiagnosticAlert` events across `EventBus` on every model load, unload, and CPU fallback.
+      - Synchronous Non-Blocking Event Publishing: Added `EventBus::publish_now` in `crates/miniai-server` for synchronous supervisor event emission.
+    - Added 9 comprehensive unit tests in `crates/miniai-runtime` covering 7-modality initialization, accelerator loading, VRAM ceiling fallback, absent accelerator fallback, force-cpu policy fallback, RAM ceiling rejection, inter-modality isolation, hot unloading, and complete `SystemSnapshot` assembly.
+    - Verified all 54 workspace tests pass (`miniai-core`: 8, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13, `miniai-runtime`: 9), 0 Clippy warnings with `-D warnings`, 100% Python and Flutter test pass rates.
+- **Next Subphase Ready:** `S2-P3-SUB2.3.2` (Subphase 2.3.2: Flutter Model Manager & Hardware Inspector views with download progress, pause/resume/cancel, and SHA-256 verification badges).

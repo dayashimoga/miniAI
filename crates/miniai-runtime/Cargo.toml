@@ -1,0 +1,21 @@
+[package]
+name = "miniai-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Decoupled modality runtime supervisor with automatic CPU fallback and memory admission control."
+
+[dependencies]
+miniai-core = { path = "../miniai-core" }
+miniai-storage = { path = "../miniai-storage" }
+miniai-registry = { path = "../miniai-registry" }
+miniai-server = { path = "../miniai-server" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.12"

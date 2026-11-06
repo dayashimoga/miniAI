@@ -155,3 +155,19 @@
   - Enforced strict 85% available system RAM admission ceiling, returning `MiniAiError::InsufficientMemory` on breach.
   - Added unit and contract tests verifying SIMD discovery, memory admission calculations, and CPU fallback.
   - Verified 45/45 workspace unit tests passing, 0 Clippy warnings, and code formatting compliance.
+
+
+---
+
+## [2026-11-06T09:20:00+05:30] — Stage 2 Subphase 2.3.1 Verified (`v0.2.3-stage2.sub2.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 2 / Phase 2.3 / Subphase 2.3.1 — Process-Isolated Modality Runtime Lifecycle Supervisor & CPU Fallback`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Created `crates/miniai-runtime` with `#![forbid(unsafe_code)]`.
+  - Implemented `ManagedAdapter` managing process-isolated lifecycle states (`Unloaded`, `Loading`, `Loaded`, `Degraded`, `Failed`) for all 7 modalities.
+  - Implemented `RuntimeSupervisor` orchestrating independent execution across LLM, Vision, Image Generation, Speech ASR, Speech TTS, Music, and Video.
+  - Enforced dynamic 85% memory admission control with automatic fallback to `AcceleratorBackend::Cpu` upon accelerator absence, VRAM ceiling exhaustion, or `force_cpu_only` policy.
+  - Verified cross-modality failure isolation (failure in one modality does not disrupt any other active modality).
+  - Integrated real-time health and diagnostic event broadcasting via `EventBus::publish_now`.
+  - Added 9 unit and integration tests in `crates/miniai-runtime`, achieving 54/54 workspace tests passing with 0 Clippy warnings.

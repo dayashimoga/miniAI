@@ -59,6 +59,33 @@ impl EventBus {
         Ok(sequence)
     }
 
+    /// Synchronously publishes a `SystemEvent` using the current timestamp.
+    ///
+    /// Updates the atomic sequence counter, broadcasts to all active subscribers,
+    /// and best-effort caches in the replay buffer.
+    pub fn publish_now(&self, event: SystemEvent) -> Result<u64, EventBusError> {
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let sequence = self.sequence_counter.fetch_add(1, Ordering::SeqCst) + 1;
+        let envelope = EventEnvelope {
+            sequence,
+            timestamp_epoch_secs: timestamp,
+            event,
+        };
+
+        if let Ok(mut replay) = self.replay_buffer.try_write() {
+            if replay.len() >= self.replay_capacity {
+                replay.pop_front();
+            }
+            replay.push_back(envelope.clone());
+        }
+
+        let _ = self.sender.send(envelope);
+        Ok(sequence)
+    }
+
     /// Subscribes to the live broadcast event stream.
     pub fn subscribe(&self) -> EventSubscriber {
         EventSubscriber {

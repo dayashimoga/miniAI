@@ -386,3 +386,19 @@
   - Authored 6 unit and property tests in `ml/tests/test_provenance.py` verifying validation rules, tamper rejection, JSON serialization, and physical file digest matching.
   - Reached **99% statement coverage** on `miniai_ml/provenance.py` and **97% total coverage** across `miniai_ml` (39/39 pytest tests passing).
   - Maintained 100% test pass rate across all suites: 77 Rust tests, 39 Python ML tests, 38 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues.
+
+
+---
+
+## [2026-11-06T17:22:00+05:30] — Stage 4 Subphase 4.3.1 Verified (`v0.4.4-stage4.sub4.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 4 / Phase 4.3 / Subphase 4.3.1 — Flutter Training Studio Screen & Hyperparameter Tuning Controls`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Flutter 3.29.0 / Dart 3.7.0)
+- **Summary:**
+  - Implemented `TrainingMethod`, `TrainingJobStatus`, `TrainingHyperparameters`, `DatasetSplitInfo`, and `TrainingJob` in `ui/miniai_app/lib/src/models/system_contracts.dart`.
+  - Extended `PlatformController` with training job execution loop, step-by-step loss history recording, cooperative cancellation, and catalog adapter registration.
+  - Implemented `TrainingStudioScreen` in `ui/miniai_app/lib/src/screens/training_studio_screen.dart` with dataset split inspector, LoRA hyperparameter tuning form, live progress bar, telemetry badges, and base vs fine-tuned evaluation comparison table.
+  - Integrated `TrainingStudioScreen` as Tab 6 ('Train') into `ShellScreen` across desktop `NavigationRail` and mobile `NavigationBar`.
+  - Authored 6 widget and integration tests in `ui/miniai_app/test/training_studio_test.dart`.
+  - Reached **92.16% line coverage** across Flutter UI (44/44 Flutter tests passing, 0 analyze issues).
+  - Maintained 100% test pass rate across all suites: 77 Rust tests, 39 Python ML tests, 44 Flutter tests, 0 Clippy warnings.

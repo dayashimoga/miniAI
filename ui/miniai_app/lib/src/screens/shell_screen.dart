@@ -6,6 +6,7 @@ import 'event_inspector_view.dart';
 import 'hardware_inspector_screen.dart';
 import 'model_manager_screen.dart';
 import 'settings_screen.dart';
+import 'training_studio_screen.dart';
 
 class ShellScreen extends StatelessWidget {
   const ShellScreen({
@@ -132,6 +133,11 @@ class ShellScreen extends StatelessWidget {
                           selectedIcon: Icon(Icons.chat_bubble),
                           label: Text('Chat'),
                         ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.model_training, key: Key('nav_rail_training')),
+                          selectedIcon: Icon(Icons.model_training),
+                          label: Text('Train'),
+                        ),
                       ],
                     ),
                     const VerticalDivider(thickness: 1, width: 1),
@@ -189,6 +195,12 @@ class ShellScreen extends StatelessWidget {
                     selectedIcon: Icon(Icons.chat_bubble),
                     label: 'Chat',
                   ),
+                  NavigationDestination(
+                    key: Key('nav_bar_training'),
+                    icon: Icon(Icons.model_training),
+                    selectedIcon: Icon(Icons.model_training),
+                    label: 'Train',
+                  ),
                 ],
               );
             },
@@ -210,6 +222,8 @@ class ShellScreen extends StatelessWidget {
         return HardwareInspectorScreen(controller: controller);
       case 5:
         return ChatWorkspaceScreen(controller: controller);
+      case 6:
+        return TrainingStudioScreen(controller: controller);
       case 0:
       default:
         return DashboardScreen(controller: controller, embedded: true);

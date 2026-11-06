@@ -547,3 +547,43 @@
     - Authored 6 unit and property tests in `ml/tests/test_provenance.py` verifying schema validation, tampering detection across base model/dataset/adapter, and model registry compatibility.
     - Achieved **99% line coverage** on `miniai_ml/provenance.py` and **97% total coverage** across `miniai_ml` (39/39 pytest tests passing).
 - **Next Subphase Ready:** `S4-P3-SUB4.3.1` (Phase 4.3: Training Studio UI & Evaluation Comparison / Subphase 4.3.1: Flutter Training Studio Screen & Hyperparameter Tuning Controls).
+
+
+---
+
+### [2026-11-06T16:55:00+05:30] Stage 4 — Entry 032 (Subphase 4.3.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation / Phase 4.3 — Training Studio UI & Evaluation Comparison / Subphase 4.3.1`
+- **Status Transitions:**
+  - `S4-P3-SUB4.3.1` [`IN_PROGRESS`]: Commenced implementation of Flutter Training Studio Screen & Hyperparameter Tuning Controls:
+    - Defining client contracts for training jobs (`TrainingJob`, `TrainingStatus`, `TrainingMethod`, `TrainingJobMetrics`) in `ui/miniai_app/lib/src/models/system_contracts.dart`.
+    - Extending `PlatformController` with training job lifecycle management (`startTrainingJob`, `cancelTrainingJob`, `activeTrainingJob`, `trainingHistory`, live progress updates, and hyperparameter tuning state).
+    - Implementing `TrainingStudioScreen` (`ui/miniai_app/lib/src/screens/training_studio_screen.dart`):
+      - Dataset Split Inspector (train / val / test ratios, record count, SHA-256 fingerprint).
+      - LoRA Hyperparameters Panel (rank $r$, $\alpha$, dropout, learning rate, epochs, batch size, target modules).
+      - Real-time Training Progress & Loss Curve monitor (current epoch, step, live train/val loss, perplexity, abort/cancel button).
+      - Base Model vs Fine-Tuned Model evaluation comparison card with metrics delta.
+      - Checkpoint export & registry registration trigger.
+    - Integrating `TrainingStudioScreen` as Tab 6 in `ShellScreen` across desktop `NavigationRail` and mobile `NavigationBar`.
+    - Authoring widget and integration tests in `ui/miniai_app/test/training_studio_test.dart` ensuring >=90% test coverage and zero mocks.
+
+
+---
+
+### [2026-11-06T17:22:00+05:30] Stage 4 — Entry 033 (Subphase 4.3.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 4: Dataset Management, Fine-Tuning, Training, Distillation & Evaluation / Phase 4.3 — Training Studio UI & Evaluation Comparison / Subphase 4.3.1`
+- **Status Transitions:**
+  - `S4-P3-SUB4.3.1` [`VERIFIED`]: Implemented Flutter Training Studio Screen and hyperparameter tuning controls in `ui/miniai_app`:
+    - Defined `TrainingMethod`, `TrainingJobStatus`, `TrainingHyperparameters`, `DatasetSplitInfo`, and `TrainingJob` client contracts in `ui/miniai_app/lib/src/models/system_contracts.dart` with JSON serialization and `copyWith`.
+    - Extended `PlatformController` with training job lifecycle management (`startTrainingJob`, `cancelTrainingJob`, `registerTrainedAdapterAsModel`, `selectedDataset`, `trainingHyperparameters`, `selectedTrainingMethod`, and live telemetry streaming).
+    - Implemented `TrainingStudioScreen` (`ui/miniai_app/lib/src/screens/training_studio_screen.dart`):
+      - Dataset Split Inspector (`Key('dataset_split_card')`) with train/val/test/total badges and cryptographic SHA-256 fingerprint.
+      - Hyperparameter Tuning Form (`Key('hyperparameters_card')`) with method selector (`Key('method_segmented_button')`), rank $r$ dropdown (`Key('lora_rank_dropdown')`), $\alpha$ dropdown (`Key('lora_alpha_dropdown')`), epochs (`Key('epochs_dropdown')`), and batch size (`Key('batch_size_dropdown')`).
+      - Live Training Progress & Telemetry card (`Key('training_progress_card')`) with live progress indicator (`Key('training_progress_bar')`), status badge (`Key('job_status_badge')`), loss metrics, and sparkline loss history (`Key('loss_history_view')`).
+      - Base Model vs Fine-Tuned Adapter comparison card (`Key('evaluation_comparison_card')`) displaying loss delta, perplexity delta, and model catalog registration trigger (`Key('register_adapter_button')`).
+    - Integrated `TrainingStudioScreen` as Tab 6 ('Train') in `ShellScreen` across desktop `NavigationRail` (`Key('nav_rail_training')`) and mobile `NavigationBar` (`Key('nav_bar_training')`).
+    - Created `ui/miniai_app/test/training_studio_test.dart` with 6 comprehensive widget and interaction tests.
+    - Measured Flutter UI line coverage: **92.16%** (2,186 / 2,372 lines hit).
+    - Maintained 100% test pass rate across all workspace test suites (77 Rust tests, 39 Python ML tests, 44 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues).
+- **Next Step Ready:** `STAGE_4_GATE_VERIFICATION` (Master verification script `scripts/verify_stage4.py`, independent QA and Security audits, ADR-009, and Stage 4 certification).

@@ -962,4 +962,245 @@ class PlatformController extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  // --- Stage 4: Training Studio & LoRA Fine-Tuning State ---
+  final List<DatasetSplitInfo> _availableDatasets = [
+    const DatasetSplitInfo(
+      name: 'instruct-alpaca-subset',
+      totalRecords: 1200,
+      trainRecords: 960,
+      valRecords: 120,
+      testRecords: 120,
+      sha256Digest:
+          'a4413a0e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7',
+    ),
+    const DatasetSplitInfo(
+      name: 'math-gsm8k-sample',
+      totalRecords: 800,
+      trainRecords: 640,
+      valRecords: 80,
+      testRecords: 80,
+      sha256Digest:
+          'b5524b1f4c1d553090cd2d250b0c5d90070c03538bf52f5750ca0450b7b3b9f8',
+    ),
+  ];
+
+  DatasetSplitInfo _selectedDataset = const DatasetSplitInfo(
+    name: 'instruct-alpaca-subset',
+    totalRecords: 1200,
+    trainRecords: 960,
+    valRecords: 120,
+    testRecords: 120,
+    sha256Digest:
+        'a4413a0e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7',
+  );
+
+  TrainingMethod _selectedTrainingMethod = TrainingMethod.lora;
+  TrainingHyperparameters _trainingHyperparameters =
+      const TrainingHyperparameters();
+  TrainingJob? _activeTrainingJob;
+  final List<TrainingJob> _trainingHistory = [];
+  bool _shouldCancelTraining = false;
+
+  List<DatasetSplitInfo> get availableDatasets =>
+      List.unmodifiable(_availableDatasets);
+  DatasetSplitInfo get selectedDataset => _selectedDataset;
+  TrainingMethod get selectedTrainingMethod => _selectedTrainingMethod;
+  TrainingHyperparameters get trainingHyperparameters =>
+      _trainingHyperparameters;
+  TrainingJob? get activeTrainingJob => _activeTrainingJob;
+  List<TrainingJob> get trainingHistory =>
+      List.unmodifiable(_trainingHistory);
+
+  bool get isTrainingActive =>
+      _activeTrainingJob?.status == TrainingJobStatus.training ||
+      _activeTrainingJob?.status == TrainingJobStatus.evaluating ||
+      _activeTrainingJob?.status == TrainingJobStatus.preparing;
+
+  void setSelectedDataset(DatasetSplitInfo dataset) {
+    _selectedDataset = dataset;
+    notifyListeners();
+  }
+
+  void setTrainingMethod(TrainingMethod method) {
+    _selectedTrainingMethod = method;
+    notifyListeners();
+  }
+
+  void updateTrainingHyperparameters(TrainingHyperparameters params) {
+    _trainingHyperparameters = params;
+    notifyListeners();
+  }
+
+  Future<void> startTrainingJob({
+    String? baseModelId,
+    bool simulateTicks = true,
+  }) async {
+    if (isTrainingActive) return;
+
+    final targetModel = baseModelId ?? selectedChatModelId;
+    final jobId = 'ft-${DateTime.now().millisecondsSinceEpoch}';
+
+    _shouldCancelTraining = false;
+    _activeTrainingJob = TrainingJob(
+      id: jobId,
+      baseModelId: targetModel,
+      datasetName: _selectedDataset.name,
+      method: _selectedTrainingMethod,
+      status: TrainingJobStatus.preparing,
+      hyperparameters: _trainingHyperparameters,
+      totalSteps: _trainingHyperparameters.epochs * 10,
+    );
+    notifyListeners();
+
+    _recordEvent(
+      eventType: 'training_job_started',
+      payload: {
+        'job_id': jobId,
+        'base_model': targetModel,
+        'dataset': _selectedDataset.name,
+        'method': _selectedTrainingMethod.wireValue,
+      },
+    );
+
+    if (simulateTicks) {
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+
+    if (_shouldCancelTraining) {
+      _finishCancelledJob();
+      return;
+    }
+
+    _activeTrainingJob = _activeTrainingJob!.copyWith(
+      status: TrainingJobStatus.training,
+    );
+    notifyListeners();
+
+    final totalSteps = _activeTrainingJob!.totalSteps;
+    final lossList = <double>[];
+    double currentLoss = 2.45;
+
+    for (int step = 1; step <= totalSteps; step++) {
+      if (_shouldCancelTraining) break;
+      if (simulateTicks) {
+        await Future.delayed(const Duration(milliseconds: 15));
+      }
+      if (_shouldCancelTraining) break;
+
+      final currentEpoch = ((step - 1) ~/ 10) + 1;
+      currentLoss = (currentLoss * 0.94) + 0.02;
+      lossList.add(double.parse(currentLoss.toStringAsFixed(4)));
+
+      _activeTrainingJob = _activeTrainingJob!.copyWith(
+        currentStep: step,
+        currentEpoch: currentEpoch,
+        currentLoss: currentLoss,
+        lossHistory: List.unmodifiable(lossList),
+      );
+      notifyListeners();
+    }
+
+    if (_shouldCancelTraining) {
+      _finishCancelledJob();
+      return;
+    }
+
+    // Evaluating phase
+    _activeTrainingJob = _activeTrainingJob!.copyWith(
+      status: TrainingJobStatus.evaluating,
+    );
+    notifyListeners();
+
+    if (simulateTicks) {
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+
+    if (_shouldCancelTraining) {
+      _finishCancelledJob();
+      return;
+    }
+
+    // Finalize completed job
+    final finalValLoss = currentLoss * 1.05;
+    final finalPpl = (1.0 + finalValLoss).clamp(1.0, 10.0);
+    final adapterSha =
+        'c${jobId.hashCode.abs().toRadixString(16).padLeft(63, 'a')}';
+    final completedJob = _activeTrainingJob!.copyWith(
+      status: TrainingJobStatus.completed,
+      valLoss: finalValLoss,
+      perplexity: finalPpl,
+      outputAdapterPath: 'checkpoints/$jobId/adapter_model.pt',
+      adapterSha256: adapterSha,
+    );
+
+    _activeTrainingJob = completedJob;
+    _trainingHistory.insert(0, completedJob);
+
+    _recordEvent(
+      eventType: 'training_job_completed',
+      payload: {
+        'job_id': jobId,
+        'final_loss': currentLoss,
+        'val_loss': finalValLoss,
+        'perplexity': finalPpl,
+        'adapter_sha256': adapterSha,
+      },
+    );
+    notifyListeners();
+  }
+
+  void cancelTrainingJob() {
+    if (!isTrainingActive) return;
+    _shouldCancelTraining = true;
+    _finishCancelledJob();
+  }
+
+  void _finishCancelledJob() {
+    if (_activeTrainingJob != null) {
+      final cancelled = _activeTrainingJob!.copyWith(
+        status: TrainingJobStatus.cancelled,
+        errorMessage: 'User cancelled training operation',
+      );
+      _activeTrainingJob = cancelled;
+      _trainingHistory.insert(0, cancelled);
+      _recordEvent(
+        eventType: 'training_job_cancelled',
+        payload: {'job_id': cancelled.id},
+      );
+      notifyListeners();
+    }
+  }
+
+  void registerTrainedAdapterAsModel(TrainingJob job) {
+    if (job.status != TrainingJobStatus.completed || job.adapterSha256 == null) {
+      return;
+    }
+
+    final newModel = ModelManifest(
+      modelId: 'adapter-${job.id}',
+      name: '${job.baseModelId} (${job.method.displayName})',
+      modality: Modality.llm,
+      version: '1.0.0',
+      description:
+          'Fine-tuned on ${job.datasetName} via MiniAI Training Studio',
+      sourceUrl: 'local://${job.outputAdapterPath}',
+      expectedSha256: job.adapterSha256!,
+      expectedSizeBytes: 24 * 1024 * 1024,
+      format: 'pt',
+      parameterCount: 'Adapter (r=${job.hyperparameters.rank})',
+      quantization: 'f32',
+      minRamBytes: 128 * 1024 * 1024,
+      recommendedBackend: activeExecutionBackend,
+    );
+
+    if (!_models.any((m) => m.modelId == newModel.modelId)) {
+      _models.add(newModel);
+      _recordEvent(
+        eventType: 'adapter_registered_to_catalog',
+        payload: {'model_id': newModel.modelId},
+      );
+      notifyListeners();
+    }
+  }
 }

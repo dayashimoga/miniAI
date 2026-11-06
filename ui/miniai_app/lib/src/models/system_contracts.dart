@@ -782,3 +782,274 @@ class ChatSession {
 }
 
 
+
+enum TrainingMethod {
+  lora('lora', 'LoRA (Low-Rank Adaptation)'),
+  qlora('qlora', 'QLoRA (Quantized LoRA)'),
+  distillation('distillation', 'Knowledge Distillation'),
+  full('full', 'Full Parameter Tuning');
+
+  const TrainingMethod(this.wireValue, this.displayName);
+  final String wireValue;
+  final String displayName;
+
+  static TrainingMethod fromWire(String value) {
+    for (final m in TrainingMethod.values) {
+      if (m.wireValue == value) return m;
+    }
+    return TrainingMethod.lora;
+  }
+}
+
+enum TrainingJobStatus {
+  idle('idle', 'Idle'),
+  preparing('preparing', 'Preparing Dataset'),
+  training('training', 'Training in Progress'),
+  evaluating('evaluating', 'Evaluating Checkpoint'),
+  completed('completed', 'Completed & Certified'),
+  failed('failed', 'Failed'),
+  cancelled('cancelled', 'Cancelled');
+
+  const TrainingJobStatus(this.wireValue, this.displayName);
+  final String wireValue;
+  final String displayName;
+
+  static TrainingJobStatus fromWire(String value) {
+    for (final s in TrainingJobStatus.values) {
+      if (s.wireValue == value) return s;
+    }
+    return TrainingJobStatus.idle;
+  }
+}
+
+class TrainingHyperparameters {
+  const TrainingHyperparameters({
+    this.rank = 8,
+    this.loraAlpha = 16.0,
+    this.loraDropout = 0.05,
+    this.learningRate = 0.0001,
+    this.batchSize = 4,
+    this.epochs = 3,
+    this.gradientAccumulationSteps = 1,
+    this.seed = 42,
+    this.targetModules = const ['q_proj', 'v_proj'],
+  });
+
+  final int rank;
+  final double loraAlpha;
+  final double loraDropout;
+  final double learningRate;
+  final int batchSize;
+  final int epochs;
+  final int gradientAccumulationSteps;
+  final int seed;
+  final List<String> targetModules;
+
+  TrainingHyperparameters copyWith({
+    int? rank,
+    double? loraAlpha,
+    double? loraDropout,
+    double? learningRate,
+    int? batchSize,
+    int? epochs,
+    int? gradientAccumulationSteps,
+    int? seed,
+    List<String>? targetModules,
+  }) {
+    return TrainingHyperparameters(
+      rank: rank ?? this.rank,
+      loraAlpha: loraAlpha ?? this.loraAlpha,
+      loraDropout: loraDropout ?? this.loraDropout,
+      learningRate: learningRate ?? this.learningRate,
+      batchSize: batchSize ?? this.batchSize,
+      epochs: epochs ?? this.epochs,
+      gradientAccumulationSteps:
+          gradientAccumulationSteps ?? this.gradientAccumulationSteps,
+      seed: seed ?? this.seed,
+      targetModules: targetModules ?? this.targetModules,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'rank': rank,
+        'lora_alpha': loraAlpha,
+        'lora_dropout': loraDropout,
+        'learning_rate': learningRate,
+        'batch_size': batchSize,
+        'epochs': epochs,
+        'gradient_accumulation_steps': gradientAccumulationSteps,
+        'seed': seed,
+        'target_modules': targetModules,
+      };
+
+  factory TrainingHyperparameters.fromJson(Map<String, dynamic> json) =>
+      TrainingHyperparameters(
+        rank: json['rank'] as int? ?? 8,
+        loraAlpha: (json['lora_alpha'] as num?)?.toDouble() ?? 16.0,
+        loraDropout: (json['lora_dropout'] as num?)?.toDouble() ?? 0.05,
+        learningRate: (json['learning_rate'] as num?)?.toDouble() ?? 0.0001,
+        batchSize: json['batch_size'] as int? ?? 4,
+        epochs: json['epochs'] as int? ?? 3,
+        gradientAccumulationSteps:
+            json['gradient_accumulation_steps'] as int? ?? 1,
+        seed: json['seed'] as int? ?? 42,
+        targetModules: (json['target_modules'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const ['q_proj', 'v_proj'],
+      );
+}
+
+class DatasetSplitInfo {
+  const DatasetSplitInfo({
+    required this.name,
+    required this.totalRecords,
+    required this.trainRecords,
+    required this.valRecords,
+    required this.testRecords,
+    required this.sha256Digest,
+  });
+
+  final String name;
+  final int totalRecords;
+  final int trainRecords;
+  final int valRecords;
+  final int testRecords;
+  final String sha256Digest;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'total_records': totalRecords,
+        'train_records': trainRecords,
+        'val_records': valRecords,
+        'test_records': testRecords,
+        'sha256_digest': sha256Digest,
+      };
+
+  factory DatasetSplitInfo.fromJson(Map<String, dynamic> json) =>
+      DatasetSplitInfo(
+        name: json['name'] as String,
+        totalRecords: json['total_records'] as int,
+        trainRecords: json['train_records'] as int,
+        valRecords: json['val_records'] as int,
+        testRecords: json['test_records'] as int,
+        sha256Digest: json['sha256_digest'] as String,
+      );
+}
+
+class TrainingJob {
+  const TrainingJob({
+    required this.id,
+    required this.baseModelId,
+    required this.datasetName,
+    required this.method,
+    required this.status,
+    required this.hyperparameters,
+    this.currentEpoch = 0,
+    this.currentStep = 0,
+    this.totalSteps = 100,
+    this.currentLoss = 0.0,
+    this.valLoss = 0.0,
+    this.perplexity = 1.0,
+    this.lossHistory = const [],
+    this.errorMessage,
+    this.outputAdapterPath,
+    this.adapterSha256,
+  });
+
+  final String id;
+  final String baseModelId;
+  final String datasetName;
+  final TrainingMethod method;
+  final TrainingJobStatus status;
+  final TrainingHyperparameters hyperparameters;
+  final int currentEpoch;
+  final int currentStep;
+  final int totalSteps;
+  final double currentLoss;
+  final double valLoss;
+  final double perplexity;
+  final List<double> lossHistory;
+  final String? errorMessage;
+  final String? outputAdapterPath;
+  final String? adapterSha256;
+
+  double get progress =>
+      totalSteps > 0 ? (currentStep / totalSteps).clamp(0.0, 1.0) : 0.0;
+
+  TrainingJob copyWith({
+    TrainingJobStatus? status,
+    int? currentEpoch,
+    int? currentStep,
+    int? totalSteps,
+    double? currentLoss,
+    double? valLoss,
+    double? perplexity,
+    List<double>? lossHistory,
+    String? errorMessage,
+    String? outputAdapterPath,
+    String? adapterSha256,
+  }) {
+    return TrainingJob(
+      id: id,
+      baseModelId: baseModelId,
+      datasetName: datasetName,
+      method: method,
+      status: status ?? this.status,
+      hyperparameters: hyperparameters,
+      currentEpoch: currentEpoch ?? this.currentEpoch,
+      currentStep: currentStep ?? this.currentStep,
+      totalSteps: totalSteps ?? this.totalSteps,
+      currentLoss: currentLoss ?? this.currentLoss,
+      valLoss: valLoss ?? this.valLoss,
+      perplexity: perplexity ?? this.perplexity,
+      lossHistory: lossHistory ?? this.lossHistory,
+      errorMessage: errorMessage ?? this.errorMessage,
+      outputAdapterPath: outputAdapterPath ?? this.outputAdapterPath,
+      adapterSha256: adapterSha256 ?? this.adapterSha256,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'base_model_id': baseModelId,
+        'dataset_name': datasetName,
+        'method': method.wireValue,
+        'status': status.wireValue,
+        'hyperparameters': hyperparameters.toJson(),
+        'current_epoch': currentEpoch,
+        'current_step': currentStep,
+        'total_steps': totalSteps,
+        'current_loss': currentLoss,
+        'val_loss': valLoss,
+        'perplexity': perplexity,
+        'loss_history': lossHistory,
+        'error_message': errorMessage,
+        'output_adapter_path': outputAdapterPath,
+        'adapter_sha256': adapterSha256,
+      };
+
+  factory TrainingJob.fromJson(Map<String, dynamic> json) => TrainingJob(
+        id: json['id'] as String,
+        baseModelId: json['base_model_id'] as String,
+        datasetName: json['dataset_name'] as String,
+        method: TrainingMethod.fromWire(json['method'] as String? ?? 'lora'),
+        status: TrainingJobStatus.fromWire(json['status'] as String? ?? 'idle'),
+        hyperparameters: TrainingHyperparameters.fromJson(
+          json['hyperparameters'] as Map<String, dynamic>? ?? {},
+        ),
+        currentEpoch: json['current_epoch'] as int? ?? 0,
+        currentStep: json['current_step'] as int? ?? 0,
+        totalSteps: json['total_steps'] as int? ?? 100,
+        currentLoss: (json['current_loss'] as num?)?.toDouble() ?? 0.0,
+        valLoss: (json['val_loss'] as num?)?.toDouble() ?? 0.0,
+        perplexity: (json['perplexity'] as num?)?.toDouble() ?? 1.0,
+        lossHistory: (json['loss_history'] as List<dynamic>?)
+                ?.map((e) => (e as num).toDouble())
+                .toList() ??
+            const [],
+        errorMessage: json['error_message'] as String?,
+        outputAdapterPath: json['output_adapter_path'] as String?,
+        adapterSha256: json['adapter_sha256'] as String?,
+      );
+}

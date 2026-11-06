@@ -652,4 +652,133 @@ class LocalModelImportRequest {
   }
 }
 
+enum ChatMessageRole {
+  system('system', 'System'),
+  user('user', 'User'),
+  assistant('assistant', 'Assistant');
+
+  const ChatMessageRole(this.wireValue, this.displayName);
+  final String wireValue;
+  final String displayName;
+
+  static ChatMessageRole fromWire(String value) {
+    for (final r in ChatMessageRole.values) {
+      if (r.wireValue == value.toLowerCase()) return r;
+    }
+    return ChatMessageRole.user;
+  }
+}
+
+class ChatMessage {
+  const ChatMessage({
+    required this.id,
+    required this.sessionId,
+    this.parentId,
+    required this.role,
+    required this.content,
+    this.tokenCount = 0,
+    this.modelId,
+    required this.createdAtEpochSecs,
+    required this.updatedAtEpochSecs,
+    this.isPinned = false,
+  });
+
+  final String id;
+  final String sessionId;
+  final String? parentId;
+  final ChatMessageRole role;
+  final String content;
+  final int tokenCount;
+  final String? modelId;
+  final int createdAtEpochSecs;
+  final int updatedAtEpochSecs;
+  final bool isPinned;
+
+  ChatMessage copyWith({
+    String? content,
+    int? tokenCount,
+    int? updatedAtEpochSecs,
+    bool? isPinned,
+  }) {
+    return ChatMessage(
+      id: id,
+      sessionId: sessionId,
+      parentId: parentId,
+      role: role,
+      content: content ?? this.content,
+      tokenCount: tokenCount ?? this.tokenCount,
+      modelId: modelId,
+      createdAtEpochSecs: createdAtEpochSecs,
+      updatedAtEpochSecs: updatedAtEpochSecs ?? this.updatedAtEpochSecs,
+      isPinned: isPinned ?? this.isPinned,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'session_id': sessionId,
+        'parent_id': parentId,
+        'role': role.wireValue,
+        'content': content,
+        'token_count': tokenCount,
+        'model_id': modelId,
+        'created_at_epoch_secs': createdAtEpochSecs,
+        'updated_at_epoch_secs': updatedAtEpochSecs,
+        'is_pinned': isPinned,
+      };
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
+        id: json['id'] as String,
+        sessionId: json['session_id'] as String,
+        parentId: json['parent_id'] as String?,
+        role: ChatMessageRole.fromWire(json['role'] as String? ?? 'user'),
+        content: json['content'] as String,
+        tokenCount: json['token_count'] as int? ?? 0,
+        modelId: json['model_id'] as String?,
+        createdAtEpochSecs: json['created_at_epoch_secs'] as int,
+        updatedAtEpochSecs: json['updated_at_epoch_secs'] as int,
+        isPinned: json['is_pinned'] as bool? ?? false,
+      );
+}
+
+class ChatSession {
+  const ChatSession({
+    required this.id,
+    required this.title,
+    required this.createdAtEpochSecs,
+    required this.updatedAtEpochSecs,
+  });
+
+  final String id;
+  final String title;
+  final int createdAtEpochSecs;
+  final int updatedAtEpochSecs;
+
+  ChatSession copyWith({
+    String? title,
+    int? updatedAtEpochSecs,
+  }) {
+    return ChatSession(
+      id: id,
+      title: title ?? this.title,
+      createdAtEpochSecs: createdAtEpochSecs,
+      updatedAtEpochSecs: updatedAtEpochSecs ?? this.updatedAtEpochSecs,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'created_at_epoch_secs': createdAtEpochSecs,
+        'updated_at_epoch_secs': updatedAtEpochSecs,
+      };
+
+  factory ChatSession.fromJson(Map<String, dynamic> json) => ChatSession(
+        id: json['id'] as String,
+        title: json['title'] as String,
+        createdAtEpochSecs: json['created_at_epoch_secs'] as int,
+        updatedAtEpochSecs: json['updated_at_epoch_secs'] as int,
+      );
+}
+
 

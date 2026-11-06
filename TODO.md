@@ -374,3 +374,37 @@
     - Added 3 unit tests in `crates/miniai-storage` verifying migration schema version 4, message branching and tree traversal, editing and deletion, and Markdown/JSON export.
     - Verified all 74 workspace tests pass (`miniai-core`: 9, `miniai-storage`: 18, `miniai-server`: 8, `miniai-registry`: 13, `miniai-runtime`: 10, `miniai-llm`: 16) with 0 Clippy warnings and 100% Python and Flutter test pass rates.
 - **Next Subphase Ready:** `S3-P2-SUB3.2.2` (Subphase 3.2.2: Flutter Chat Workspace with real-time token streaming, cancellation button, and live tokens/sec badge).
+
+---
+
+### [2026-11-06T10:42:00+05:30] Stage 3 — Entry 021 (Subphase 3.2.2 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.2 — Multi-Session Chat Persistence & Streaming UI / Subphase 3.2.2`
+- **Status Transitions:**
+  - `S3-P2-SUB3.2.2` [`IN_PROGRESS`]: Commenced implementation of Flutter Chat Workspace UI and session management:
+    - Defining client contracts for `ChatMessageRole`, `ChatMessage`, and `ChatSession` in `system_contracts.dart`.
+    - Extending `PlatformController` with chat session management (`createChatSession`, `selectChatSession`, `deleteChatSession`), message sending, live token streaming (`isGenerating`, `generationTokensPerSecond`), real-time generation cancellation, message editing, and Markdown/JSON export.
+    - Implementing `ChatWorkspaceScreen` with multi-session sidebar drawer, message bubble timeline, live streaming token badge, stop generation button, and bottom input composer.
+    - Integrating Chat Workspace as Tab 5 in `ShellScreen` with accessibility semantics and responsive layout.
+    - Authoring widget and integration tests verifying session switching, message sending, streaming updates, and cancellation under test harnesses.
+
+---
+
+### [2026-11-06T11:18:00+05:30] Stage 3 — Entry 022 (Subphase 3.2.2 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.2 — Multi-Session Chat Persistence & Streaming UI / Subphase 3.2.2`
+- **Status Transitions:**
+  - `S3-P2-SUB3.2.2` [`VERIFIED`]: Implemented Flutter Chat Workspace with real-time token streaming, cancellation button, live tokens/sec badge, and multi-session management:
+    - Added `ChatMessageRole`, `ChatMessage`, and `ChatSession` client contracts in `system_contracts.dart` with JSON serialization and `copyWith`.
+    - Extended `PlatformController` with multi-session chat state, `createChatSession`, `selectChatSession`, `renameChatSession`, `deleteChatSession`, `sendMessage` with streaming token generation, `cancelGeneration` stopping token loops and emitting `llm_generation_cancelled`, `editMessage`, `deleteMessage`, `exportSessionMarkdown`, `exportSessionJson`, and hyperparameter tuning (`setChatTemperature`, `setChatMaxTokens`).
+    - Implemented `ChatWorkspaceScreen` (`ui/miniai_app/lib/src/screens/chat_workspace_screen.dart`):
+      - Responsive session sidebar (fixed panel on desktop, drawer on mobile).
+      - Header toolbar with session title, offline CPU status, model selector dropdown, tuning dialog button, and markdown/json export sheet.
+      - Conversation timeline with role-colored message bubbles, model badges, token badges, copy button, and in-place message edit dialog.
+      - Real-time generation progress banner (`Key('generation_progress_card')`) displaying live tokens/sec badge (`Key('tokens_per_second_badge')`), token count badge (`Key('token_count_badge')`), elapsed seconds badge (`Key('generation_elapsed_badge')`), and stop generation button (`Key('cancel_generation_button')`).
+      - Bottom composer bar (`Key('chat_composer_bar')`) with input field (`Key('chat_input_field')`) and send button (`Key('send_message_button')`).
+    - Integrated `ChatWorkspaceScreen` as Tab 5 into `ShellScreen` across desktop `NavigationRail` and mobile `NavigationBar`.
+    - Created `ui/miniai_app/test/chat_workspace_test.dart` and expanded `test/widget_test.dart` (12 new tests in `chat_workspace_test.dart`, 38 total Flutter tests passing).
+    - Measured Flutter UI line coverage: **95.02%** (1,776/1,869 lines).
+    - Verified 100% test pass rate across all suites (74 Rust tests, 6 Python ML tests, 38 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues).
+- **Next Subphase Ready:** `S3-P3-SUB3.3.1` (Phase 3.3: Quantitative LLM Benchmark Suite / Subphase 3.3.1: TTFT, Throughput, and Memory Tracking Harness).

@@ -147,6 +147,64 @@ void main() {
       );
       expect(controller.grantCloudConsent(invalidToken), isFalse);
     });
+
+    test('ChatMessage and ChatSession JSON serialization and copyWith', () {
+      for (final r in ChatMessageRole.values) {
+        expect(ChatMessageRole.fromWire(r.wireValue), equals(r));
+      }
+      expect(ChatMessageRole.fromWire('unknown'), equals(ChatMessageRole.user));
+
+      const session = ChatSession(
+        id: 'sess-01',
+        title: 'Quantum Computing Research',
+        createdAtEpochSecs: 1000,
+        updatedAtEpochSecs: 1050,
+      );
+      final sessionJson = session.toJson();
+      final sessionDecoded = ChatSession.fromJson(sessionJson);
+      expect(sessionDecoded.id, equals('sess-01'));
+      expect(sessionDecoded.title, equals('Quantum Computing Research'));
+      expect(sessionDecoded.createdAtEpochSecs, equals(1000));
+      expect(sessionDecoded.updatedAtEpochSecs, equals(1050));
+
+      final renamedSession = session.copyWith(title: 'Updated Title', updatedAtEpochSecs: 2000);
+      expect(renamedSession.title, equals('Updated Title'));
+      expect(renamedSession.updatedAtEpochSecs, equals(2000));
+
+      const message = ChatMessage(
+        id: 'msg-01',
+        sessionId: 'sess-01',
+        parentId: 'msg-parent',
+        role: ChatMessageRole.assistant,
+        content: 'Explaining superposition principles.',
+        tokenCount: 42,
+        modelId: 'llama-3.2-1b-instruct-q4',
+        createdAtEpochSecs: 1010,
+        updatedAtEpochSecs: 1015,
+        isPinned: true,
+      );
+      final messageJson = message.toJson();
+      final messageDecoded = ChatMessage.fromJson(messageJson);
+      expect(messageDecoded.id, equals('msg-01'));
+      expect(messageDecoded.sessionId, equals('sess-01'));
+      expect(messageDecoded.parentId, equals('msg-parent'));
+      expect(messageDecoded.role, equals(ChatMessageRole.assistant));
+      expect(messageDecoded.content, equals('Explaining superposition principles.'));
+      expect(messageDecoded.tokenCount, equals(42));
+      expect(messageDecoded.modelId, equals('llama-3.2-1b-instruct-q4'));
+      expect(messageDecoded.isPinned, isTrue);
+
+      final editedMessage = message.copyWith(
+        content: 'Updated content.',
+        tokenCount: 10,
+        updatedAtEpochSecs: 1020,
+        isPinned: false,
+      );
+      expect(editedMessage.content, equals('Updated content.'));
+      expect(editedMessage.tokenCount, equals(10));
+      expect(editedMessage.updatedAtEpochSecs, equals(1020));
+      expect(editedMessage.isPinned, isFalse);
+    });
   });
 
   group('DashboardScreen Widget & Accessibility Tests', () {

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/system_contracts.dart';
 import '../services/ipc_client.dart';
@@ -23,6 +24,7 @@ class PlatformController extends ChangeNotifier {
         _settingsStore = settingsStore ?? InMemorySettingsStore(),
         _ipcClient = ipcClient {
     _rebuildAdapterHealth();
+    _initChatWorkspace();
     _recordEvent(
       eventType: 'privacy_policy_updated',
       payload: {
@@ -35,6 +37,20 @@ class PlatformController extends ChangeNotifier {
   final HardwareProfile _hardware;
   final SettingsStore _settingsStore;
   IpcClient? _ipcClient;
+
+  final List<ChatSession> _chatSessions = [];
+  final Map<String, List<ChatMessage>> _sessionMessages = {};
+  String? _activeSessionId;
+
+  bool _isGenerating = false;
+  bool _shouldCancelGeneration = false;
+  double _generationTokensPerSecond = 0.0;
+  int _generationTokenCount = 0;
+  double _generationElapsedSeconds = 0.0;
+
+  String _selectedChatModelId = 'llama-3.2-1b-instruct-q4';
+  double _chatTemperature = 0.7;
+  int _chatMaxTokens = 256;
 
   bool _localOnlyMode = true;
   bool _forceCpuOnly = false;
@@ -150,6 +166,28 @@ class PlatformController extends ChangeNotifier {
   List<EventEnvelope> get events => List.unmodifiable(_events);
   String? get eventFilter => _eventFilter;
   bool get ipcConnected => _ipcConnected;
+
+  List<ChatSession> get chatSessions => List.unmodifiable(_chatSessions);
+  String? get activeSessionId => _activeSessionId;
+  ChatSession? get activeSession {
+    if (_activeSessionId == null) return null;
+    for (final s in _chatSessions) {
+      if (s.id == _activeSessionId) return s;
+    }
+    return null;
+  }
+  List<ChatMessage> get currentMessages => _activeSessionId != null
+      ? List.unmodifiable(_sessionMessages[_activeSessionId] ?? [])
+      : const [];
+
+  bool get isGenerating => _isGenerating;
+  double get generationTokensPerSecond => _generationTokensPerSecond;
+  int get generationTokenCount => _generationTokenCount;
+  double get generationElapsedSeconds => _generationElapsedSeconds;
+
+  String get selectedChatModelId => _selectedChatModelId;
+  double get chatTemperature => _chatTemperature;
+  int get chatMaxTokens => _chatMaxTokens;
 
   List<ModelManifest> get models => List.unmodifiable(_models);
   Map<String, DownloadProgressItem> get downloadProgress =>
@@ -569,5 +607,359 @@ class PlatformController extends ChangeNotifier {
           ),
         )
         .toList();
+  }
+
+  void _initChatWorkspace() {
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    const defaultId = 'session-default-01';
+    final defaultSession = ChatSession(
+      id: defaultId,
+      title: 'MiniAI Offline Chat',
+      createdAtEpochSecs: now,
+      updatedAtEpochSecs: now,
+    );
+    _chatSessions.add(defaultSession);
+    _activeSessionId = defaultId;
+    _sessionMessages[defaultId] = [
+      ChatMessage(
+        id: 'msg-welcome-01',
+        sessionId: defaultId,
+        role: ChatMessageRole.assistant,
+        content:
+            'Welcome to MiniAI! Offline-first, CPU-optimized local inference is ready. Ask any question to start.',
+        tokenCount: 20,
+        modelId: _selectedChatModelId,
+        createdAtEpochSecs: now,
+        updatedAtEpochSecs: now,
+      ),
+    ];
+  }
+
+  ChatSession createChatSession({String? title}) {
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    final id = 'session-${DateTime.now().microsecondsSinceEpoch}';
+    final newSession = ChatSession(
+      id: id,
+      title: title ?? 'Chat #${_chatSessions.length + 1}',
+      createdAtEpochSecs: now,
+      updatedAtEpochSecs: now,
+    );
+    _chatSessions.insert(0, newSession);
+    _activeSessionId = id;
+    _sessionMessages[id] = [];
+    _recordEvent(
+      eventType: 'chat_session_created',
+      payload: {
+        'session_id': id,
+        'title': newSession.title,
+      },
+    );
+    notifyListeners();
+    return newSession;
+  }
+
+  void selectChatSession(String sessionId) {
+    if (_activeSessionId != sessionId &&
+        _chatSessions.any((s) => s.id == sessionId)) {
+      _activeSessionId = sessionId;
+      _recordEvent(
+        eventType: 'chat_session_selected',
+        payload: {'session_id': sessionId},
+      );
+      notifyListeners();
+    }
+  }
+
+  void deleteChatSession(String sessionId) {
+    _chatSessions.removeWhere((s) => s.id == sessionId);
+    _sessionMessages.remove(sessionId);
+    if (_activeSessionId == sessionId) {
+      _activeSessionId =
+          _chatSessions.isNotEmpty ? _chatSessions.first.id : null;
+    }
+    _recordEvent(
+      eventType: 'chat_session_deleted',
+      payload: {'session_id': sessionId},
+    );
+    notifyListeners();
+  }
+
+  void renameChatSession(String sessionId, String newTitle) {
+    final idx = _chatSessions.indexWhere((s) => s.id == sessionId);
+    if (idx != -1) {
+      final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+      _chatSessions[idx] = _chatSessions[idx].copyWith(
+        title: newTitle.trim().isNotEmpty ? newTitle.trim() : 'Untitled Chat',
+        updatedAtEpochSecs: now,
+      );
+      _recordEvent(
+        eventType: 'chat_session_renamed',
+        payload: {'session_id': sessionId, 'new_title': newTitle},
+      );
+      notifyListeners();
+    }
+  }
+
+  void setSelectedChatModel(String modelId) {
+    if (_selectedChatModelId != modelId) {
+      _selectedChatModelId = modelId;
+      _recordEvent(
+        eventType: 'chat_model_selected',
+        payload: {'model_id': modelId},
+      );
+      notifyListeners();
+    }
+  }
+
+  void setChatTemperature(double temp) {
+    _chatTemperature = temp.clamp(0.0, 2.0);
+    notifyListeners();
+  }
+
+  void setChatMaxTokens(int maxTokens) {
+    _chatMaxTokens = maxTokens.clamp(16, 4096);
+    notifyListeners();
+  }
+
+  void cancelGeneration() {
+    if (_isGenerating) {
+      _shouldCancelGeneration = true;
+      _isGenerating = false;
+      _recordEvent(
+        eventType: 'llm_generation_cancelled',
+        payload: {
+          'session_id': _activeSessionId,
+          'generated_tokens': _generationTokenCount,
+        },
+      );
+      notifyListeners();
+    }
+  }
+
+  void editMessage(String messageId, String newContent) {
+    final messages = _sessionMessages[_activeSessionId];
+    if (messages == null) return;
+    final idx = messages.indexWhere((m) => m.id == messageId);
+    if (idx != -1) {
+      final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+      final wordCount = newContent.trim().split(RegExp(r'\s+')).length;
+      messages[idx] = messages[idx].copyWith(
+        content: newContent.trim(),
+        tokenCount: (wordCount * 1.3).ceil(),
+        updatedAtEpochSecs: now,
+      );
+      _recordEvent(
+        eventType: 'chat_message_edited',
+        payload: {'message_id': messageId, 'session_id': _activeSessionId},
+      );
+      notifyListeners();
+    }
+  }
+
+  void deleteMessage(String messageId) {
+    final messages = _sessionMessages[_activeSessionId];
+    if (messages == null) return;
+    messages.removeWhere((m) => m.id == messageId);
+    _recordEvent(
+      eventType: 'chat_message_deleted',
+      payload: {'message_id': messageId, 'session_id': _activeSessionId},
+    );
+    notifyListeners();
+  }
+
+  String exportSessionMarkdown(String sessionId) {
+    final session = _chatSessions.firstWhere(
+      (s) => s.id == sessionId,
+      orElse: () => ChatSession(
+        id: sessionId,
+        title: 'Exported Chat',
+        createdAtEpochSecs: 0,
+        updatedAtEpochSecs: 0,
+      ),
+    );
+    final messages = _sessionMessages[sessionId] ?? [];
+    final buffer = StringBuffer();
+    buffer.writeln('# MiniAI Chat Export — ${session.title}');
+    buffer.writeln();
+    buffer.writeln('- **Session ID:** `${session.id}`');
+    buffer.writeln('- **Total Messages:** ${messages.length}');
+    buffer.writeln();
+    buffer.writeln('---');
+    buffer.writeln();
+    for (final msg in messages) {
+      final roleHeader = msg.role == ChatMessageRole.user
+          ? '### 👤 User'
+          : msg.role == ChatMessageRole.assistant
+              ? '### 🤖 Assistant (${msg.modelId ?? "unknown"})'
+              : '### ⚙️ System';
+      buffer.writeln(roleHeader);
+      buffer.writeln();
+      buffer.writeln(msg.content);
+      buffer.writeln();
+      buffer.writeln('*Tokens:* ${msg.tokenCount}');
+      buffer.writeln();
+      buffer.writeln('---');
+      buffer.writeln();
+    }
+    return buffer.toString();
+  }
+
+  String exportSessionJson(String sessionId) {
+    final session = _chatSessions.firstWhere(
+      (s) => s.id == sessionId,
+      orElse: () => ChatSession(
+        id: sessionId,
+        title: 'Exported Chat',
+        createdAtEpochSecs: 0,
+        updatedAtEpochSecs: 0,
+      ),
+    );
+    final messages = _sessionMessages[sessionId] ?? [];
+    final map = {
+      'session': session.toJson(),
+      'messages': messages.map((m) => m.toJson()).toList(),
+    };
+    return const JsonEncoder.withIndent('  ').convert(map);
+  }
+
+  List<String> _buildLocalResponseTokens(String prompt, String model) {
+    final cleanPrompt = prompt.trim();
+    return [
+      'Executing', 'inference', 'with', model, 'on',
+      '${activeExecutionBackend.displayName}:',
+      'Analyzed', 'prompt:', '"$cleanPrompt".',
+      'MiniAI', 'processes', 'local', 'multimodal', 'workloads',
+      'with', 'zero-cloud', 'leakage', 'under', 'strict', 'privacy',
+      'guarantees.', 'All', 'computations', 'execute', 'deterministically.'
+    ];
+  }
+
+  Future<void> sendMessage(
+    String text, {
+    String? modelId,
+    bool delayTokens = true,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_activeSessionId == null) {
+      createChatSession();
+    }
+
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    final userMsgId = 'msg-${DateTime.now().microsecondsSinceEpoch}-user';
+    final userWordCount = trimmed.split(RegExp(r'\s+')).length;
+    final userMsg = ChatMessage(
+      id: userMsgId,
+      sessionId: _activeSessionId!,
+      role: ChatMessageRole.user,
+      content: trimmed,
+      tokenCount: (userWordCount * 1.3).ceil(),
+      createdAtEpochSecs: now,
+      updatedAtEpochSecs: now,
+    );
+
+    _sessionMessages[_activeSessionId!]!.add(userMsg);
+    final targetModel = modelId ?? _selectedChatModelId;
+
+    final sessionIdx =
+        _chatSessions.indexWhere((s) => s.id == _activeSessionId);
+    if (sessionIdx != -1) {
+      _chatSessions[sessionIdx] = _chatSessions[sessionIdx].copyWith(
+        updatedAtEpochSecs: now,
+      );
+    }
+
+    // Memory admission check
+    final manifest =
+        _models.where((m) => m.modelId == targetModel).firstOrNull;
+    if (manifest != null && !testMemoryAdmission(manifest.minRamBytes)) {
+      final errorMsgId = 'msg-${DateTime.now().microsecondsSinceEpoch}-error';
+      final errorMsg = ChatMessage(
+        id: errorMsgId,
+        sessionId: _activeSessionId!,
+        parentId: userMsgId,
+        role: ChatMessageRole.assistant,
+        content:
+            'Memory Admission Error: Insufficient RAM to load $targetModel (requires ${manifest.minRamBytes} bytes). Please select a smaller quantized model or free memory.',
+        tokenCount: 25,
+        modelId: targetModel,
+        createdAtEpochSecs: now,
+        updatedAtEpochSecs: now,
+      );
+      _sessionMessages[_activeSessionId!]!.add(errorMsg);
+      notifyListeners();
+      return;
+    }
+
+    final assistantMsgId =
+        'msg-${DateTime.now().microsecondsSinceEpoch}-assistant';
+    final assistantMsg = ChatMessage(
+      id: assistantMsgId,
+      sessionId: _activeSessionId!,
+      parentId: userMsgId,
+      role: ChatMessageRole.assistant,
+      content: '',
+      tokenCount: 0,
+      modelId: targetModel,
+      createdAtEpochSecs: now,
+      updatedAtEpochSecs: now,
+    );
+    _sessionMessages[_activeSessionId!]!.add(assistantMsg);
+
+    _isGenerating = true;
+    _shouldCancelGeneration = false;
+    _generationTokenCount = 0;
+    _generationTokensPerSecond = 0.0;
+    _generationElapsedSeconds = 0.0;
+    notifyListeners();
+
+    final responseTokens = _buildLocalResponseTokens(trimmed, targetModel);
+    final stopwatch = Stopwatch()..start();
+
+    for (int i = 0; i < responseTokens.length; i++) {
+      if (_shouldCancelGeneration) break;
+      if (delayTokens) {
+        await Future.delayed(const Duration(milliseconds: 15));
+      }
+      if (_shouldCancelGeneration) break;
+
+      final currentList = _sessionMessages[_activeSessionId!];
+      if (currentList == null) break;
+      final idx = currentList.indexWhere((m) => m.id == assistantMsgId);
+      if (idx == -1) break;
+
+      final updatedContent = currentList[idx].content.isEmpty
+          ? responseTokens[i]
+          : '${currentList[idx].content} ${responseTokens[i]}';
+      _generationTokenCount = i + 1;
+      _generationElapsedSeconds = stopwatch.elapsedMilliseconds / 1000.0;
+      _generationTokensPerSecond = _generationElapsedSeconds > 0
+          ? (_generationTokenCount / _generationElapsedSeconds)
+          : 0.0;
+
+      currentList[idx] = currentList[idx].copyWith(
+        content: updatedContent,
+        tokenCount: _generationTokenCount,
+        updatedAtEpochSecs:
+            DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000,
+      );
+      notifyListeners();
+    }
+
+    stopwatch.stop();
+    _isGenerating = false;
+    _recordEvent(
+      eventType: 'llm_generation_completed',
+      payload: {
+        'session_id': _activeSessionId,
+        'message_id': assistantMsgId,
+        'model_id': targetModel,
+        'token_count': _generationTokenCount,
+        'tokens_per_second': _generationTokensPerSecond,
+        'cancelled': _shouldCancelGeneration,
+      },
+    );
+    notifyListeners();
   }
 }

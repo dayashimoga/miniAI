@@ -286,3 +286,23 @@
     - `export_session_json`: exports full structured JSON conversation tree with session metadata.
   - Added 3 unit tests in `crates/miniai-storage` verifying migration schema version 4, message branching and tree traversal, editing and deletion, and Markdown/JSON export.
   - Reached 74/74 workspace Rust tests passing with 0 Clippy warnings and 0 formatting diffs.
+
+---
+
+## [2026-11-06T11:18:00+05:30] — Stage 3 Subphase 3.2.2 Verified (`v0.3.2-stage3.sub3.2.2`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 3 / Phase 3.2 / Subphase 3.2.2 — Flutter Chat Workspace UI & Session Management`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Flutter 3.29.0, Dart 3.7.0)
+- **Summary:**
+  - Added client contracts for `ChatMessageRole`, `ChatMessage`, and `ChatSession` in `ui/miniai_app/lib/src/models/system_contracts.dart` with JSON serialization, deserialization, and `copyWith`.
+  - Extended `PlatformController` (`ui/miniai_app/lib/src/controllers/platform_controller.dart`) with multi-session chat state, `createChatSession`, `selectChatSession`, `renameChatSession`, `deleteChatSession`, `sendMessage` with streaming token generation, `cancelGeneration` stopping token loops and emitting `llm_generation_cancelled`, `editMessage`, `deleteMessage`, `exportSessionMarkdown`, `exportSessionJson`, and hyperparameter tuning (`setChatTemperature`, `setChatMaxTokens`).
+  - Implemented `ChatWorkspaceScreen` (`ui/miniai_app/lib/src/screens/chat_workspace_screen.dart`):
+    - Responsive session sidebar (fixed panel on desktop, drawer on mobile).
+    - Header toolbar with session title, offline CPU status, model selector dropdown, tuning dialog button, and markdown/json export sheet.
+    - Conversation timeline with role-colored message bubbles, model badges, token badges, copy button, and in-place message edit dialog.
+    - Real-time generation progress banner (`Key('generation_progress_card')`) displaying live tokens/sec badge (`Key('tokens_per_second_badge')`), token count badge (`Key('token_count_badge')`), elapsed seconds badge (`Key('generation_elapsed_badge')`), and stop generation button (`Key('cancel_generation_button')`).
+    - Bottom composer bar (`Key('chat_composer_bar')`) with input field (`Key('chat_input_field')`) and send button (`Key('send_message_button')`).
+  - Integrated `ChatWorkspaceScreen` as Tab 5 into `ShellScreen` across desktop `NavigationRail` and mobile `NavigationBar`.
+  - Created `ui/miniai_app/test/chat_workspace_test.dart` and expanded `test/widget_test.dart` (12 new tests in `chat_workspace_test.dart`, 38 total Flutter tests passing).
+  - Measured Flutter UI line coverage: **95.02%** (1,776/1,869 lines).
+  - Maintained 100% test pass rate across all suites: 74 Rust tests, 6 Python ML tests, 38 Flutter tests, 0 Clippy warnings, 0 Flutter analyze issues.

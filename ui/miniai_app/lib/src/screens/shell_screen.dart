@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/platform_controller.dart';
+import 'chat_workspace_screen.dart';
 import 'dashboard_screen.dart';
 import 'event_inspector_view.dart';
 import 'hardware_inspector_screen.dart';
@@ -126,6 +127,11 @@ class ShellScreen extends StatelessWidget {
                           selectedIcon: Icon(Icons.developer_board),
                           label: Text('Hardware'),
                         ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.chat_bubble_outline, key: Key('nav_rail_chat')),
+                          selectedIcon: Icon(Icons.chat_bubble),
+                          label: Text('Chat'),
+                        ),
                       ],
                     ),
                     const VerticalDivider(thickness: 1, width: 1),
@@ -177,6 +183,12 @@ class ShellScreen extends StatelessWidget {
                     selectedIcon: Icon(Icons.developer_board),
                     label: 'Hardware',
                   ),
+                  NavigationDestination(
+                    key: Key('nav_bar_chat'),
+                    icon: Icon(Icons.chat_bubble_outline),
+                    selectedIcon: Icon(Icons.chat_bubble),
+                    label: 'Chat',
+                  ),
                 ],
               );
             },
@@ -196,6 +208,8 @@ class ShellScreen extends StatelessWidget {
         return ModelManagerScreen(controller: controller);
       case 4:
         return HardwareInspectorScreen(controller: controller);
+      case 5:
+        return ChatWorkspaceScreen(controller: controller);
       case 0:
       default:
         return DashboardScreen(controller: controller, embedded: true);

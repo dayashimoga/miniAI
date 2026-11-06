@@ -230,3 +230,21 @@
     - Formally recorded ADR-007 in `ADR.md`.
     - Generated Stage 2 Gate Report artifact `stage_2_gate_report.md`.
     - 54/54 Rust tests passing, 25/25 Flutter tests passing (97.12% coverage), 6/6 Python ML tests passing (98.16% coverage), 0 compiler or linter warnings, 0 mocks.
+
+
+---
+
+## [2026-11-06T09:44:00+05:30] — Stage 3 Subphase 3.1.1 Verified (`v0.3.0-stage3.sub3.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 3 / Phase 3.1 / Subphase 3.1.1 — CPU-First LLM Inference Engine & Sampling Controls`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Created crate `crates/miniai-llm` with `#![forbid(unsafe_code)]` and registered in workspace `Cargo.toml`.
+  - Implemented `GenerationConfig` with domain bounds validation for `max_new_tokens`, `context_window_size`, `temperature`, `top_p`, `repetition_penalty`, `seed`, and `stop_sequences`.
+  - Implemented `Prng` based on XorShift64* for 100% reproducible deterministic pseudo-random sampling.
+  - Implemented `Sampler` supporting greedy decoding ($T=0$), temperature scaling, top-p nucleus cumulative probability truncation, and frequency-scaled repetition penalty (`penalty^count`).
+  - Implemented `Tokenizer` supporting bidirectional subword and character mapping, special tokens (`<pad>`, `<s>`, `</s>`, `<unk>`), and greedy longest-match text encoding/decoding.
+  - Implemented `ModelWeights` supporting GGUF header parsing (`0x46554747`), embedding projections, forward pass computing vocabulary logits, and memory footprint tracking.
+  - Implemented `LlmEngine` with autoregressive loop, TTFT and throughput calculation, context window sliding, cooperative atomic cancellation (`Arc<AtomicBool>`) responding under 10ms, and stop sequence termination.
+  - Implemented `LlmAdapter` bridging `LlmEngine` with `miniai-server` `EventBus` (`InferenceTokenStream` events) and Tokio MPSC channels for token-by-token streaming.
+  - Added 12 unit tests in `crates/miniai-llm`, bringing total workspace tests to 66/66 passing with 0 Clippy warnings.

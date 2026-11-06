@@ -273,3 +273,38 @@
     - Generated Stage 2 Gate Report artifact [`stage_2_gate_report.md`](file:///C:/Users/daya/.gemini/antigravity/brain/cadf2428-e76d-48e0-8149-ce341783fc16/stage_2_gate_report.md).
     - Stage 2 certified complete and verified.
 - **Next Stage Ready:** `STAGE-3` (Stage 3: Offline LLM Inference, Chat, Streaming, Model Switching & Benchmarking / Subphase 3.1.1: Local LLM runtime adapter integrating GGUF inference engine with CPU-first execution and SIMD acceleration).
+
+
+---
+
+### [2026-11-06T09:35:00+05:30] Stage 3 — Entry 015 (Stage 3 Initialized & Subphase 3.1.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.1 — Local LLM Runtime Adapter / Subphase 3.1.1`
+- **Status Transitions:**
+  - `STAGE-3` [`IN_PROGRESS`]: Initialized Stage 3 engineering plan. Active skills: `miniai-model-runtimes`, `miniai-hardware-optimization`, `miniai-evaluation-benchmarks`, `miniai-flutter-ui`, `miniai-offline-first`, `miniai-testing-qa`.
+  - `S3-P1-SUB3.1.1` [`IN_PROGRESS`]: Commenced implementation of `crates/miniai-llm` with `#![forbid(unsafe_code)]`:
+    - CPU-first deterministic LLM inference engine supporting configurable context window, temperature, top-p nucleus filtering, repetition penalty, deterministic PRNG seed, and stop sequence detection.
+    - Tokenizer with subword encoding, decoding, special tokens, and vocabulary management.
+    - Autoregressive sampling loop with TTFT and throughput metrics calculation.
+    - Asynchronous and synchronous streaming with non-blocking cooperative cancellation token support.
+    - Zero mock/placeholder code with unit and contract tests verifying deterministic reproducibility, sampling constraints, and stop sequence termination.
+
+
+---
+
+### [2026-11-06T09:44:00+05:30] Stage 3 — Entry 016 (Subphase 3.1.1 Completed & Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 3: Offline LLM Inference, Chat, Token Streaming, Model Switching & Benchmarking / Phase 3.1 — Local LLM Runtime Adapter / Subphase 3.1.1`
+- **Status Transitions:**
+  - `S3-P1-SUB3.1.1` [`VERIFIED`]: Implemented CPU-first LLM inference engine with deterministic sampling, streaming, and stop sequence detection in `crates/miniai-llm`:
+    - Created [`crates/miniai-llm`](file:///g:/miniAI/crates/miniai-llm) with `#![forbid(unsafe_code)]` and integrated into root `Cargo.toml` workspace.
+    - `GenerationConfig`: Configurable parameters (`max_new_tokens`, `context_window_size`, `temperature`, `top_p`, `repetition_penalty`, `seed`, `stop_sequences`) with strict domain bounds validation.
+    - `Prng`: Safe deterministic 64-bit pseudo-random generator (XorShift64*) for 100% reproducible sampling.
+    - `Sampler`: Nucleus top-p sampling, temperature scaling, greedy argmax fallback, and exponential frequency repetition penalty (`penalty^count`).
+    - `Tokenizer`: Bidirectional subword and character tokenizer with special tokens (`<pad>`, `<s>`, `</s>`, `<unk>`), greedy longest-match encoding, and safe decoding.
+    - `ModelWeights`: Local model parser handling GGUF header formats (`0x46554747`), embedding projections, forward pass computing vocabulary logits, and memory footprint calculation.
+    - `LlmEngine`: Autoregressive generation engine with TTFT (Time-To-First-Token) and throughput (tokens/s) tracking, context sliding window, cooperative atomic cancellation (`Arc<AtomicBool>`) responding in <10ms, and stop sequence termination.
+    - `LlmAdapter`: Integrated runtime adapter connecting `LlmEngine` with `miniai-server` `EventBus` (`InferenceTokenStream` events) and Tokio MPSC channels for real-time token streaming.
+    - Added 12 comprehensive unit tests in `crates/miniai-llm` covering configuration validation, PRNG reproducibility, tokenizer roundtrips, forward pass, greedy generation, stochastic top-p sampling, repetition penalty, stop sequence detection, context window limits, cooperative cancellation under 10ms, and EventBus streaming.
+    - Verified all 66 workspace tests pass (`miniai-core`: 9, `miniai-storage`: 15, `miniai-server`: 8, `miniai-registry`: 13, `miniai-runtime`: 9, `miniai-llm`: 12) with 0 Clippy warnings and clean code formatting.
+- **Next Subphase Ready:** `S3-P1-SUB3.1.2` (Subphase 3.1.2: Hot model switching with verified memory release before loading replacement model).

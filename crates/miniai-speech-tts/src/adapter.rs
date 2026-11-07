@@ -175,4 +175,3 @@ impl ModalityAdapter for SpeechTtsAdapter {
         })
     }
 }
-

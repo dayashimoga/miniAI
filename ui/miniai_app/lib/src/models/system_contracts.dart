@@ -1557,3 +1557,342 @@ class GeneratedImageItem {
         sizeBytes: json['size_bytes'] as int? ?? 0,
       );
 }
+
+// -----------------------------------------------------------------------------
+// Stage 7: Speech, Voice & Music Audio Contracts
+// -----------------------------------------------------------------------------
+
+class SpeechSegmentContract {
+  const SpeechSegmentContract({
+    required this.startSecs,
+    required this.endSecs,
+    required this.text,
+    required this.confidence,
+  });
+
+  final double startSecs;
+  final double endSecs;
+  final String text;
+  final double confidence;
+
+  Map<String, dynamic> toJson() => {
+        'start_secs': startSecs,
+        'end_secs': endSecs,
+        'text': text,
+        'confidence': confidence,
+      };
+
+  factory SpeechSegmentContract.fromJson(Map<String, dynamic> json) =>
+      SpeechSegmentContract(
+        startSecs: (json['start_secs'] as num?)?.toDouble() ?? 0.0,
+        endSecs: (json['end_secs'] as num?)?.toDouble() ?? 0.0,
+        text: json['text'] as String? ?? '',
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+class SpeechAsrResultContract {
+  const SpeechAsrResultContract({
+    required this.fullText,
+    required this.segments,
+    required this.confidence,
+    required this.durationSecs,
+    required this.sha256,
+  });
+
+  final String fullText;
+  final List<SpeechSegmentContract> segments;
+  final double confidence;
+  final double durationSecs;
+  final String sha256;
+
+  Map<String, dynamic> toJson() => {
+        'full_text': fullText,
+        'segments': segments.map((s) => s.toJson()).toList(),
+        'confidence': confidence,
+        'duration_secs': durationSecs,
+        'sha256': sha256,
+      };
+
+  factory SpeechAsrResultContract.fromJson(Map<String, dynamic> json) =>
+      SpeechAsrResultContract(
+        fullText: json['full_text'] as String? ?? '',
+        segments: (json['segments'] as List<dynamic>?)
+                ?.map((e) =>
+                    SpeechSegmentContract.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+        durationSecs: (json['duration_secs'] as num?)?.toDouble() ?? 0.0,
+        sha256: json['sha256'] as String? ?? '',
+      );
+}
+
+enum TtsVoiceProfileContract {
+  alloy('alloy', 'Alloy (Neutral & Balanced)'),
+  echo('echo', 'Echo (Warm & Resonant)'),
+  fable('fable', 'Fable (Expressive Narrative)'),
+  onyx('onyx', 'Onyx (Deep Baritone)'),
+  nova('nova', 'Nova (Bright & Dynamic)'),
+  shimmer('shimmer', 'Shimmer (Clear & Melodic)');
+
+  const TtsVoiceProfileContract(this.wireValue, this.displayName);
+  final String wireValue;
+  final String displayName;
+
+  static TtsVoiceProfileContract fromWire(String val) {
+    final lower = val.toLowerCase();
+    for (final v in TtsVoiceProfileContract.values) {
+      if (v.wireValue == lower) return v;
+    }
+    return TtsVoiceProfileContract.alloy;
+  }
+}
+
+class TtsSynthesisConfigContract {
+  const TtsSynthesisConfigContract({
+    this.voice = TtsVoiceProfileContract.alloy,
+    this.sampleRate = 22050,
+    this.speed = 1.0,
+    this.pitchSemitones = 0.0,
+    this.volumeGain = 1.0,
+    this.seed = 42,
+  });
+
+  final TtsVoiceProfileContract voice;
+  final int sampleRate;
+  final double speed;
+  final double pitchSemitones;
+  final double volumeGain;
+  final int? seed;
+
+  Map<String, dynamic> toJson() => {
+        'voice': voice.wireValue,
+        'sample_rate': sampleRate,
+        'speed': speed,
+        'pitch_semitones': pitchSemitones,
+        'volume_gain': volumeGain,
+        if (seed != null) 'seed': seed,
+      };
+
+  factory TtsSynthesisConfigContract.fromJson(Map<String, dynamic> json) =>
+      TtsSynthesisConfigContract(
+        voice: TtsVoiceProfileContract.fromWire(
+            json['voice'] as String? ?? 'alloy'),
+        sampleRate: json['sample_rate'] as int? ?? 22050,
+        speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
+        pitchSemitones:
+            (json['pitch_semitones'] as num?)?.toDouble() ?? 0.0,
+        volumeGain: (json['volume_gain'] as num?)?.toDouble() ?? 1.0,
+        seed: json['seed'] as int?,
+      );
+}
+
+class TtsOutputContract {
+  const TtsOutputContract({
+    required this.durationSecs,
+    required this.sampleRate,
+    required this.channels,
+    required this.sha256,
+    required this.phonemeCount,
+    this.wavBytesBase64 = '',
+  });
+
+  final double durationSecs;
+  final int sampleRate;
+  final int channels;
+  final String sha256;
+  final int phonemeCount;
+  final String wavBytesBase64;
+
+  Map<String, dynamic> toJson() => {
+        'duration_secs': durationSecs,
+        'sample_rate': sampleRate,
+        'channels': channels,
+        'sha256': sha256,
+        'phoneme_count': phonemeCount,
+        'wav_bytes_base64': wavBytesBase64,
+      };
+
+  factory TtsOutputContract.fromJson(Map<String, dynamic> json) =>
+      TtsOutputContract(
+        durationSecs: (json['duration_secs'] as num?)?.toDouble() ?? 0.0,
+        sampleRate: json['sample_rate'] as int? ?? 22050,
+        channels: json['channels'] as int? ?? 1,
+        sha256: json['sha256'] as String? ?? '',
+        phonemeCount: json['phoneme_count'] as int? ?? 0,
+        wavBytesBase64: json['wav_bytes_base64'] as String? ?? '',
+      );
+}
+
+class VoiceTurnMetricsContract {
+  const VoiceTurnMetricsContract({
+    required this.asrLatencyMs,
+    required this.llmTtftMs,
+    required this.llmTotalLatencyMs,
+    required this.ttsLatencyMs,
+    required this.totalTurnaroundMs,
+  });
+
+  final double asrLatencyMs;
+  final double llmTtftMs;
+  final double llmTotalLatencyMs;
+  final double ttsLatencyMs;
+  final double totalTurnaroundMs;
+
+  Map<String, dynamic> toJson() => {
+        'asr_latency_ms': asrLatencyMs,
+        'llm_ttft_ms': llmTtftMs,
+        'llm_total_latency_ms': llmTotalLatencyMs,
+        'tts_latency_ms': ttsLatencyMs,
+        'total_turnaround_ms': totalTurnaroundMs,
+      };
+
+  factory VoiceTurnMetricsContract.fromJson(Map<String, dynamic> json) =>
+      VoiceTurnMetricsContract(
+        asrLatencyMs: (json['asr_latency_ms'] as num?)?.toDouble() ?? 0.0,
+        llmTtftMs: (json['llm_ttft_ms'] as num?)?.toDouble() ?? 0.0,
+        llmTotalLatencyMs:
+            (json['llm_total_latency_ms'] as num?)?.toDouble() ?? 0.0,
+        ttsLatencyMs: (json['tts_latency_ms'] as num?)?.toDouble() ?? 0.0,
+        totalTurnaroundMs:
+            (json['total_turnaround_ms'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+class VoiceTurnResultContract {
+  const VoiceTurnResultContract({
+    required this.id,
+    required this.userTranscription,
+    required this.agentResponseText,
+    required this.synthesizedAudio,
+    required this.metrics,
+    required this.timestampEpochSecs,
+  });
+
+  final String id;
+  final String userTranscription;
+  final String agentResponseText;
+  final TtsOutputContract synthesizedAudio;
+  final VoiceTurnMetricsContract metrics;
+  final int timestampEpochSecs;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'user_transcription': userTranscription,
+        'agent_response_text': agentResponseText,
+        'synthesized_audio': synthesizedAudio.toJson(),
+        'metrics': metrics.toJson(),
+        'timestamp_epoch_secs': timestampEpochSecs,
+      };
+
+  factory VoiceTurnResultContract.fromJson(Map<String, dynamic> json) =>
+      VoiceTurnResultContract(
+        id: json['id'] as String? ?? '',
+        userTranscription: json['user_transcription'] as String? ?? '',
+        agentResponseText: json['agent_response_text'] as String? ?? '',
+        synthesizedAudio: TtsOutputContract.fromJson(
+            json['synthesized_audio'] as Map<String, dynamic>? ?? {}),
+        metrics: VoiceTurnMetricsContract.fromJson(
+            json['metrics'] as Map<String, dynamic>? ?? {}),
+        timestampEpochSecs: json['timestamp_epoch_secs'] as int? ?? 0,
+      );
+}
+
+class MusicGenConfigContract {
+  const MusicGenConfigContract({
+    this.prompt = 'Uplifting ambient strings in C Major',
+    this.durationSecs = 10.0,
+    this.tempoBpm = 120,
+    this.sampleRate = 44100,
+    this.channels = 2,
+    this.scaleKey = 'C Major',
+    this.seed = 42,
+  });
+
+  final String prompt;
+  final double durationSecs;
+  final int tempoBpm;
+  final int sampleRate;
+  final int channels;
+  final String scaleKey;
+  final int? seed;
+
+  Map<String, dynamic> toJson() => {
+        'prompt': prompt,
+        'duration_secs': durationSecs,
+        'tempo_bpm': tempoBpm,
+        'sample_rate': sampleRate,
+        'channels': channels,
+        'scale_key': scaleKey,
+        if (seed != null) 'seed': seed,
+      };
+
+  factory MusicGenConfigContract.fromJson(Map<String, dynamic> json) =>
+      MusicGenConfigContract(
+        prompt: json['prompt'] as String? ?? '',
+        durationSecs: (json['duration_secs'] as num?)?.toDouble() ?? 10.0,
+        tempoBpm: json['tempo_bpm'] as int? ?? 120,
+        sampleRate: json['sample_rate'] as int? ?? 44100,
+        channels: json['channels'] as int? ?? 2,
+        scaleKey: json['scale_key'] as String? ?? 'C Major',
+        seed: json['seed'] as int?,
+      );
+}
+
+class MusicTrackOutputContract {
+  const MusicTrackOutputContract({
+    required this.id,
+    required this.prompt,
+    required this.durationSecs,
+    required this.sampleRate,
+    required this.channels,
+    required this.tempoBpm,
+    required this.scaleKey,
+    required this.sha256,
+    required this.numSamplesPerChannel,
+    required this.timestampEpochSecs,
+    this.wavBytesBase64 = '',
+  });
+
+  final String id;
+  final String prompt;
+  final double durationSecs;
+  final int sampleRate;
+  final int channels;
+  final int tempoBpm;
+  final String scaleKey;
+  final String sha256;
+  final int numSamplesPerChannel;
+  final int timestampEpochSecs;
+  final String wavBytesBase64;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'prompt': prompt,
+        'duration_secs': durationSecs,
+        'sample_rate': sampleRate,
+        'channels': channels,
+        'tempo_bpm': tempoBpm,
+        'scale_key': scaleKey,
+        'sha256': sha256,
+        'num_samples_per_channel': numSamplesPerChannel,
+        'timestamp_epoch_secs': timestampEpochSecs,
+        'wav_bytes_base64': wavBytesBase64,
+      };
+
+  factory MusicTrackOutputContract.fromJson(Map<String, dynamic> json) =>
+      MusicTrackOutputContract(
+        id: json['id'] as String? ?? '',
+        prompt: json['prompt'] as String? ?? '',
+        durationSecs: (json['duration_secs'] as num?)?.toDouble() ?? 10.0,
+        sampleRate: json['sample_rate'] as int? ?? 44100,
+        channels: json['channels'] as int? ?? 2,
+        tempoBpm: json['tempo_bpm'] as int? ?? 120,
+        scaleKey: json['scale_key'] as String? ?? 'C Major',
+        sha256: json['sha256'] as String? ?? '',
+        numSamplesPerChannel: json['num_samples_per_channel'] as int? ?? 0,
+        timestampEpochSecs: json['timestamp_epoch_secs'] as int? ?? 0,
+        wavBytesBase64: json['wav_bytes_base64'] as String? ?? '',
+      );
+}

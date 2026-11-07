@@ -67,4 +67,3 @@ fn test_wav_header_parser_rejects_truncated() {
     let res = WavEncoder::parse_header(&truncated);
     assert!(matches!(res, Err(SpeechTtsError::EncodingError(_))));
 }
-

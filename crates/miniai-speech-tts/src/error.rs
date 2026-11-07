@@ -36,4 +36,3 @@ pub enum SpeechTtsError {
     #[error("Synthesis processing error: {0}")]
     Processing(String),
 }
-

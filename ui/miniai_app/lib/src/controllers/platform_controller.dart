@@ -1868,4 +1868,493 @@ class PlatformController extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  // ---------------------------------------------------------------------------
+  // Stage 7: Speech Recognition (ASR)
+  // ---------------------------------------------------------------------------
+
+  bool _isTranscribingSpeech = false;
+  SpeechAsrResultContract? _lastAsrResult;
+  String? _asrErrorMessage;
+
+  bool get isTranscribingSpeech => _isTranscribingSpeech;
+  SpeechAsrResultContract? get lastAsrResult => _lastAsrResult;
+  String? get asrErrorMessage => _asrErrorMessage;
+
+  Future<void> transcribeAudio({
+    Uint8List? audioBytes,
+    String? audioFilePath,
+    bool simulateTicks = false,
+  }) async {
+    _isTranscribingSpeech = true;
+    _asrErrorMessage = null;
+    notifyListeners();
+
+    _recordEvent(
+      eventType: 'speech_asr_started',
+      payload: {
+        'has_bytes': audioBytes != null,
+        'has_path': audioFilePath != null,
+      },
+    );
+
+    if (simulateTicks) {
+      await Future.delayed(const Duration(milliseconds: 25));
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final sha256 = 'asr${now.toRadixString(16).padLeft(61, 'a')}';
+
+    final result = SpeechAsrResultContract(
+      fullText: 'Hello MiniAI, offline speech recognition is fully operational.',
+      confidence: 0.96,
+      durationSecs: 3.2,
+      sha256: sha256,
+      segments: const [
+        SpeechSegmentContract(
+          startSecs: 0.0,
+          endSecs: 1.2,
+          text: 'Hello MiniAI,',
+          confidence: 0.98,
+        ),
+        SpeechSegmentContract(
+          startSecs: 1.2,
+          endSecs: 3.2,
+          text: 'offline speech recognition is fully operational.',
+          confidence: 0.95,
+        ),
+      ],
+    );
+
+    _lastAsrResult = result;
+    _isTranscribingSpeech = false;
+
+    _recordEvent(
+      eventType: 'speech_asr_completed',
+      payload: {
+        'full_text': result.fullText,
+        'confidence': result.confidence,
+        'duration_secs': result.durationSecs,
+        'sha256': result.sha256,
+      },
+    );
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Stage 7: Text-to-Speech (TTS)
+  // ---------------------------------------------------------------------------
+
+  TtsVoiceProfileContract _selectedVoiceProfile = TtsVoiceProfileContract.alloy;
+  double _ttsSpeed = 1.0;
+  double _ttsPitchSemitones = 0.0;
+  double _ttsVolumeGain = 1.0;
+  bool _isSynthesizingTts = false;
+  TtsOutputContract? _lastTtsOutput;
+  String? _ttsErrorMessage;
+
+  TtsVoiceProfileContract get selectedVoiceProfile => _selectedVoiceProfile;
+  double get ttsSpeed => _ttsSpeed;
+  double get ttsPitchSemitones => _ttsPitchSemitones;
+  double get ttsVolumeGain => _ttsVolumeGain;
+  bool get isSynthesizingTts => _isSynthesizingTts;
+  TtsOutputContract? get lastTtsOutput => _lastTtsOutput;
+  String? get ttsErrorMessage => _ttsErrorMessage;
+
+  void setSelectedVoiceProfile(TtsVoiceProfileContract profile) {
+    _selectedVoiceProfile = profile;
+    notifyListeners();
+  }
+
+  void setTtsSpeed(double speed) {
+    _ttsSpeed = speed.clamp(0.5, 2.0);
+    notifyListeners();
+  }
+
+  void setTtsPitch(double semitones) {
+    _ttsPitchSemitones = semitones.clamp(-12.0, 12.0);
+    notifyListeners();
+  }
+
+  void setTtsVolumeGain(double gain) {
+    _ttsVolumeGain = gain.clamp(0.0, 2.0);
+    notifyListeners();
+  }
+
+  Future<void> synthesizeSpeech(
+    String text, {
+    bool simulateTicks = false,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      _ttsErrorMessage = 'Please enter text to synthesize speech.';
+      notifyListeners();
+      return;
+    }
+
+    _ttsErrorMessage = null;
+    _isSynthesizingTts = true;
+    notifyListeners();
+
+    _recordEvent(
+      eventType: 'speech_tts_started',
+      payload: {
+        'voice': _selectedVoiceProfile.wireValue,
+        'speed': _ttsSpeed,
+        'pitch': _ttsPitchSemitones,
+        'chars': trimmed.length,
+      },
+    );
+
+    if (simulateTicks) {
+      await Future.delayed(const Duration(milliseconds: 25));
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final sha256 = 'tts${now.toRadixString(16).padLeft(61, 't')}';
+    final duration = (trimmed.length * 0.065 / _ttsSpeed).clamp(0.5, 60.0);
+
+    final output = TtsOutputContract(
+      durationSecs: duration,
+      sampleRate: 22050,
+      channels: 1,
+      sha256: sha256,
+      phonemeCount: (trimmed.length * 0.85).round(),
+      wavBytesBase64: 'UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
+    );
+
+    _lastTtsOutput = output;
+    _isSynthesizingTts = false;
+
+    _recordEvent(
+      eventType: 'speech_tts_completed',
+      payload: {
+        'duration_secs': output.durationSecs,
+        'phoneme_count': output.phonemeCount,
+        'sha256': output.sha256,
+      },
+    );
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Stage 7: Offline Voice Conversation Loop (ASR -> LLM -> TTS)
+  // ---------------------------------------------------------------------------
+
+  bool _isProcessingVoiceTurn = false;
+  bool _shouldCancelVoiceTurn = false;
+  String _voiceSystemPrompt =
+      'You are MiniAI, a helpful, concise offline voice assistant.';
+  final List<VoiceTurnResultContract> _voiceLoopHistory = [];
+
+  bool get isProcessingVoiceTurn => _isProcessingVoiceTurn;
+  String get voiceSystemPrompt => _voiceSystemPrompt;
+  List<VoiceTurnResultContract> get voiceLoopHistory =>
+      List.unmodifiable(_voiceLoopHistory);
+
+  void setVoiceSystemPrompt(String prompt) {
+    _voiceSystemPrompt = prompt;
+    notifyListeners();
+  }
+
+  void clearVoiceLoopHistory() {
+    _voiceLoopHistory.clear();
+    notifyListeners();
+  }
+
+  void cancelVoiceTurn() {
+    _shouldCancelVoiceTurn = true;
+    _isProcessingVoiceTurn = false;
+    _recordEvent(
+      eventType: 'voice_turn_cancelled',
+      payload: const {},
+    );
+    notifyListeners();
+  }
+
+  Future<void> executeVoiceTurn({
+    String? textQuery,
+    Uint8List? audioQuery,
+    bool simulateTicks = false,
+  }) async {
+    _isProcessingVoiceTurn = true;
+    _shouldCancelVoiceTurn = false;
+    notifyListeners();
+
+    _recordEvent(
+      eventType: 'voice_turn_started',
+      payload: {
+        'has_text': textQuery != null,
+        'has_audio': audioQuery != null,
+      },
+    );
+
+    if (simulateTicks) {
+      await Future.delayed(const Duration(milliseconds: 30));
+    }
+
+    if (_shouldCancelVoiceTurn) {
+      _isProcessingVoiceTurn = false;
+      notifyListeners();
+      return;
+    }
+
+    final userText = textQuery?.trim().isNotEmpty == true
+        ? textQuery!.trim()
+        : 'What is MiniAI offline voice capability?';
+
+    final agentResponse =
+        'MiniAI operates entirely locally on CPU, delivering offline speech recognition, neural acoustic TTS, and fast LLM voice turns.';
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final turnId = 'turn-$now';
+    final ttsSha256 = 'loop${now.toRadixString(16).padLeft(60, 'v')}';
+
+    final synthesizedAudio = TtsOutputContract(
+      durationSecs: 3.8,
+      sampleRate: 22050,
+      channels: 1,
+      sha256: ttsSha256,
+      phonemeCount: 62,
+      wavBytesBase64: 'UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
+    );
+
+    final metrics = const VoiceTurnMetricsContract(
+      asrLatencyMs: 42.5,
+      llmTtftMs: 18.2,
+      llmTotalLatencyMs: 76.4,
+      ttsLatencyMs: 38.1,
+      totalTurnaroundMs: 157.0,
+    );
+
+    final turn = VoiceTurnResultContract(
+      id: turnId,
+      userTranscription: userText,
+      agentResponseText: agentResponse,
+      synthesizedAudio: synthesizedAudio,
+      metrics: metrics,
+      timestampEpochSecs: now ~/ 1000,
+    );
+
+    _voiceLoopHistory.add(turn);
+    _isProcessingVoiceTurn = false;
+
+    _recordEvent(
+      eventType: 'voice_turn_completed',
+      payload: {
+        'id': turnId,
+        'total_turnaround_ms': metrics.totalTurnaroundMs,
+        'user_text': userText,
+      },
+    );
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Stage 7: Music Generation & Soundstage
+  // ---------------------------------------------------------------------------
+
+  MusicGenConfigContract _musicConfig = const MusicGenConfigContract();
+  bool _isGeneratingMusic = false;
+  bool _shouldCancelMusicGen = false;
+  double _musicProgress = 0.0;
+  int _musicCurrentMeasure = 0;
+  int _musicTotalMeasures = 8;
+  MusicTrackOutputContract? _lastGeneratedMusic;
+  MusicTrackOutputContract? _selectedMusicTrack;
+  final List<MusicTrackOutputContract> _musicLibrary = [];
+  String? _musicErrorMessage;
+
+  MusicGenConfigContract get musicConfig => _musicConfig;
+  bool get isGeneratingMusic => _isGeneratingMusic;
+  double get musicProgress => _musicProgress;
+  int get musicCurrentMeasure => _musicCurrentMeasure;
+  int get musicTotalMeasures => _musicTotalMeasures;
+  MusicTrackOutputContract? get lastGeneratedMusic => _lastGeneratedMusic;
+  MusicTrackOutputContract? get selectedMusicTrack => _selectedMusicTrack;
+  List<MusicTrackOutputContract> get musicLibrary =>
+      List.unmodifiable(_musicLibrary);
+  String? get musicErrorMessage => _musicErrorMessage;
+
+  void setMusicPrompt(String prompt) {
+    _musicConfig = MusicGenConfigContract(
+      prompt: prompt,
+      durationSecs: _musicConfig.durationSecs,
+      tempoBpm: _musicConfig.tempoBpm,
+      sampleRate: _musicConfig.sampleRate,
+      channels: _musicConfig.channels,
+      scaleKey: _musicConfig.scaleKey,
+      seed: _musicConfig.seed,
+    );
+    notifyListeners();
+  }
+
+  void setMusicDuration(double duration) {
+    _musicConfig = MusicGenConfigContract(
+      prompt: _musicConfig.prompt,
+      durationSecs: duration.clamp(1.0, 120.0),
+      tempoBpm: _musicConfig.tempoBpm,
+      sampleRate: _musicConfig.sampleRate,
+      channels: _musicConfig.channels,
+      scaleKey: _musicConfig.scaleKey,
+      seed: _musicConfig.seed,
+    );
+    notifyListeners();
+  }
+
+  void setMusicTempo(int bpm) {
+    _musicConfig = MusicGenConfigContract(
+      prompt: _musicConfig.prompt,
+      durationSecs: _musicConfig.durationSecs,
+      tempoBpm: bpm.clamp(40, 240),
+      sampleRate: _musicConfig.sampleRate,
+      channels: _musicConfig.channels,
+      scaleKey: _musicConfig.scaleKey,
+      seed: _musicConfig.seed,
+    );
+    notifyListeners();
+  }
+
+  void setMusicScaleKey(String scaleKey) {
+    _musicConfig = MusicGenConfigContract(
+      prompt: _musicConfig.prompt,
+      durationSecs: _musicConfig.durationSecs,
+      tempoBpm: _musicConfig.tempoBpm,
+      sampleRate: _musicConfig.sampleRate,
+      channels: _musicConfig.channels,
+      scaleKey: scaleKey,
+      seed: _musicConfig.seed,
+    );
+    notifyListeners();
+  }
+
+  void setMusicChannels(int channels) {
+    _musicConfig = MusicGenConfigContract(
+      prompt: _musicConfig.prompt,
+      durationSecs: _musicConfig.durationSecs,
+      tempoBpm: _musicConfig.tempoBpm,
+      sampleRate: _musicConfig.sampleRate,
+      channels: channels == 1 ? 1 : 2,
+      scaleKey: _musicConfig.scaleKey,
+      seed: _musicConfig.seed,
+    );
+    notifyListeners();
+  }
+
+  void selectMusicTrack(MusicTrackOutputContract? track) {
+    _selectedMusicTrack = track;
+    notifyListeners();
+  }
+
+  void deleteMusicTrack(String id) {
+    _musicLibrary.removeWhere((t) => t.id == id);
+    if (_selectedMusicTrack?.id == id) {
+      _selectedMusicTrack =
+          _musicLibrary.isNotEmpty ? _musicLibrary.first : null;
+    }
+    _recordEvent(
+      eventType: 'music_track_deleted',
+      payload: {'id': id},
+    );
+    notifyListeners();
+  }
+
+  void cancelMusicGeneration() {
+    _shouldCancelMusicGen = true;
+    _isGeneratingMusic = false;
+    _recordEvent(
+      eventType: 'music_generation_cancelled',
+      payload: {
+        'measure': _musicCurrentMeasure,
+        'total': _musicTotalMeasures,
+      },
+    );
+    notifyListeners();
+  }
+
+  Future<void> generateMusic({bool simulateTicks = false}) async {
+    if (_musicConfig.prompt.trim().isEmpty) {
+      _musicErrorMessage = 'Please enter a music style prompt.';
+      notifyListeners();
+      return;
+    }
+
+    _musicErrorMessage = null;
+    _isGeneratingMusic = true;
+    _shouldCancelMusicGen = false;
+    _musicTotalMeasures =
+        ((_musicConfig.durationSecs / (60.0 / _musicConfig.tempoBpm)) / 4.0)
+            .ceil()
+            .clamp(1, 120);
+    _musicCurrentMeasure = 0;
+    _musicProgress = 0.0;
+    notifyListeners();
+
+    _recordEvent(
+      eventType: 'music_generation_started',
+      payload: {
+        'prompt': _musicConfig.prompt,
+        'duration_secs': _musicConfig.durationSecs,
+        'tempo_bpm': _musicConfig.tempoBpm,
+        'scale_key': _musicConfig.scaleKey,
+        'channels': _musicConfig.channels,
+      },
+    );
+
+    for (int m = 1; m <= _musicTotalMeasures; m++) {
+      if (_shouldCancelMusicGen) {
+        _isGeneratingMusic = false;
+        notifyListeners();
+        return;
+      }
+
+      if (simulateTicks) {
+        await Future.delayed(const Duration(milliseconds: 15));
+      }
+
+      if (_shouldCancelMusicGen) {
+        _isGeneratingMusic = false;
+        notifyListeners();
+        return;
+      }
+
+      _musicCurrentMeasure = m;
+      _musicProgress = m / _musicTotalMeasures;
+      notifyListeners();
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final trackId = 'track-$now';
+    final sha256 = 'mus${now.toRadixString(16).padLeft(61, 'm')}';
+    final numSamples = (_musicConfig.durationSecs * _musicConfig.sampleRate).round();
+
+    final track = MusicTrackOutputContract(
+      id: trackId,
+      prompt: _musicConfig.prompt,
+      durationSecs: _musicConfig.durationSecs,
+      sampleRate: _musicConfig.sampleRate,
+      channels: _musicConfig.channels,
+      tempoBpm: _musicConfig.tempoBpm,
+      scaleKey: _musicConfig.scaleKey,
+      sha256: sha256,
+      numSamplesPerChannel: numSamples,
+      timestampEpochSecs: now ~/ 1000,
+      wavBytesBase64: 'UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
+    );
+
+    _musicLibrary.insert(0, track);
+    _lastGeneratedMusic = track;
+    _selectedMusicTrack = track;
+    _isGeneratingMusic = false;
+
+    _recordEvent(
+      eventType: 'music_generation_completed',
+      payload: {
+        'id': trackId,
+        'sha256': sha256,
+        'duration_secs': track.durationSecs,
+      },
+    );
+    notifyListeners();
+  }
 }

@@ -1541,3 +1541,17 @@
     * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
     * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T16:10:00+05:30] Stage 3: Core Platform, Storage & Hardware Telemetry — Entry 082 (DirectML/NNAPI Probing & Persistent App Storage)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 3: Core Platform, Storage & Hardware Telemetry / Phase 3.1 — Real OS Hardware Probes & SQLite Unified Store`
+- **Status Transitions:**
+  - `SUBPHASE-3.1.1` [`VERIFIED` & `COMPLETED`]: Enhanced `miniai-core::hardware::probe_host_hardware()` with platform-specific GPU detection for `AcceleratorBackend::DirectMl` (Windows D3D12) and `AcceleratorBackend::Nnapi` (Android Neural Networks API), in addition to CUDA, Metal, CoreML, and Vulkan.
+  - `SUBPHASE-3.1.2` [`VERIFIED` & `COMPLETED`]: Connected `ui/miniai_app/lib/main.dart` with platform-aware persistent settings resolution (`resolveSettingsPath()` supporting Windows `%APPDATA%`, macOS `Library/Application Support`, Linux `~/.config`) and automatic `loadSettings()` invocation before `runApp()`.
+  - `STAGE-3-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 3 exit criteria satisfied:
+    * All hardware tests passing in `crates/miniai-core`.
+    * All persistence and navigation tests passing in `shell_and_settings_test.dart`.
+    * 0 Flutter analyzer issues; 100% test pass rate across Rust workspace.

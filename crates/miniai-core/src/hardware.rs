@@ -454,6 +454,13 @@ pub fn probe_host_hardware() -> HardwareProfile {
                 available_vram_bytes: 6 * 1024 * 1024 * 1024,
             });
         }
+        detected_backends.push(AcceleratorBackend::DirectMl);
+        detected_backends.push(AcceleratorBackend::Vulkan);
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        detected_backends.push(AcceleratorBackend::Nnapi);
         detected_backends.push(AcceleratorBackend::Vulkan);
     }
 

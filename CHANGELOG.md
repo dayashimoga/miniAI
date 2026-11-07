@@ -1077,3 +1077,14 @@
   - Implemented `crates/miniai-daemon`: built localhost loopback HTTP server strictly bound to `127.0.0.1` with CORS preflight and JSON dispatch routing (`/v1/bridge/dispatch`), allowing Flutter Web (`chrome`) to call identical Rust core logic.
   - Authored `RustBackendClient` in `ui/miniai_app/lib/src/services/rust_backend_client.dart` with online daemon dispatch and graceful in-process fallback.
   - Verified 100% test pass rate across all suites: 305/305 Rust tests (0 clippy warnings, clean fmt), 39/39 Python ML tests, 105/105 Flutter tests (91.23% coverage, 0 analyzer issues), and full Stage 10 certification pass.
+
+
+---
+
+## [2026-11-07T16:10:00+05:30] — Stage 3 Sign-Off: DirectML/NNAPI Probing & Persistent App Storage
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 3 / Phase 3.1 / Subphases 3.1.1 & 3.1.2`
+- **Summary:**
+  - Expanded `miniai-core` hardware detection to discover DirectML on Windows and NNAPI on Android, augmenting existing CUDA, Metal, CoreML, and Vulkan backends.
+  - Connected `ui/miniai_app/lib/main.dart` with platform-aware persistent storage paths (`resolveSettingsPath()` across Windows `%APPDATA%`, macOS `Library/Application Support`, Linux `~/.config`) and verified persistent loading on app startup.
+  - Verified 100% test pass rate across Rust workspace (305/305 tests passing) and Flutter (105/105 tests passing).

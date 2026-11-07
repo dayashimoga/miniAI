@@ -52,6 +52,12 @@ fn test_bridge_engine_in_memory_lifecycle() {
         rag_data.get("query").unwrap(),
         "admission guard CPU fallback"
     );
+    let results = rag_data.get("results").unwrap().as_array().unwrap();
+    assert!(
+        !results.is_empty(),
+        "knowledge search should return grounded hits"
+    );
+    assert!(results[0].get("citation_tag").is_some());
 
     // 5. Audit & Diagnostic Events
     let events_res = engine.dispatch(BridgeRequest::PollEvents);
@@ -238,4 +244,29 @@ fn test_bridge_memory_tiers_crud() {
     let list_res3 = engine.dispatch(BridgeRequest::ListMemories);
     let data3 = list_res3.data.unwrap();
     assert_eq!(data3["semantic_facts"].as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn test_bridge_stage15_mcp_swarm_and_npu() {
+    let engine = BridgeEngine::new_in_memory().expect("in-memory engine");
+
+    // 1. List MCP Tools
+    let mcp_res = engine.dispatch(BridgeRequest::ListMcpTools);
+    assert!(mcp_res.success);
+    let mcp_data = mcp_res.data.unwrap();
+    assert_eq!(mcp_data["mcp_enabled"], true);
+    let tools = mcp_data["tools"].as_array().unwrap();
+    assert!(tools.len() >= 3);
+
+    // 2. Swarm Status
+    let swarm_res = engine.dispatch(BridgeRequest::GetSwarmStatus);
+    assert!(swarm_res.success);
+    let swarm_data = swarm_res.data.unwrap();
+    assert_eq!(swarm_data["p2p_transport"], "mTLS");
+
+    // 3. NPU Backends
+    let npu_res = engine.dispatch(BridgeRequest::GetNpuBackends);
+    assert!(npu_res.success);
+    let npu_data = npu_res.data.unwrap();
+    assert_eq!(npu_data["backends"][0]["name"], "CPU Baseline");
 }

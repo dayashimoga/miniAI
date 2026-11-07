@@ -1769,3 +1769,32 @@
     * Full Stage 10 Gate Verification (`scripts/verify_stage10.py`) passed unconditionally across all tiers.
     * Rust workspace: 326 tests passing, 0 clippy warnings, 0 fmt diffs.
     * Flutter UI: 110 tests passing with 0 analyze issues.
+
+
+---
+
+### [2026-11-07T21:00:00+05:30] Production Audit Remediation & Deep Forensic Fixes Phase 2 — Entry 096
+- **Entry Type:** `FEATURE` & `REMEDIATION_VERIFIED`
+- **Stage / Phase:** `Production Audit & Deep Forensic Implementation Remediation (Gaps 1–4 Resolution)`
+- **Status Transitions:**
+  - `GAP-REMEDIATION-1` [`VERIFIED` & `COMPLETED`]: Fixed RAG priority ordering and threshold gating in `ui/miniai_app/lib/src/controllers/platform_controller.dart`. Queries like "what are your capabilities" and "what is adventure" are handled by domain intent recognizers and never falsely hijacked by generic workspace citation attachments (such as `SECURITY.md#L1-L28` or `ARCHITECTURE.md#L1-L24`).
+  - `GAP-REMEDIATION-2` [`VERIFIED` & `COMPLETED`]: Decoupled verified public model downloads from outbound cloud inference restrictions:
+    * Implemented `allowVerifiedModelDownloads` and `setAllowVerifiedModelDownloads` in `PlatformController`.
+    * Upgraded `ModelManagerScreen` to allow users in `LocalOnlyPrivacyMode` to download verified public open-weight models from HuggingFace without dead-end download failure errors.
+  - `GAP-REMEDIATION-3` [`VERIFIED` & `COMPLETED`]: Deep bridge engine enhancement and cross-language contract wiring in `crates/miniai-bridge`:
+    * Added `seed_default_knowledge()` to initialize `HybridSearchEngine` with default workspace document chunks.
+    * Wired `HybridSearchEngine`, `ToolRegistry`, and `PromptCompiler` directly into `BridgeEngine`.
+    * Integrated real dense + lexical BM25 retrieval into `BridgeRequest::SearchKnowledge`.
+    * Implemented dynamic wall-clock latency measurement (`std::time::Instant::now()`) in `BridgeRequest::ExecuteChat`.
+    * Implemented Stage 15 bridge requests: `ListMcpTools`, `GetSwarmStatus`, and `GetNpuBackends`.
+  - `GAP-REMEDIATION-4` [`VERIFIED` & `COMPLETED`]: Connected `PlatformController` to `RustBackendClient`:
+    * Added `listMemories()`, `storeMemory()`, `clearMemories()`, `runDoctor()`, `getTelemetry()`, and `unloadModel()` in `RustBackendClient`.
+    * Synchronized local privacy mode, model unloads, and cognitive memory lifecycle between Flutter UI and the Rust backend.
+    * Implemented monotonic sequence counter `_nextId` in `PlatformController` eliminating ID collision race conditions under rapid multi-turn chat execution.
+  - `MASTER-VERIFICATION` [`PASSED`]:
+    * Full Stage 10 Gate Verification (`scripts/verify_stage10.py`) passed unconditionally across all tiers (`overall_passed: true`).
+    * Rust workspace: 342 tests passing across all crates (`cargo test --workspace`), 0 clippy warnings, 0 fmt diffs.
+    * Python ML: 39 tests passing with 97.28% statement coverage (`uv run --group dev pytest`).
+    * Flutter cross-platform UI: 112 tests passing (`flutter test --coverage`) with 90.35% line coverage and 0 analyze issues.
+    * Security: 0 vulnerabilities across 98 scanned crates via `cargo audit`.
+    * Packaging: 8/8 release bundles verified for cryptographic SHA-256 integrity and CycloneDX v1.5 SBOM compliance.

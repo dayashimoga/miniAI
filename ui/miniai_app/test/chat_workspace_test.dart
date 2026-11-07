@@ -422,7 +422,8 @@ void main() {
       expect(find.byKey(const Key('model_readiness_banner')), findsNothing);
     });
 
-    test('Cognitive memory and arithmetic evaluation generate accurate responses', () async {
+    testWidgets('Cognitive memory and arithmetic evaluation generate accurate responses',
+        (WidgetTester tester) async {
       // 1. Math calculation
       await controller.sendMessage('calculate 25 * 48', delayTokens: false);
       final mathMsg = controller.currentMessages.last;

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import '../models/system_contracts.dart';
 import '../services/ipc_client.dart';
+import '../services/rust_backend_client.dart';
 import '../services/settings_store.dart';
 
 /// Reactive controller managing Local-Only Privacy Mode, CPU-first execution,
@@ -55,10 +56,14 @@ class PlatformController extends ChangeNotifier {
     ),
   ];
 
+  static int _idSequence = 0;
+  static String _nextId(String prefix) =>
+      '$prefix-${DateTime.now().microsecondsSinceEpoch}-${++_idSequence}';
+
   List<MemoryItemContract> get memories => List.unmodifiable(_memories);
 
   void storeMemory(String type, String content) {
-    final id = 'mem-${DateTime.now().microsecondsSinceEpoch}';
+    final id = _nextId('mem');
     final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
     _memories.add(
       MemoryItemContract(
@@ -87,11 +92,28 @@ class PlatformController extends ChangeNotifier {
 
   void clearMemories() {
     _memories.clear();
+    _backendClient.clearMemories();
     _recordEvent(
       eventType: 'memory_erased_all',
       payload: {'status': 'cleared'},
     );
     notifyListeners();
+  }
+
+  final RustBackendClient _backendClient = RustBackendClient();
+  RustBackendClient get backendClient => _backendClient;
+
+  bool _allowVerifiedModelDownloads = false;
+  bool get allowVerifiedModelDownloads => _allowVerifiedModelDownloads;
+
+  void setAllowVerifiedModelDownloads(bool allow) {
+    _allowVerifiedModelDownloads = allow;
+    notifyListeners();
+  }
+
+  void allowVerifiedModelDownload(String modelId) {
+    _allowVerifiedModelDownloads = true;
+    startDownload(modelId);
   }
 
   bool _isGenerating = false;
@@ -325,7 +347,9 @@ class PlatformController extends ChangeNotifier {
 
   void startDownload(String modelId) {
     final manifest = _models.firstWhere((m) => m.modelId == modelId);
-    if (_localOnlyMode && manifest.sourceUrl.startsWith('http')) {
+    if (_localOnlyMode &&
+        manifest.sourceUrl.startsWith('http') &&
+        !_allowVerifiedModelDownloads) {
       _downloadProgress[modelId] = DownloadProgressItem(
         modelId: modelId,
         bytesDownloaded: 0,
@@ -523,6 +547,7 @@ class PlatformController extends ChangeNotifier {
         'message': _lastAuditMessage,
       },
     );
+    _backendClient.setPrivacyMode(enabled);
     _saveSettings();
     notifyListeners();
   }
@@ -1160,7 +1185,7 @@ class PlatformController extends ChangeNotifier {
 
   ChatSession createChatSession({String? title}) {
     final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-    final id = 'session-${DateTime.now().microsecondsSinceEpoch}';
+    final id = _nextId('session');
     final newSession = ChatSession(
       id: id,
       title: title ?? 'Chat #${_chatSessions.length + 1}',
@@ -1385,15 +1410,7 @@ class PlatformController extends ChangeNotifier {
       '${activeExecutionBackend.displayName}:',
     ];
 
-    if (ragHits != null && ragHits.isNotEmpty) {
-      final best = ragHits.first;
-      final snippetWords =
-          best.chunk.text.split(RegExp(r'\s+')).take(35).join(' ');
-      responseWords.addAll([
-        'Based', 'on', 'knowledge', 'grounding', '[${best.citationTag}]:',
-        ...snippetWords.split(RegExp(r'\s+')),
-      ]);
-    } else if (lower.contains('capabilit') ||
+    if (lower.contains('capabilit') ||
         lower.contains('what can you do') ||
         lower.contains('features')) {
       responseWords.addAll([
@@ -1426,6 +1443,23 @@ class PlatformController extends ChangeNotifier {
         'ceiling', 'before', 'loading', 'any', 'model.', 'When', 'accelerated', 'hardware',
         'is', 'exhausted', 'or', 'absent,', 'it', 'guarantees', 'deterministic', 'fallback',
         'to', 'CPU', 'baseline', 'execution.'
+      ]);
+      if (ragHits != null && ragHits.isNotEmpty) {
+        final best = ragHits.first;
+        final snippetWords =
+            best.chunk.text.split(RegExp(r'\s+')).take(35).join(' ');
+        responseWords.addAll([
+          'Based', 'on', 'knowledge', 'grounding', '[${best.citationTag}]:',
+          ...snippetWords.split(RegExp(r'\s+')),
+        ]);
+      }
+    } else if (ragHits != null && ragHits.isNotEmpty) {
+      final best = ragHits.first;
+      final snippetWords =
+          best.chunk.text.split(RegExp(r'\s+')).take(35).join(' ');
+      responseWords.addAll([
+        'Based', 'on', 'knowledge', 'grounding', '[${best.citationTag}]:',
+        ...snippetWords.split(RegExp(r'\s+')),
       ]);
     } else if (lower.startsWith('hi') ||
         lower.startsWith('hello') ||
@@ -1475,7 +1509,7 @@ class PlatformController extends ChangeNotifier {
           .substring('my name is '.length)
           .trim()
           .replaceAll('.', '');
-      final memId = 'mem-${DateTime.now().microsecondsSinceEpoch}';
+      final memId = _nextId('mem');
       final nowSecs = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
       _memories.add(
         MemoryItemContract(
@@ -1493,7 +1527,7 @@ class PlatformController extends ChangeNotifier {
     } else if (lower.startsWith('i prefer ')) {
       final pref =
           cleanPrompt.substring('i prefer '.length).trim().replaceAll('.', '');
-      final memId = 'mem-${DateTime.now().microsecondsSinceEpoch}';
+      final memId = _nextId('mem');
       final nowSecs = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
       _memories.add(
         MemoryItemContract(
@@ -1537,7 +1571,7 @@ class PlatformController extends ChangeNotifier {
     }
 
     final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-    final userMsgId = 'msg-${DateTime.now().microsecondsSinceEpoch}-user';
+    final userMsgId = _nextId('msg-user');
     final userWordCount = trimmed.split(RegExp(r'\s+')).length;
     final userMsg = ChatMessage(
       id: userMsgId,
@@ -1564,7 +1598,7 @@ class PlatformController extends ChangeNotifier {
     final manifest =
         _models.where((m) => m.modelId == targetModel).firstOrNull;
     if (manifest != null && !testMemoryAdmission(manifest.minRamBytes)) {
-      final errorMsgId = 'msg-${DateTime.now().microsecondsSinceEpoch}-error';
+      final errorMsgId = _nextId('msg-error');
       final errorMsg = ChatMessage(
         id: errorMsgId,
         sessionId: _activeSessionId!,
@@ -1589,8 +1623,7 @@ class PlatformController extends ChangeNotifier {
       matchedCitations = ragHits.map((h) => h.citationTag).toList();
     }
 
-    final assistantMsgId =
-        'msg-${DateTime.now().microsecondsSinceEpoch}-assistant';
+    final assistantMsgId = _nextId('msg-assistant');
     final assistantMsg = ChatMessage(
       id: assistantMsgId,
       sessionId: _activeSessionId!,
@@ -2066,17 +2099,17 @@ class PlatformController extends ChangeNotifier {
     'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an',
     'and', 'any', 'are', 'as', 'at', 'be', 'because', 'been', 'before', 'being',
     'below', 'between', 'both', 'but', 'by', 'can', 'did', 'do', 'does', 'doing',
-    'down', 'during', 'each', 'few', 'for', 'from', 'further', 'had', 'has',
-    'have', 'having', 'he', 'her', 'here', 'hers', 'herself', 'him', 'himself',
-    'his', 'how', 'i', 'if', 'in', 'into', 'is', 'it', 'its', 'itself', 'just',
-    'me', 'more', 'most', 'my', 'myself', 'no', 'nor', 'not', 'now', 'of', 'off',
-    'on', 'once', 'only', 'or', 'other', 'our', 'ours', 'ourselves', 'out',
-    'over', 'own', 'same', 'she', 'should', 'so', 'some', 'such', 'than', 'that',
-    'the', 'their', 'theirs', 'them', 'themselves', 'then', 'there', 'these',
-    'they', 'this', 'those', 'through', 'to', 'too', 'under', 'until', 'up',
-    'very', 'was', 'we', 'were', 'what', 'when', 'where', 'which', 'while',
-    'who', 'whom', 'why', 'will', 'with', 'you', 'your', 'yours', 'yourself',
-    'yourselves'
+    'down', 'during', 'each', 'explain', 'few', 'for', 'from', 'further', 'give',
+    'had', 'has', 'have', 'having', 'he', 'help', 'her', 'here', 'hers', 'herself',
+    'him', 'himself', 'his', 'how', 'i', 'if', 'in', 'into', 'is', 'it', 'its',
+    'itself', 'just', 'me', 'more', 'most', 'my', 'myself', 'no', 'nor', 'not',
+    'now', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'our', 'ours',
+    'ourselves', 'out', 'over', 'own', 'please', 'same', 'she', 'should', 'show',
+    'so', 'some', 'such', 'tell', 'than', 'that', 'the', 'their', 'theirs',
+    'them', 'themselves', 'then', 'there', 'these', 'they', 'this', 'those',
+    'through', 'to', 'too', 'under', 'until', 'up', 'very', 'was', 'we', 'were',
+    'what', 'when', 'where', 'which', 'while', 'who', 'whom', 'why', 'will',
+    'with', 'work', 'works', 'you', 'your', 'yours', 'yourself', 'yourselves'
   };
 
   List<RetrievalResultItem> searchKnowledge(String query, {int limit = 5, double minRelevanceThreshold = 0.01}) {
@@ -2108,6 +2141,9 @@ class PlatformController extends ChangeNotifier {
 
       if (matchCount > 0) {
         final lexicalScore = matchCount / terms.length;
+        if (terms.length > 1 && matchCount < 2 && lexicalScore < 0.4) {
+          continue;
+        }
         final denseScore = 0.50 + (0.50 * lexicalScore);
         final rrfScore = (0.5 / (60.0 + (1.0 / lexicalScore))) + (0.5 / (60.0 + (1.0 / denseScore)));
 

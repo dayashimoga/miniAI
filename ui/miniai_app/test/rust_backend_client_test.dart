@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:miniai_app/src/controllers/platform_controller.dart';
 import 'package:miniai_app/src/services/rust_backend_client.dart';
 
 void main() {
@@ -31,11 +32,64 @@ void main() {
       final chat = await client.executeChat(
         sessionId: 'session-test',
         prompt: 'what is adventure',
+        modelId: 'llama-3.2-1b-instruct-q4',
       );
       expect(chat['status'], 'ok');
 
-      final rag = await client.searchKnowledge('AdmissionGuard');
+      final rag = await client.searchKnowledge('AdmissionGuard', limit: 3);
       expect(rag, isNotEmpty);
+    });
+
+    test('exercises listModels, memory operations, doctor, telemetry, and unloadModel', () async {
+      final models = await client.listModels();
+      expect(models, isEmpty);
+
+      final memories = await client.listMemories();
+      expect(memories.containsKey('semantic_facts'), isTrue);
+
+      final stored = await client.storeMemory(
+        memoryType: 'preference',
+        content: 'Prefers dark mode',
+        metadata: {'category': 'ui'},
+      );
+      expect(stored['id'], 'mem-local');
+
+      final cleared = await client.clearMemories();
+      expect(cleared['status'], 'cleared');
+
+      final doctor = await client.runDoctor();
+      expect(doctor['overall_status'], 'healthy');
+
+      final telemetry = await client.getTelemetry();
+      expect(telemetry.containsKey('total_chat_requests'), isTrue);
+
+      final unloaded = await client.unloadModel(modelId: 'test-model');
+      expect(unloaded['status'], 'unloaded');
+    });
+
+    test('PlatformController memory, verified download, and backendClient integration', () {
+      final controller = PlatformController();
+      expect(controller.backendClient, isNotNull);
+      expect(controller.allowVerifiedModelDownloads, isFalse);
+
+      controller.setAllowVerifiedModelDownloads(true);
+      expect(controller.allowVerifiedModelDownloads, isTrue);
+
+      final initialMemoriesCount = controller.memories.length;
+      controller.storeMemory('fact', 'User resides in Paris');
+      expect(controller.memories.length, initialMemoriesCount + 1);
+
+      final addedMemory = controller.memories.last;
+      expect(addedMemory.content, 'User resides in Paris');
+
+      controller.deleteMemory(addedMemory.id);
+      expect(controller.memories.length, initialMemoriesCount);
+
+      controller.clearMemories();
+      expect(controller.memories, isEmpty);
+
+      controller.allowVerifiedModelDownload('llama-3.2-1b-instruct-q4');
+      expect(controller.allowVerifiedModelDownloads, isTrue);
     });
   });
 }

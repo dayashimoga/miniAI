@@ -1248,3 +1248,15 @@
   - Upgraded RAG context grounding and answer synthesis in `PlatformController.sendMessage()`: passed citation content to generator and replaced canned 25-word template with rich, topic-specific explanations, math evaluations, and multi-turn memory recall.
   - Updated `scripts/package_release.py` to package compiled `miniai-daemon.exe` and `miniai-daemon` binaries.
   - Verified 100% test pass rate across Rust workspace (326/326), Flutter UI (110/110), and Python ML (39/39).
+
+
+---
+
+## [2026-11-07T21:00:00+05:30] — Production Audit Remediation & Deep Forensic Fixes Phase 2 (v2.0.2)
+- **Action:** `FEATURE` & `REMEDIATION_VERIFIED`
+- **Summary:**
+  - Resolved RAG priority ordering and false-positive citation hijacking in `PlatformController`: general and capabilities queries are prioritized directly, while knowledge search requires content-relevance filtering.
+  - Decoupled verified public model downloads from outbound cloud inference restrictions: implemented `allowVerifiedModelDownloads` and `setAllowVerifiedModelDownloads` on `PlatformController` and wired 1-click download permission in `ModelManagerScreen`.
+  - Integrated `HybridSearchEngine` (dense + BM25), `ToolRegistry`, and `PromptCompiler` directly into `crates/miniai-bridge`, added dynamic wall-clock latency measurement (`Instant::now()`) in `ExecuteChat`, and implemented Stage 15 bridge requests (`ListMcpTools`, `GetSwarmStatus`, `GetNpuBackends`).
+  - Extended `RustBackendClient` with memory operations (`listMemories`, `storeMemory`, `clearMemories`), diagnostics (`runDoctor`), telemetry (`getTelemetry`), and model unloads (`unloadModel`), and wired monotonic sequence IDs in `PlatformController` to prevent rapid message collision race conditions.
+  - Verified 100% test pass rate across all tiers: Rust workspace (342/342), Flutter cross-platform UI (112/112, 90.35% line coverage), Python ML (39/39, 97.28% statement coverage), and master Stage 10 verification (`scripts/verify_stage10.py`).

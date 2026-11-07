@@ -63,6 +63,15 @@ pub enum BridgeRequest {
 
     #[serde(rename = "clear_memories")]
     ClearMemories,
+
+    #[serde(rename = "list_mcp_tools")]
+    ListMcpTools,
+
+    #[serde(rename = "get_swarm_status")]
+    GetSwarmStatus,
+
+    #[serde(rename = "get_npu_backends")]
+    GetNpuBackends,
 }
 
 fn default_audit_limit() -> usize {

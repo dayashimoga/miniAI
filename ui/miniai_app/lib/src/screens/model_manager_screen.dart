@@ -272,6 +272,7 @@ class _ModelManagerScreenState extends State<ModelManagerScreen> {
                         TextButton(
                           key: Key('allow_download_${model.modelId}'),
                           onPressed: () {
+                            controller.setAllowVerifiedModelDownloads(true);
                             controller.setLocalOnlyMode(false);
                             controller.startDownload(model.modelId);
                           },

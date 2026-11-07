@@ -92,4 +92,3 @@ fn test_musical_scale_parsing() {
     assert_eq!(MusicalScale::from_name("D Dorian"), MusicalScale::DDorian);
     assert_eq!(MusicalScale::from_name("unknown"), MusicalScale::CMajor);
 }
-

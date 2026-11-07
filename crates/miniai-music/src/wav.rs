@@ -89,4 +89,3 @@ impl WavEncoder {
         Ok((sample_rate, num_channels, bits_per_sample, data_len))
     }
 }
-

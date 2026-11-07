@@ -695,3 +695,20 @@
   - Implemented `SoundStudioScreen` in `ui/miniai_app/lib/src/screens/sound_studio_screen.dart` featuring dual tabs: Speech & Voice Loop and Music Studio & Soundstage.
   - Added Tab 9 ('Sound') to `NavigationRail` and `NavigationBar` in `ShellScreen`.
   - Authored `ui/miniai_app/test/sound_studio_test.dart` with 14 comprehensive tests, achieving 71/71 Flutter tests passing with **91.62%** line coverage and 0 analyzer issues.
+
+
+---
+
+## [2026-11-07T07:50:00+05:30] — Stage 7 Master Gate Release (`v0.7.0`)
+- **Action:** `STAGE_GATE_VERIFIED`
+- **Stage:** `Stage 7 — Speech, Audio, TTS, ASR, Voice & Music`
+- **Release Version:** `v0.7.0`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, python 3.14.0, flutter 3.32.0-0.2.pre)
+- **Summary:**
+  - Implemented `crates/miniai-speech-asr` workspace crate with `#![forbid(unsafe_code)]`, `AudioSanitizer` (WAV PCM/float, FLAC, OGG; channels $1..=8$; sample rate $8\text{ kHz}..=192\text{ kHz}$; duration $\le 600\text{s}$; size $\le 25\text{ MB}$; SHA-256 calculation), `AudioResampler` (channel downmix, linear interpolation resampling to $16\text{ kHz}$ mono float32, RMS normalization), `VadEngine` (30ms STE energy, zero-crossing rate, adaptive noise floor estimation, hangover smoothing), `SpeechAsrEngine` (subband acoustic energy mapping to phonetic tokens/subwords, timestamped segments and words), and `SpeechAsrAdapter` (`Modality::SpeechAsr` on CPU with SHA-256 weights loading verification).
+  - Implemented `crates/miniai-speech-tts` workspace crate with `#![forbid(unsafe_code)]`, `WavEncoder` (lossless 16-bit signed PCM mono audio at 22.05 kHz / 24 kHz with sample clipping clamping), `TextNormalizer` ($\le 4096$ chars per segment, number expansion up to 999,999, symbol expansion, phonetic tokenization), `SpeechTtsEngine` (6 preset voice profiles: `Alloy`, `Echo`, `Fable`, `Onyx`, `Nova`, `Shimmer`, 3-formant resonance model $F_1, F_2, F_3$, harmonic overtones, filtered noise for unvoiced consonants, plosive bursts, ADSR envelope shaping, and soft saturation limiter), `SpeechTtsAdapter` (`Modality::SpeechTts` on CPU), and `VoiceConversationLoop` (`ASR -> LLM -> TTS` offline voice loop with granular latency profiling: ASR, LLM TTFT, LLM total, TTS, total roundtrip, and cooperative cancellation).
+  - Implemented `crates/miniai-music` workspace crate with `#![forbid(unsafe_code)]`, `MusicalScale` (`C Major`, `A Minor`, `G Major`, `E Minor`, `D Dorian`, chord triads), `WavEncoder` (mono and stereo 16-bit PCM WAV encoding), `MusicGenEngine` (polyphonic 4-track acoustic synthesizer: bassline, stereo harmony pad triads, melody lead arpeggios with vibrato, rhythm kick/snare/hi-hat percussion, stereo soundstage spatializer, and soft limiter), and `MusicAdapter` (`Modality::Music` on CPU).
+  - Implemented Flutter Sound Studio in `ui/miniai_app` featuring `SoundStudioScreen` as Tab 9 in `ShellScreen` across desktop `NavigationRail` and mobile `NavigationBar` with dual tabs: Speech & Voice Loop (ASR transcription, Neural TTS voice controls, live conversation turn timeline with latency breakdown chips) and Music Studio & Soundstage (prompt, tempo BPM 40-240, duration 1-120s, scale key, stereo switch, soundstage waveform cards, music library gallery).
+  - Formally recorded and accepted `ADR-012` in `ADR.md`.
+  - Verified 235/235 Rust workspace tests passing (0 clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% statement coverage, 0 governance errors), 71/71 Flutter UI tests passing (91.62% line coverage, 0 analyzer issues), and received unanimous unconditional `PASS` audit sign-offs from both `independent-qa-auditor` and `arch-security-reviewer`.
+  - Deterministic verification evidence persisted in `docs/STAGE_7_VERIFICATION_REPORT.json`.

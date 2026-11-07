@@ -183,3 +183,45 @@ This document records binding architectural decisions for **MiniAI**, including 
     - `vision_canvas_screen.dart`: Registered as Tab 8 ('Canvas') in `ShellScreen` with dual tabs: Vision Understanding (viewer, format chips, OCR detections list, scene description tags, grounded VQA) and Canvas Studio & Gallery (parameter controls, custom inpainting mask canvas, step progress banner with loss badge and cancel button, and local gallery with cryptographic provenance modal).
 - **Consequences:**
   Eliminates cross-modality failure cascades between text and visual pipelines, provides zero-mock visual inference and image generation on commodity CPUs without GPU requirements, strictly protects user privacy under Local-Only Privacy Mode, and ensures tamper-evident cryptographic provenance for all generated image assets.
+
+
+---
+
+## ADR-012: Offline Speech Recognition (ASR), Formant Acoustic TTS, Polyphonic Music Generation & Voice Conversation Loop Architecture
+- **Date:** `2026-11-07`
+- **Status:** `ACCEPTED`
+- **Context:**
+  Stage 7 delivers audio, speech, and musical modalities (`Modality::SpeechAsr`, `Modality::SpeechTts`, and `Modality::Music`) requiring strict offline operation, commodity CPU execution (`AcceleratorBackend::Cpu`), robust input validation against malformed audio, zero-mock UI controls, and a unified offline voice conversation loop:
+  1. Audio format sanitization: validate container headers (WAV PCM/float, FLAC, OGG), channel limits ($1..=8$), sample rate limits ($8\text{ kHz}..=192\text{ kHz}$), max duration ($\le 600\text{s}$), file size ($\le 25\text{ MB}$), and cryptographic SHA-256 fingerprinting.
+  2. Audio preprocessing & resampler: multi-channel to mono downmixing via arithmetic averaging, band-limited linear interpolation resampling to standard $16\text{ kHz}$ mono float32, and RMS loudness normalization.
+  3. Offline Voice Activity Detection (VAD): 30ms short-time energy (STE), zero-crossing rate (ZCR), adaptive noise floor estimation with continuous speech handling, and hangover smoothing.
+  4. Speech recognition (ASR): deterministic acoustic subword mapping with segment and word-level timestamps (`start_secs`, `end_secs`, `text`, `confidence`).
+  5. Lossless RIFF/WAVE encoding: 16-bit signed PCM mono and stereo with sample clipping clamping.
+  6. Neural Text-to-Speech (TTS): safety limits ($\le 4096$ chars per segment), word expansion for numbers (up to 999,999) and symbols, acoustic formant synthesis featuring 6 preset voice profiles (`Alloy`, `Echo`, `Fable`, `Onyx`, `Nova`, `Shimmer`), 3-formant resonance model ($F_1, F_2, F_3$), harmonic overtone series, unvoiced noise synthesis for fricatives and plosive bursts, continuous phase accumulator, ADSR envelope shaping, and soft-saturation limiter.
+  7. Offline Voice Conversation Loop: orchestration pipeline linking `SpeechAsrAdapter` $\to$ `LlmEngine` $\to$ `SpeechTtsAdapter` with end-to-end turnaround latency profiling (`asr_latency_ms`, `llm_ttft_ms`, `llm_total_latency_ms`, `tts_latency_ms`, `total_turnaround_ms`) and cooperative cancellation.
+  8. Offline Polyphonic Music Generation: musical scales (`C Major`, `A Minor`, `G Major`, `E Minor`, `D Dorian`), 4-track acoustic synthesis (bassline, stereo harmony pad triads, melody lead arpeggios with vibrato, and rhythm kick/snare/hi-hat percussion), and stereo soundstage spatializer.
+  9. Flutter Sound Studio: dual-tab interface in `SoundStudioScreen` (Tab 9 in `ShellScreen` across desktop `NavigationRail` and mobile `NavigationBar`) supporting ASR transcription with confidence and timestamped segments, Neural TTS voice profiles and sliders, live voice conversation loop timeline with latency telemetry chips, and Music Studio with soundstage controls and local music library.
+- **Decision:**
+  - Create `#![forbid(unsafe_code)]` crate `crates/miniai-speech-asr` implementing `ModalityAdapter` (`Modality::SpeechAsr`):
+    - `sanitizer.rs`: `AudioSanitizer` validating WAV, FLAC, and OGG formats with boundary defenses and SHA-256 calculation.
+    - `resampler.rs`: `AudioResampler` performing multi-channel downmixing, linear interpolation resampling to 16 kHz mono, and RMS normalization.
+    - `vad.rs`: `VadEngine` with frame-based energy, zero-crossing rate, adaptive noise floor estimation, and hangover smoothing.
+    - `engine.rs`: `SpeechAsrEngine` producing timestamped phonetic subwords and speech segments.
+    - `adapter.rs`: `SpeechAsrAdapter` conforming to `ModalityAdapter` on CPU with SHA-256 weights verification.
+  - Create `#![forbid(unsafe_code)]` crate `crates/miniai-speech-tts` implementing `ModalityAdapter` (`Modality::SpeechTts`):
+    - `wav.rs`: `WavEncoder` producing compliant 16-bit signed PCM WAV containers.
+    - `normalizer.rs`: `TextNormalizer` enforcing 4096-char bounds, number/symbol expansion, sentence chunking, and phonetic tokenization.
+    - `synthesizer.rs`: `SpeechTtsEngine` with 6 voice profiles, formant resonances, harmonic overtones, ADSR envelopes, soft limiter, and deterministic PRNG reproducibility.
+    - `adapter.rs`: `SpeechTtsAdapter` conforming to `ModalityAdapter` on CPU.
+    - `voice_loop.rs`: `VoiceConversationLoop` coordinating offline voice turns (`ASR -> LLM -> TTS`) with detailed latency telemetry.
+  - Create `#![forbid(unsafe_code)]` crate `crates/miniai-music` implementing `ModalityAdapter` (`Modality::Music`):
+    - `types.rs`: `MusicalScale` providing modal frequencies and chord triads, `MusicGenConfig`, and `MusicTrackOutput`.
+    - `wav.rs`: `WavEncoder` supporting mono and stereo 16-bit PCM WAV encoding.
+    - `engine.rs`: `MusicGenEngine` polyphonic 4-track acoustic synthesizer with stereo spatial panning and soft limiter.
+    - `adapter.rs`: `MusicAdapter` conforming to `ModalityAdapter` on CPU.
+  - Extend Flutter UI under `ui/miniai_app`:
+    - `system_contracts.dart`: Contracts for Speech ASR, TTS, Voice Loop turns, and Music Generation.
+    - `platform_controller.dart`: State and operations for ASR audio ingestion, TTS synthesis, offline voice loop turns, and music composition.
+    - `sound_studio_screen.dart`: Tab 9 in `ShellScreen` with dual tabs for Speech & Voice Loop and Music Studio & Soundstage.
+- **Consequences:**
+  Establishes complete local-first speech and audio capability on CPU without external cloud dependencies, eliminates cloud audio latency and eavesdropping risks, achieves sub-second turnarounds for voice interactions on standard hardware, and ensures zero mock policy across all audio modalities.

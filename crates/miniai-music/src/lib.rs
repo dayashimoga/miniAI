@@ -16,4 +16,3 @@ pub use engine::{MusicGenEngine, XorShift64};
 pub use error::MusicError;
 pub use types::*;
 pub use wav::WavEncoder;
-

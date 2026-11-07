@@ -33,4 +33,3 @@ pub enum MusicError {
     #[error("Music synthesis processing error: {0}")]
     Processing(String),
 }
-

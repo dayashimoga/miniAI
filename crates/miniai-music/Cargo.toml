@@ -1,0 +1,20 @@
+[package]
+name = "miniai-music"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "MiniAI Offline Polyphonic Music & Audio Synthesis runtime adapter"
+
+[dependencies]
+miniai-core = { path = "../miniai-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.17"
+miniai-speech-asr = { path = "../miniai-speech-asr" }
+

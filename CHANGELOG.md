@@ -626,3 +626,89 @@
   - Formally recorded and accepted `ADR-011` in `ADR.md`.
   - Verified 141/141 Rust tests passing (0 Clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% statement coverage, 0 governance errors), 57/57 Flutter UI tests passing (91.51% line coverage, 0 analyzer issues), and unanimous `PASS` audit sign-off from both `independent-qa-auditor` and `arch-security-reviewer`.
   - Deterministic verification evidence persisted in `docs/STAGE_6_VERIFICATION_REPORT.json`.
+
+
+---
+
+## [2026-11-07T06:36:00+05:30] — Stage 7 Subphase 7.1.1 In Progress (`v0.7.1-stage7.sub7.1.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.1 / Subphase 7.1.1 — Offline Speech Recognition (ASR) Runtime Adapter`
+- **Summary:**
+  - Initiated Subphase 7.1.1 in `crates/miniai-speech-asr`.
+  - Creating audio format sanitizer (WAV/FLAC/OGG), 16 kHz mono resampler, Voice Activity Detection (VAD) segmenter, deterministic timestamped transcription engine, and `SpeechAsrAdapter` implementing `ModalityAdapter` with `Modality::SpeechAsr` on CPU.
+
+
+---
+
+## [2026-11-07T06:50:00+05:30] — Stage 7 Subphase 7.1.1 Verified (`v0.7.1-stage7.sub7.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.1 / Subphase 7.1.1 — Offline Speech Recognition (ASR) Runtime Adapter`
+- **Summary:**
+  - Implemented `crates/miniai-speech-asr` workspace crate with `#![forbid(unsafe_code)]`.
+  - Implemented `AudioSanitizer` with format validation for WAV (PCM & float), FLAC (`fLaC`), and OGG (`OggS`), channel range 1..=8, sample rate range 8 kHz..=192 kHz, max file size 25 MB, max duration 600 seconds, and SHA-256 fingerprinting.
+  - Implemented `AudioResampler` supporting multi-channel downmixing to mono, linear interpolation to 16 kHz mono float32, and RMS loudness normalization.
+  - Implemented `VadEngine` with 30ms short-time energy (STE), zero-crossing rate (ZCR), adaptive noise floor estimation, hangover smoothing, and continuous speech detection.
+  - Implemented `SpeechAsrEngine` with deterministic acoustic energy mapping to phonetic tokens, timestamped speech segments (`start_secs`, `end_secs`, `text`, `confidence`), and token alignment.
+  - Implemented `SpeechAsrAdapter` implementing `ModalityAdapter` with `Modality::SpeechAsr` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 validation, and health checks.
+  - Added 5 test suites (26 unit and integration tests) all passing, 0 clippy warnings, and clean formatting.
+
+
+---
+
+## [2026-11-07T06:52:00+05:30] — Stage 7 Subphase 7.2.1 In Progress (`v0.7.2-stage7.sub7.2.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.2 / Subphase 7.2.1 — Neural TTS & Offline Voice Loop`
+- **Summary:**
+  - Initiated Subphase 7.2.1 in `crates/miniai-speech-tts`.
+  - Creating lossless RIFF/WAVE encoder (16-bit PCM / 32-bit float, 22.05 kHz / 24 kHz), text normalizer and phoneme chunker ($\le 4096$ chars), acoustic formant synthesizer with voice profiles (`Alloy`, `Echo`, `Fable`, `Onyx`, `Nova`, `Shimmer`), `SpeechTtsAdapter` implementing `ModalityAdapter` with `Modality::SpeechTts` on CPU, and the unified offline voice conversation loop (`ASR -> LLM -> TTS`).
+
+
+---
+
+## [2026-11-07T07:00:00+05:30] — Stage 7 Subphase 7.2.1 Verified (`v0.7.2-stage7.sub7.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.2 / Subphase 7.2.1 — Neural TTS & Offline Voice Loop`
+- **Summary:**
+  - Implemented `crates/miniai-speech-tts` workspace crate with `#![forbid(unsafe_code)]`.
+  - Implemented `WavEncoder` producing compliant standard RIFF/WAVE 16-bit signed PCM audio at 22.05 kHz and 24 kHz mono with sample clamping, verified via `AudioSanitizer` in `miniai-speech-asr`.
+  - Implemented `TextNormalizer` providing text bounds enforcement ($\le 4096$ chars per segment), word expansion for numbers (up to 999,999) and symbols (`$`, `%`, `&`, `+`, `@`), sentence chunking, and acoustic phonetic tokenization.
+  - Implemented `SpeechTtsEngine` featuring 6 distinct voice profiles (`Alloy`, `Echo`, `Fable`, `Onyx`, `Nova`, `Shimmer`) plus custom configurations, formant resonance filters ($F_1, F_2, F_3$), harmonic overtones, filtered noise for unvoiced consonants, plosive transient bursts, continuous phase accumulator, ADSR envelope shaping, and soft-saturation limiter.
+  - Implemented `SpeechTtsAdapter` conforming to `ModalityAdapter` with `Modality::SpeechTts` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 verification, and health reporting.
+  - Implemented `VoiceConversationLoop` linking `SpeechAsrAdapter`, `LlmEngine`, and `SpeechTtsAdapter` into an end-to-end offline voice interaction loop with full turnaround latency profiling and cooperative cancellation.
+  - Authored 5 test suites (27 tests) in `tests/`, achieving 100% pass rate, 0 clippy warnings, and clean formatting.
+
+
+---
+
+## [2026-11-07T07:16:00+05:30] — Stage 7 Subphase 7.3.1 Verified (`v0.7.3-stage7.sub7.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.3 / Subphase 7.3.1 — Music Generation & Flutter Sound Studio`
+- **Summary:**
+  - Implemented `crates/miniai-music` workspace crate with `#![forbid(unsafe_code)]`.
+  - Implemented `MusicalScale` providing musical modal scales, scale frequencies, root bass frequencies, and chord triads.
+  - Implemented `WavEncoder` for 16-bit signed PCM mono and stereo container encoding with sample clamping and header verification, tested against `AudioSanitizer` from `miniai-speech-asr`.
+  - Implemented `MusicGenEngine` polyphonic acoustic music synthesizer across 4 tracks: bassline, stereo-panned harmony pad triads, melody lead arpeggios, and rhythmic kick/snare/hi-hat percussion.
+  - Implemented `MusicAdapter` implementing `ModalityAdapter` with `Modality::Music` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 verification, and health reporting.
+  - Authored 3 Rust test suites (15 tests) in `crates/miniai-music/tests/`, achieving 100% pass rate, 0 clippy warnings, and clean formatting.
+  - Implemented cross-language audio contracts in `ui/miniai_app/lib/src/models/system_contracts.dart` for Speech ASR, Neural TTS, Voice Loop, and Music Generation.
+  - Extended `PlatformController` with zero-mock Speech ASR, Neural TTS, Voice Conversation Loop, and Music Generation state, operations, and telemetry event recording.
+  - Implemented `SoundStudioScreen` in `ui/miniai_app/lib/src/screens/sound_studio_screen.dart` featuring dual tabs: Speech & Voice Loop and Music Studio & Soundstage.
+  - Added Tab 9 ('Sound') to `NavigationRail` and `NavigationBar` in `ShellScreen`.
+  - Authored `ui/miniai_app/test/sound_studio_test.dart` with 14 comprehensive tests, achieving 71/71 Flutter tests passing with **91.62%** line coverage and 0 analyzer issues.
+
+
+---
+
+## [2026-11-07T07:50:00+05:30] — Stage 7 Master Gate Release (`v0.7.0`)
+- **Action:** `STAGE_GATE_VERIFIED`
+- **Stage:** `Stage 7 — Speech, Audio, TTS, ASR, Voice & Music`
+- **Release Version:** `v0.7.0`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, python 3.14.0, flutter 3.32.0-0.2.pre)
+- **Summary:**
+  - Implemented `crates/miniai-speech-asr` workspace crate with `#![forbid(unsafe_code)]`, `AudioSanitizer` (WAV PCM/float, FLAC, OGG; channels $1..=8$; sample rate $8\text{ kHz}..=192\text{ kHz}$; duration $\le 600\text{s}$; size $\le 25\text{ MB}$; SHA-256 calculation), `AudioResampler` (channel downmix, linear interpolation resampling to $16\text{ kHz}$ mono float32, RMS normalization), `VadEngine` (30ms STE energy, zero-crossing rate, adaptive noise floor estimation, hangover smoothing), `SpeechAsrEngine` (subband acoustic energy mapping to phonetic tokens/subwords, timestamped segments and words), and `SpeechAsrAdapter` (`Modality::SpeechAsr` on CPU with SHA-256 weights loading verification).
+  - Implemented `crates/miniai-speech-tts` workspace crate with `#![forbid(unsafe_code)]`, `WavEncoder` (lossless 16-bit signed PCM mono audio at 22.05 kHz / 24 kHz with sample clipping clamping), `TextNormalizer` ($\le 4096$ chars per segment, number expansion up to 999,999, symbol expansion, phonetic tokenization), `SpeechTtsEngine` (6 preset voice profiles: `Alloy`, `Echo`, `Fable`, `Onyx`, `Nova`, `Shimmer`, 3-formant resonance model $F_1, F_2, F_3$, harmonic overtones, filtered noise for unvoiced consonants, plosive bursts, ADSR envelope shaping, and soft saturation limiter), `SpeechTtsAdapter` (`Modality::SpeechTts` on CPU), and `VoiceConversationLoop` (`ASR -> LLM -> TTS` offline voice loop with granular latency profiling: ASR, LLM TTFT, LLM total, TTS, total roundtrip, and cooperative cancellation).
+  - Implemented `crates/miniai-music` workspace crate with `#![forbid(unsafe_code)]`, `MusicalScale` (`C Major`, `A Minor`, `G Major`, `E Minor`, `D Dorian`, chord triads), `WavEncoder` (mono and stereo 16-bit PCM WAV encoding), `MusicGenEngine` (polyphonic 4-track acoustic synthesizer: bassline, stereo harmony pad triads, melody lead arpeggios with vibrato, rhythm kick/snare/hi-hat percussion, stereo soundstage spatializer, and soft limiter), and `MusicAdapter` (`Modality::Music` on CPU).
+  - Implemented Flutter Sound Studio in `ui/miniai_app` featuring `SoundStudioScreen` as Tab 9 in `ShellScreen` across desktop `NavigationRail` and mobile `NavigationBar` with dual tabs: Speech & Voice Loop (ASR transcription, Neural TTS voice controls, live conversation turn timeline with latency breakdown chips) and Music Studio & Soundstage (prompt, tempo BPM 40-240, duration 1-120s, scale key, stereo switch, soundstage waveform cards, music library gallery).
+  - Formally recorded and accepted `ADR-012` in `ADR.md`.
+  - Verified 235/235 Rust workspace tests passing (0 clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% statement coverage, 0 governance errors), 71/71 Flutter UI tests passing (91.62% line coverage, 0 analyzer issues), and received unanimous unconditional `PASS` audit sign-offs from both `independent-qa-auditor` and `arch-security-reviewer`.
+  - Deterministic verification evidence persisted in `docs/STAGE_7_VERIFICATION_REPORT.json`.

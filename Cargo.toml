@@ -10,6 +10,9 @@ members = [
     "crates/miniai-rag",
     "crates/miniai-vision",
     "crates/miniai-imagegen",
+    "crates/miniai-speech-asr",
+    "crates/miniai-speech-tts",
+    "crates/miniai-music",
 ]
 
 [workspace.package]

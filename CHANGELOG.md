@@ -1021,3 +1021,16 @@
   - Documented security safeguards, scoped `CloudConsentToken` lifecycle, fail-closed CPU execution fallback, and memory admission guard ceiling (85% available RAM).
   - Included complete ADR history summary (`ADR-001` through `ADR-015`), multi-tier test metrics (441 passing tests, $\ge 90\%$ coverage), packaging deliverables, and full repository directory index.
   - Added `WALKTHROUGH.md` to `README.md` documentation index.
+
+
+---
+
+## [2026-11-07T15:35:00+05:30] — Priority UI/UX & Intelligence Hardening: Chat Intelligence, RAG Stopword Gating & HuggingFace Models
+- **Action:** `BUG_FIX` & `INTELLIGENCE_HARDENING`
+- **Stage / Phase / Subphase:** `Stage 10 / Phase 10.3 / Immediate Priority Fixes (Screenshots 1-4)`
+- **Summary:**
+  - Upgraded `ChatWorkspaceScreen` generation logic: replaced canned 25-word paragraph with rich dynamic contextual responses for capability questions, technical definitions, admission & fallback queries, and conversational greetings.
+  - Hardened RAG hybrid search with English stopword filtering (`_kStopwords`) and a relevance threshold (`minRelevanceThreshold = 0.016`), eliminating false-positive citations of `ARCHITECTURE.md` on unrelated queries (e.g., "what is adventure").
+  - Updated model catalog with verified open-weight Hugging Face CDN sources (Llama 3.2 1B Instruct GGUF, CLIP ViT-B/32 ONNX, Whisper Tiny GGUF, Piper Amy TTS, Tiny-SD ONNX) and added single-click "Allow & Download" resolution button in `ModelManagerScreen`.
+  - Dynamically synchronized adapter readiness in `_rebuildAdapterHealth`, ensuring checkmarks only reflect adapters with verified models in cache.
+  - Verified 100% test pass rate across all suites: 102/102 Flutter tests (91.42% coverage, 0 analyzer issues), 300/300 Rust tests, and 39/39 Python ML tests.

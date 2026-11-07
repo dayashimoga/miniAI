@@ -230,21 +230,49 @@ class _ModelManagerScreenState extends State<ModelManagerScreen> {
                 ],
               ),
             ] else if (isFailed) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      progress.errorMessage ?? 'Download failed',
-                      style: const TextStyle(color: Colors.red),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          progress.errorMessage ?? 'Download failed',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        key: Key('retry_download_${model.modelId}'),
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('Retry'),
+                        onPressed: () => controller.startDownload(model.modelId),
+                      ),
+                    ],
+                  ),
+                  if (controller.localOnlyMode) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.info_outline, size: 14, color: Colors.orange),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'To download verified open weights from HuggingFace, disable Local-Only Privacy Mode in the top header or allow download below.',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.orange),
+                          ),
+                        ),
+                        TextButton(
+                          key: Key('allow_download_${model.modelId}'),
+                          onPressed: () {
+                            controller.setLocalOnlyMode(false);
+                            controller.startDownload(model.modelId);
+                          },
+                          child: const Text('Allow & Download'),
+                        ),
+                      ],
                     ),
-                  ),
-                  ElevatedButton.icon(
-                    key: Key('retry_download_${model.modelId}'),
-                    icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text('Retry'),
-                    onPressed: () => controller.startDownload(model.modelId),
-                  ),
+                  ],
                 ],
               ),
             ] else ...[

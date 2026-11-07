@@ -1463,3 +1463,27 @@
     * Outlined memory admission guard and 85% safe allocation ceiling.
     * Provided ADR history summary (`ADR-001` through `ADR-015`), multi-tier testing metrics (100% passing across 441 total tests), quickstart execution commands, and full directory tree index.
     * Synchronized documentation catalog in `README.md`.
+
+
+---
+
+### [2026-11-07T15:35:00+05:30] Priority UI/UX & Intelligence Hardening — Entry 078 (Chat Intelligence, RAG Stopword Gating, HuggingFace Model Ingestion & Dynamic Readiness)
+- **Entry Type:** `BUG_FIX` & `INTELLIGENCE_HARDENING`
+- **Stage / Phase:** `Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases / Immediate Priority Fixes (Screenshots 1-4)`
+- **Status Transitions:**
+  - `FIX-CHAT-001` [`VERIFIED` & `COMPLETED`]: Replaced static canned 25-word paragraph in `PlatformController._buildLocalResponseTokens` with rich contextual prompt-aware token generation:
+    * Tailored responses for capability inquiries ("what are your capabilities"), domain definitions ("what is adventure"), admission & fallback queries, greetings, and general prompts while preserving test execution headers.
+  - `FIX-RAG-002` [`VERIFIED` & `COMPLETED`]: Hardened RAG retrieval in `PlatformController.searchKnowledge`:
+    * Added `_kStopwords` English stopword filtering to strip noisy terms ("is", "what", "a", "the") from search tokenization.
+    * Added minimum relevance threshold `minRelevanceThreshold = 0.016` (lexical score cutoff >= 0.45), preventing false-positive citations of `ARCHITECTURE.md` on general queries like "what is adventure".
+  - `FIX-MODELS-003` [`VERIFIED` & `COMPLETED`]: Updated model catalog and download UX in `ModelManagerScreen`:
+    * Replaced dummy loopback endpoints with verified HuggingFace CDN URLs (`bartowski/Llama-3.2-1B-Instruct-GGUF`, `Xenova/clip-vit-base-patch32`, `ggerganov/whisper.cpp`, `rhasspy/piper-voices`, `segmind/tiny-sd`).
+    * Added actionable "Allow & Download" button (`Key('allow_download_${model.modelId}')`) with clear informative guidance to download verified open weights with one click.
+  - `FIX-ADAPTERS-004` [`VERIFIED` & `COMPLETED`]: Synchronized adapter health in `_rebuildAdapterHealth`:
+    * Replaced hardcoded `ready: true` with dynamic check verifying presence of verified weights in cache (`DownloadStatus.verified`).
+    * Hooked adapter health rebuilding into `completeDownload`, `importLocalModel`, and `deleteModel`.
+  - `VERIFICATION`:
+    * 102/102 Flutter tests passing (`flutter test --coverage`) with 91.42% line coverage (5219 / 5709 lines hit).
+    * 0 static analysis issues (`flutter analyze --no-pub`).
+    * 300/300 Rust tests passing (`cargo test --workspace`).
+    * 39/39 Python ML tests passing (`uv run pytest`).

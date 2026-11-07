@@ -712,3 +712,37 @@
   - Formally recorded and accepted `ADR-012` in `ADR.md`.
   - Verified 235/235 Rust workspace tests passing (0 clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% statement coverage, 0 governance errors), 71/71 Flutter UI tests passing (91.62% line coverage, 0 analyzer issues), and received unanimous unconditional `PASS` audit sign-offs from both `independent-qa-auditor` and `arch-security-reviewer`.
   - Deterministic verification evidence persisted in `docs/STAGE_7_VERIFICATION_REPORT.json`.
+
+
+---
+
+## [2026-11-07T08:20:00+05:30] — Stage 8 Initiated & Subphase 8.1.1 In Progress (`v0.8.1-stage8.sub8.1.1.init`)
+- **Action:** `STAGE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.1 / Subphase 8.1.1 — Video Understanding & Frame Sampling Runtime Adapter`
+- **Summary:**
+  - Formally initiated Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines.
+  - Initiated Subphase 8.1.1 in `crates/miniai-video` with `#![forbid(unsafe_code)]`.
+  - Implementing `VideoSanitizer` (MP4/WebM container validation, resource safety bounds, path traversal protection, and SHA-256 calculation).
+  - Implementing `AudioDemuxer` for demuxing embedded audio streams for downstream Speech ASR processing.
+  - Implementing memory-bounded `FrameBufferPool` and `FrameExtractor` with uniform time sampling and scene-cut boundary detection.
+  - Implementing `VideoEngine` for temporal scene segmentation, action classification, video captioning, and grounded temporal VQA.
+  - Implementing `VideoAdapter` conforming to `ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`).
+
+
+---
+
+## [2026-11-07T09:35:00+05:30] — Stage 8 Subphase 8.1.1 Verified (`v0.8.2-stage8.sub8.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.1 / Subphase 8.1.1 — Video Understanding & Frame Sampling Runtime Adapter`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `crates/miniai-video` workspace crate with `#![forbid(unsafe_code)]`.
+  - Implemented `VideoSanitizer` supporting MP4 (`ftyp`), WebM (EBML), and RAWV containers with strict safety bounds ($\le 100\text{ MB}$, $\le 300\text{s}$, $\le 1920\times 1080$, $1..=60$ fps) and streaming SHA-256 verification.
+  - Implemented `FrameBufferPool` enforcing strict host memory budgets (default 64 MB) and recycling frame buffers to prevent heap fragmentation and host OOM.
+  - Implemented `AtomicWorkspaceManager` ensuring safe atomic cleanup of temporary extracted frame directories on drop or cancellation.
+  - Implemented `FrameExtractor` supporting uniform time sampling, scene cut detection via signature delta metrics, and adaptive keyframe extraction.
+  - Implemented `AudioDemuxer` extracting embedded video audio tracks into standard RIFF/WAVE 16-bit PCM bytes verified against `miniai-speech-asr::AudioSanitizer`.
+  - Implemented `VideoEngine` providing temporal scene segmentation, motion estimation, action classification, video summarization, and grounded temporal VQA with exact timestamps.
+  - Implemented `VideoAdapter` implementing `miniai_core::ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`).
+  - Authored 6 test suites (39 tests) in `crates/miniai-video/tests/`, achieving **91.65%** line coverage, 0 Clippy warnings, and 0 formatting diffs.
+  - Maintained 100% passing tests across all workspace crates (274 Rust tests, 39 Python tests, 71 Flutter tests).

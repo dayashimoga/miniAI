@@ -1059,3 +1059,40 @@
     - **Master Gate Verification & Governance:** Formally recorded and accepted `ADR-012` in `ADR.md`. Master verification harness `scripts/verify_stage7.py` generated `docs/STAGE_7_VERIFICATION_REPORT.json` (`overall_passed: true`). Verified 235/235 Rust workspace tests passing (0 clippy warnings, 0 fmt diffs), 39/39 Python ML tests passing (97.28% statement coverage, 0 governance errors), and 71/71 Flutter tests passing (91.62% line coverage, 0 analyze issues). Received unanimous unconditional **PASS** audit verdicts from both `independent-qa-auditor` and `arch-security-reviewer`.
   - `STAGE_8` [`PLANNED`]: Cleared to proceed to Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines.
 - **Next Step:** Commit, merge `develop` to `main`, create tag `v0.7.0`, push to `origin`, and prepare Stage 8 execution plan.
+
+
+---
+
+### [2026-11-07T08:20:00+05:30] Stage 8 — Entry 057 (Stage 8 Initiated & Subphase 8.1.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.1 — Video Frame Sampling & Temporal Understanding / Subphase 8.1.1`
+- **Status Transitions:**
+  - `STAGE_8` [`IN_PROGRESS`]: Formally initiated Stage 8 (Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines).
+  - `S8-P1-SUB8.1.1` [`IN_PROGRESS`]: Commenced implementation of Video Understanding & Frame Sampling Runtime Adapter in `crates/miniai-video`:
+    - Creating workspace crate `crates/miniai-video` with `#![forbid(unsafe_code)]` and adding to root `Cargo.toml`.
+    - Implementing `VideoSanitizer` (container validation for MP4 `ftyp` and WebM EBML headers, file size $\le 100\text{ MB}$, duration $\le 300\text{s}$, resolution bounds $\le 1920\times 1080$, frame rate $1..=60$ fps, path traversal checks, and streaming SHA-256 fingerprinting).
+    - Implementing `AudioDemuxer` (extracting embedded audio stream from video containers, formatting audio track into PCM WAV for seamless interoperability with `miniai-speech-asr`).
+    - Implementing `FrameBufferPool` and `FrameExtractor` (memory-bounded frame buffer pool preventing OOM, uniform interval sampling, scene-change boundary detection via RGB histogram/luminance deltas, and atomic cleanup of temp artifacts).
+    - Implementing `VideoEngine` (temporal scene segmentation, optical flow / motion delta estimation, action classification, temporal scene captioning, and grounded temporal VQA with start/end timestamps).
+    - Implementing `VideoAdapter` implementing `miniai_core::ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 verification, and health reporting.
+    - Authoring comprehensive unit, boundary, and contract test suites in `crates/miniai-video/tests/`.
+- **Next Step:** Implement crate files and test suites in `crates/miniai-video`.
+
+
+---
+
+### [2026-11-07T09:35:00+05:30] Stage 8 — Entry 058 (Subphase 8.1.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.1 — Video Frame Sampling & Temporal Understanding / Subphase 8.1.1`
+- **Status Transitions:**
+  - `S8-P1-SUB8.1.1` [`VERIFIED`]: Successfully implemented and verified Video Understanding & Frame Sampling Runtime Adapter in `crates/miniai-video`:
+    - Created `crates/miniai-video` workspace crate with `#![forbid(unsafe_code)]`.
+    - Implemented `VideoSanitizer`: container magic checks for MP4 (`ftyp` boxes with major brands `isom`, `avc1`, `hvc1`, `av01`, `vp09`), WebM (EBML header `[0x1A, 0x45, 0xDF, 0xA3]`, `VP8`, `VP9`, `AV1`, `Vorbis`, `Opus`), and RAWV containers; enforced safety bounds ($\le 100\text{ MB}$ file size, $\le 300\text{s}$ duration, $\le 1920\times 1080$ resolution, $1.0..=60.0$ fps); calculated deterministic streaming SHA-256 digests.
+    - Implemented `FrameBufferPool`: strictly bounded memory pool preventing host OOM during video processing, reusable frame buffers with capacity tracking, peak byte telemetry, and `shrink_to_fit`.
+    - Implemented `AtomicWorkspaceManager`: RAII-managed temporary frame workspace directory creation with automatic cleanup on `Drop` and explicit `cleanup()`.
+    - Implemented `FrameExtractor`: memory-bounded frame sampling across uniform interval, uniform duration, scene boundary change detection (via downsampled frame signatures and normalized L1 pixel difference), and adaptive dynamic sampling with keyframe count cap.
+    - Implemented `AudioDemuxer`: demuxes embedded audio tracks from video containers into standard 16-bit PCM WAV containers, verified directly against `miniai-speech-asr::AudioSanitizer` for seamless cross-modality speech transcription.
+    - Implemented `VideoEngine`: temporal scene segmentation (`EstablishingShot`, `DynamicAction`, `DialogueCloseUp`, `LandscapePan`, `InteriorDetail`), optical flow and motion delta calculation, temporal action detection (`CameraPan`, `RapidMotion`, `SceneTransition`, `StaticHold`), coherent narrative summarization, and grounded temporal Video QA answering queries with exact start and end timestamps.
+    - Implemented `VideoAdapter`: implements `miniai_core::ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`), weights loading with cryptographic SHA-256 verification, and health reporting.
+    - Authored 39 unit, boundary, integration, and contract tests across 6 test suites (`sanitizer_tests.rs`, `buffer_pool_tests.rs`, `demuxer_tests.rs`, `extractor_tests.rs`, `engine_and_adapter_tests.rs`, `coverage_boost_tests.rs`), achieving **91.65%** line coverage on `miniai-video` and 0 Clippy warnings.
+- **Next Subphase Ready:** `S8-P2-SUB8.2.1` (Phase 8.2: Video Synthesis & Multimodal DAG Workflows / Subphase 8.2.1: Local prompt/image-to-video adapter and composable media pipeline orchestrator chaining LLM, Image, TTS, Music, and Video adapters).

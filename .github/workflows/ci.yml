@@ -62,6 +62,18 @@ jobs:
       - name: Run Rust unit & contract tests
         run: cargo test --workspace
 
+      - name: Build Rust release binaries
+        run: cargo build --workspace --release
+
+      - name: Upload Rust miniai-server binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-server-${{ matrix.os }}
+          path: |
+            target/release/miniai-server*
+            !target/release/miniai-server*.d
+            !target/release/miniai-server*.pdb
+
   flutter-desktop-and-tests:
     name: Flutter UI & Desktop (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -104,6 +116,63 @@ jobs:
         working-directory: ui/miniai_app
         run: flutter test --coverage --reporter=expanded
 
+      # --- Real Desktop Binary Compilation & Artifact Uploads ---
+
+      - name: Build Flutter Linux Desktop
+        if: runner.os == 'Linux'
+        working-directory: ui/miniai_app
+        run: flutter build linux --release
+
+      - name: Archive Linux Desktop Bundle
+        if: runner.os == 'Linux'
+        run: |
+          tar -czvf miniai-linux-x86_64.tar.gz -C ui/miniai_app/build/linux/x64/release/bundle .
+
+      - name: Upload Linux Desktop Artifact
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-desktop-linux-x86_64
+          path: miniai-linux-x86_64.tar.gz
+          if-no-files-found: error
+
+      - name: Build Flutter Windows Desktop
+        if: runner.os == 'Windows'
+        working-directory: ui/miniai_app
+        run: flutter build windows --release
+
+      - name: Archive Windows Desktop Bundle
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path ui/miniai_app/build/windows/x64/runner/Release/* -DestinationPath miniai-windows-x86_64.zip
+
+      - name: Upload Windows Desktop Artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-desktop-windows-x86_64
+          path: miniai-windows-x86_64.zip
+          if-no-files-found: error
+
+      - name: Build Flutter macOS Desktop
+        if: runner.os == 'macOS'
+        working-directory: ui/miniai_app
+        run: flutter build macos --release
+
+      - name: Archive macOS Desktop Bundle
+        if: runner.os == 'macOS'
+        run: |
+          tar -czvf miniai-macos-universal.tar.gz -C ui/miniai_app/build/macos/Build/Products/Release miniai_app.app
+
+      - name: Upload macOS Desktop Artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-desktop-macos-universal
+          path: miniai-macos-universal.tar.gz
+          if-no-files-found: error
+
   flutter-android:
     name: Flutter Android Target (ubuntu-latest)
     runs-on: ubuntu-latest
@@ -131,6 +200,30 @@ jobs:
           flutter analyze --no-pub
           flutter test --reporter=expanded
 
+      # --- Real Android APK & AAB Compilation & Artifact Uploads ---
+
+      - name: Build Android Release APK
+        working-directory: ui/miniai_app
+        run: flutter build apk --release
+
+      - name: Build Android App Bundle (AAB)
+        working-directory: ui/miniai_app
+        run: flutter build appbundle --release
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-android-apk
+          path: ui/miniai_app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+      - name: Upload Android AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-android-aab
+          path: ui/miniai_app/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
   flutter-ios:
     name: Flutter iOS Target (macos-latest)
     runs-on: macos-latest
@@ -151,4 +244,24 @@ jobs:
           flutter pub get
           flutter analyze --no-pub
           flutter test --reporter=expanded
+
+      # --- Real iOS App Bundle & Unsigned IPA Packaging ---
+
+      - name: Build iOS Application (Unsigned)
+        working-directory: ui/miniai_app
+        run: flutter build ios --no-codesign --release
+
+      - name: Package Unsigned iOS IPA
+        working-directory: ui/miniai_app
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -r miniai-ios-unsigned.ipa Payload
+
+      - name: Upload iOS IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-ios-unsigned-ipa
+          path: ui/miniai_app/miniai-ios-unsigned.ipa
+          if-no-files-found: error
 

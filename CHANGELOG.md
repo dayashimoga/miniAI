@@ -1034,3 +1034,22 @@
   - Updated model catalog with verified open-weight Hugging Face CDN sources (Llama 3.2 1B Instruct GGUF, CLIP ViT-B/32 ONNX, Whisper Tiny GGUF, Piper Amy TTS, Tiny-SD ONNX) and added single-click "Allow & Download" resolution button in `ModelManagerScreen`.
   - Dynamically synchronized adapter readiness in `_rebuildAdapterHealth`, ensuring checkmarks only reflect adapters with verified models in cache.
   - Verified 100% test pass rate across all suites: 102/102 Flutter tests (91.42% coverage, 0 analyzer issues), 300/300 Rust tests, and 39/39 Python ML tests.
+
+
+---
+
+## [2026-11-07T15:45:00+05:30] — CI/CD Multi-OS Artifact Pipeline Activation: Real Desktop & Mobile Builds
+- **Action:** `FEATURE` & `CI_HARDENING`
+- **Stage / Phase / Subphase:** `Stage 12 / CI/CD Multi-OS Artifact Pipeline Activation`
+- **Summary:**
+  - Generated native platform project scaffolding under `ui/miniai_app/` for Windows, Linux, macOS, Android (Kotlin + Gradle KTS), and iOS (Swift + Xcode), enabling direct compiler invocations.
+  - Updated `.github/workflows/ci.yml` with `actions/upload-artifact@v4` to automatically compile and upload real testable binary packages for every push and PR:
+    * Windows desktop executable archive (`miniai-windows-x86_64.zip`)
+    * Linux desktop bundle archive (`miniai-linux-x86_64.tar.gz`)
+    * macOS desktop universal bundle (`miniai-macos-universal.tar.gz`)
+    * Android installable APK (`miniai-android-apk`) and store bundle (`miniai-android-aab`)
+    * iOS testable unsigned package (`miniai-ios-unsigned.ipa`)
+    * Rust server release binaries (`miniai-server-${{ matrix.os }}`)
+  - Updated `.github/workflows/release.yml`: pinned Flutter SDK to `3.38.4`, configured real mobile build packaging, and added automated GitHub Release creation with attached artifacts via `softprops/action-gh-release@v2`.
+  - Upgraded `scripts/package_release.py` to recursively collect real compiled binaries from build directories when present into release bundles and verified 8/8 checksums.
+  - Verified 100% test pass rate across Rust (300/300), Python ML (39/39), and Flutter (102/102), with full Stage 10 certification pass.

@@ -1487,3 +1487,27 @@
     * 0 static analysis issues (`flutter analyze --no-pub`).
     * 300/300 Rust tests passing (`cargo test --workspace`).
     * 39/39 Python ML tests passing (`uv run pytest`).
+
+
+---
+
+### [2026-11-07T15:45:00+05:30] CI/CD Multi-OS Artifact Pipeline Activation — Entry 079 (Native Platform Runners, GitHub Actions Artifact Uploads & Release Packaging)
+- **Entry Type:** `FEATURE` & `CI_HARDENING`
+- **Stage / Phase:** `Stage 12: Autonomous CI/CD, Artifact Packaging & Release Automation (from Production Roadmap)`
+- **Status Transitions:**
+  - `CI-PLATFORMS-001` [`VERIFIED` & `COMPLETED`]: Generated native platform project scaffolding under `ui/miniai_app/` for Windows, Linux, macOS, Android (Kotlin + Gradle KTS), and iOS (Swift + Xcode), enabling real cross-platform compiler invocations.
+  - `CI-ARTIFACTS-002` [`VERIFIED` & `COMPLETED`]: Enhanced `.github/workflows/ci.yml` with real native binary compilation and `actions/upload-artifact@v4` across all matrices:
+    * Rust Core: compiles release binaries and uploads `miniai-server-${{ matrix.os }}`.
+    * Windows Desktop: compiles `flutter build windows --release` and uploads `miniai-windows-x86_64.zip`.
+    * Linux Desktop: compiles `flutter build linux --release` and uploads `miniai-linux-x86_64.tar.gz`.
+    * macOS Desktop: compiles `flutter build macos --release` and uploads `miniai-macos-universal.tar.gz`.
+    * Android: compiles `flutter build apk --release` and `flutter build appbundle --release` with pre-configured debug keystore for instant installability, uploading `miniai-android-apk` and `miniai-android-aab`.
+    * iOS: compiles `flutter build ios --no-codesign --release` and packages `miniai-ios-unsigned.ipa` for sideload/test execution, uploading `miniai-ios-unsigned-ipa`.
+  - `CI-RELEASE-003` [`VERIFIED` & `COMPLETED`]: Updated `.github/workflows/release.yml`:
+    * Aligned Flutter SDK version to `'3.38.4'`.
+    * Added automated GitHub Release publishing via `softprops/action-gh-release@v2` when semantic version tags (`v*.*.*`) are pushed.
+  - `PKG-RELEASE-004` [`VERIFIED` & `COMPLETED`]: Upgraded `scripts/package_release.py` to recursively package real build outputs from `ui/miniai_app/build/` and Rust targets when present, verified with `package_release.py --version 1.0.0 --verify` (8/8 checks passed).
+  - `VERIFICATION`:
+    * 0 Flutter analyzer issues (`flutter analyze --no-pub`).
+    * Full Stage 10 verification passed (`uv run --project ml python scripts/verify_stage10.py`).
+    * All 300 Rust tests, 39 Python ML tests, and 102 Flutter widget tests pass.

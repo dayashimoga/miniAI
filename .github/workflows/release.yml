@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-and-test-rust:
@@ -29,8 +29,17 @@ jobs:
           cargo build --workspace --release
           cargo test --workspace --release
 
+      - name: Upload Rust Release Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-server-release-${{ matrix.os }}
+          path: |
+            target/release/miniai-server*
+            !target/release/miniai-server*.d
+            !target/release/miniai-server*.pdb
+
   build-flutter-cross-platform:
-    name: Verify Flutter Targets (Android & iOS)
+    name: Build Cross-Platform Mobile Packages (Android & iOS)
     runs-on: macos-latest
     steps:
       - name: Checkout repository
@@ -45,14 +54,45 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.24.x"
+          flutter-version: "3.38.4"
           channel: "stable"
+          cache: true
 
-      - name: Run Flutter analyze & test
+      - name: Install Flutter Dependencies & Verify Tests
         working-directory: ui/miniai_app
         run: |
+          flutter pub get
           flutter analyze --no-pub
-          flutter test --coverage
+          flutter test --coverage --reporter=expanded
+
+      - name: Build Android Release APK
+        working-directory: ui/miniai_app
+        run: flutter build apk --release
+
+      - name: Build Android App Bundle (AAB)
+        working-directory: ui/miniai_app
+        run: flutter build appbundle --release
+
+      - name: Build iOS Application (Unsigned)
+        working-directory: ui/miniai_app
+        run: flutter build ios --no-codesign --release
+
+      - name: Package Unsigned iOS IPA
+        working-directory: ui/miniai_app
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -r miniai-ios-unsigned.ipa Payload
+
+      - name: Upload Mobile Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniai-mobile-release-binaries
+          path: |
+            ui/miniai_app/build/app/outputs/flutter-apk/app-release.apk
+            ui/miniai_app/build/app/outputs/bundle/release/app-release.aab
+            ui/miniai_app/miniai-ios-unsigned.ipa
+          if-no-files-found: error
 
   package-and-checksum-release:
     name: Package Release Bundles, SBOM & Checksums
@@ -81,3 +121,11 @@ jobs:
           name: miniai-v1.0.0-release-bundles
           path: dist/v1.0.0/
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/v1.0.0/*
+          generate_release_notes: true

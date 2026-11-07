@@ -980,3 +980,18 @@
   - Recorded and accepted `ADR-001` through `ADR-015` in `ADR.md`.
   - Independent audits conducted by `arch-security-reviewer` and `independent-qa-auditor`, both resulting in unconditional **`PASS`** verdicts.
   - 100% passing test suites across all tiers: 300/300 Rust tests, 39/39 Python ML tests (**97.28%** statement coverage), 102/102 Flutter UI tests (**91.47%** line coverage, 0 analyzer issues), 0 cargo audit vulnerabilities.
+
+
+---
+
+## [2026-11-07T13:45:00+05:30] — Post-Release Hardening: Flutter Chat Layout & CI Target Alignment
+- **Action:** `BUG_FIX` & `HARDENING`
+- **Stage / Phase / Subphase:** `Stage 10 / Phase 10.3 / CI Target Alignment`
+- **Summary:**
+  - Resolved Flutter widget layout constraint conflicts in `ChatWorkspaceScreen` across desktop, mobile, and CI headless runners (`ubuntu-latest` / `flutter-android` target).
+  - Bounded `DropdownButton` inside `_buildTopToolbar` using `ConstrainedBox` (`isWide ? 220 : 130`) and `isExpanded: true` to prevent intrinsic flex width conflicts inside `Row`.
+  - Refactored `ChatWorkspaceScreen.build` to use `LayoutBuilder(constraints.maxWidth >= 760)` rather than global `MediaQuery.sizeOf`, accommodating `ShellScreen`'s `NavigationRail`.
+  - Bounded trailing actions in `_buildSessionSidebar`'s `ListTile` and message bubble token badge to prevent flex overflow.
+  - Hardened `knowledge_base_test.dart` with `tester.scrollUntilVisible` for reliable citation inspector modal interaction.
+  - Added symmetric teardown of `tester.view.resetDevicePixelRatio()` alongside `resetPhysicalSize()` across all widget tests.
+  - Verified 100% test pass rate across 102/102 Flutter tests, 300/300 Rust workspace tests, and 39/39 Python ML tests (97.28% statement coverage).

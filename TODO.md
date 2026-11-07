@@ -1414,3 +1414,21 @@
   - `STAGE_10` [`VERIFIED` & `COMPLETED`]: Full Stage 10 delivery certified and closed.
   - `MINIAI_PROJECT` [`PRODUCTION_RELEASE_GA`]: All 11 Stages (Stage 0 through Stage 10) 100% complete, certified, and ready for official Production General Availability release `v1.0.0`.
 - **Final Action:** Merge `develop` into `main`, tag `v1.0.0`, and push to remote `origin`.
+
+
+---
+
+### [2026-11-07T13:45:00+05:30] Post-Release Hardening — Entry 075 (Cross-Platform Flutter Chat Workspace Layout Hardening & CI Android Target Green)
+- **Entry Type:** `BUG_FIX` & `HARDENING`
+- **Stage / Phase:** `Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases / Phase 10.3 — Final Independent Release Certification Gate / CI Target Hardening`
+- **Status Transitions:**
+  - `POST-REL-001` [`VERIFIED` & `COMPLETED`]: Resolved Flutter widget test layout constraints and RenderFlex overflow edge-cases on Linux / Android CI runners (`ubuntu-latest`):
+    * Bounded `DropdownButton<String>` inside `_buildTopToolbar` with `ConstrainedBox(maxWidth: isWide ? 220 : 130)` and `isExpanded: true` to prevent unconstrained intrinsic width measuring conflicts in `Row`.
+    * Upgraded `ChatWorkspaceScreen.build` to use `LayoutBuilder(constraints.maxWidth >= 760)` instead of `MediaQuery.sizeOf(context).width >= 800`, correctly accounting for parent `NavigationRail` margins in `ShellScreen`.
+    * Added `maxLines: 1` and `TextOverflow.ellipsis` to subtitle text in `_buildTopToolbar`.
+    * Hardened `_buildSessionSidebar`'s `ListTile` trailing action buttons with compact constraints (`minWidth: 28, minHeight: 28`) and zero padding.
+    * Converted message bubble `token_badge` to a lightweight `Container` with rounded border, eliminating Material 3 chip touch-target flex collision.
+    * Bounded `_showCitationDialog` content container with `BoxConstraints(maxWidth: 520)`.
+    * Hardened citation inspection in `knowledge_base_test.dart` using `tester.scrollUntilVisible` before tapping.
+    * Added symmetric `tester.view.resetDevicePixelRatio()` along with `resetPhysicalSize()` across all widget test teardowns.
+    * Re-verified 100% test pass rate across all suites: 102/102 Flutter tests, 300/300 Rust tests, 39/39 Python ML tests (97.28% coverage), 0 analyzer warnings.

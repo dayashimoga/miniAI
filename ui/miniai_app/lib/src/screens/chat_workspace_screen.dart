@@ -192,7 +192,7 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
           ],
         ),
         content: Container(
-          width: 520,
+          constraints: const BoxConstraints(maxWidth: 520),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
@@ -276,34 +276,37 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
-        final screenWidth = MediaQuery.sizeOf(context).width;
-        final isWide = screenWidth >= 800;
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 760;
 
-        return Scaffold(
-          drawer: isWide ? null : Drawer(child: _buildSessionSidebar(context)),
-          body: Row(
-            children: [
-              if (isWide) ...[
-                SizedBox(
-                  width: 280,
-                  child: _buildSessionSidebar(context),
-                ),
-                const VerticalDivider(width: 1, thickness: 1),
-              ],
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildTopToolbar(context, isWide),
-                    const Divider(height: 1, thickness: 1),
-                    Expanded(child: _buildMessageTimeline(context)),
-                    if (widget.controller.isGenerating)
-                      _buildStreamingStatusBar(context),
-                    _buildInputComposer(context),
+            return Scaffold(
+              drawer: isWide ? null : Drawer(child: _buildSessionSidebar(context)),
+              body: Row(
+                children: [
+                  if (isWide) ...[
+                    SizedBox(
+                      width: 280,
+                      child: _buildSessionSidebar(context),
+                    ),
+                    const VerticalDivider(width: 1, thickness: 1),
                   ],
-                ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildTopToolbar(context, isWide),
+                        const Divider(height: 1, thickness: 1),
+                        Expanded(child: _buildMessageTimeline(context)),
+                        if (widget.controller.isGenerating)
+                          _buildStreamingStatusBar(context),
+                        _buildInputComposer(context),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -351,36 +354,42 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
                         color: Theme.of(context).colorScheme.primary,
                         fontSize: 10,
                       ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
           const SizedBox(width: 4),
           // Model Selector Dropdown
-          DropdownButton<String>(
-            key: const Key('chat_model_selector'),
-            isDense: true,
-            value: availableModels.any(
-                    (m) => m.modelId == widget.controller.selectedChatModelId)
-                ? widget.controller.selectedChatModelId
-                : (availableModels.isNotEmpty
-                    ? availableModels.first.modelId
-                    : null),
-            items: availableModels.map((m) {
-              return DropdownMenuItem<String>(
-                value: m.modelId,
-                child: Text(
-                  isWide ? m.name : m.modelId,
-                  style: const TextStyle(fontSize: 11),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              );
-            }).toList(),
-            onChanged: (selected) {
-              if (selected != null) {
-                widget.controller.setSelectedChatModel(selected);
-              }
-            },
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: isWide ? 220 : 130),
+            child: DropdownButton<String>(
+              key: const Key('chat_model_selector'),
+              isDense: true,
+              isExpanded: true,
+              value: availableModels.any(
+                      (m) => m.modelId == widget.controller.selectedChatModelId)
+                  ? widget.controller.selectedChatModelId
+                  : (availableModels.isNotEmpty
+                      ? availableModels.first.modelId
+                      : null),
+              items: availableModels.map((m) {
+                return DropdownMenuItem<String>(
+                  value: m.modelId,
+                  child: Text(
+                    isWide ? m.name : m.modelId,
+                    style: const TextStyle(fontSize: 11),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList(),
+              onChanged: (selected) {
+                if (selected != null) {
+                  widget.controller.setSelectedChatModel(selected);
+                }
+              },
+            ),
           ),
           IconButton(
             key: const Key('tuning_settings_button'),
@@ -482,6 +491,8 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
                                 icon: const Icon(Icons.edit, size: 15),
                                 visualDensity: VisualDensity.compact,
                                 tooltip: 'Rename Chat',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                                 onPressed: () =>
                                     _showRenameDialog(context, session),
                               ),
@@ -490,6 +501,8 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
                                 icon: const Icon(Icons.delete_outline, size: 15),
                                 visualDensity: VisualDensity.compact,
                                 tooltip: 'Delete Chat',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                                 onPressed: () =>
                                     widget.controller.deleteChatSession(session.id),
                               ),
@@ -625,11 +638,14 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
                         ),
                       ],
                       const Spacer(),
-                      Chip(
+                      Container(
                         key: Key('token_badge_${message.id}'),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        label: Text(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
                           '${message.tokenCount} tok',
                           style: const TextStyle(fontSize: 10),
                         ),

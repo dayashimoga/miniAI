@@ -166,7 +166,10 @@ void main() {
     testWidgets('ChatWorkspaceScreen displays citation chips when RAG grounding attaches sources', (tester) async {
       tester.view.physicalSize = const Size(1024, 768);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       controller.setSelectedNavigationIndex(5); // Chat tab
 
@@ -195,7 +198,11 @@ void main() {
       expect(citationChip, findsOneWidget);
 
       // Tap citation chip to inspect source modal
-      await tester.ensureVisible(citationChip);
+      await tester.scrollUntilVisible(
+        citationChip,
+        50.0,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(citationChip);
       await tester.pumpAndSettle();

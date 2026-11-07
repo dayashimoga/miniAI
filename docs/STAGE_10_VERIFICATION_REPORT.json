@@ -1,7 +1,7 @@
 {
   "stage": 10,
   "title": "Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases (v1.0.0)",
-  "generated_at": "2026-11-07T11:19:57.592444+00:00",
+  "generated_at": "2026-11-07T11:27:37.434300+00:00",
   "overall_passed": true,
   "governance_audit": {
     "passed": true,
@@ -29,8 +29,21 @@
       "passed": true,
       "stdout_tail": [],
       "stderr_tail": [
-        "Checking miniai-memory v0.1.0 (G:\\miniAI\\crates\\miniai-memory)",
-        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.89s"
+        "    Checking miniai-imagegen v0.1.0 (G:\\miniAI\\crates\\miniai-imagegen)",
+        "    Checking miniai-music v0.1.0 (G:\\miniAI\\crates\\miniai-music)",
+        "    Checking miniai-storage v0.1.0 (G:\\miniAI\\crates\\miniai-storage)",
+        "    Checking miniai-registry v0.1.0 (G:\\miniAI\\crates\\miniai-registry)",
+        "    Checking miniai-server v0.1.0 (G:\\miniAI\\crates\\miniai-server)",
+        "    Checking miniai-video v0.1.0 (G:\\miniAI\\crates\\miniai-video)",
+        "    Checking miniai-cloud v0.1.0 (G:\\miniAI\\crates\\miniai-cloud)",
+        "    Checking miniai-memory v0.1.0 (G:\\miniAI\\crates\\miniai-memory)",
+        "    Checking miniai-runtime v0.1.0 (G:\\miniAI\\crates\\miniai-runtime)",
+        "    Checking miniai-llm v0.1.0 (G:\\miniAI\\crates\\miniai-llm)",
+        "    Checking miniai-speech-tts v0.1.0 (G:\\miniAI\\crates\\miniai-speech-tts)",
+        "    Checking miniai-bridge v0.1.0 (G:\\miniAI\\crates\\miniai-bridge)",
+        "    Checking miniai-stress-tests v0.1.0 (G:\\miniAI\\tests)",
+        "    Checking miniai-daemon v0.1.0 (G:\\miniAI\\crates\\miniai-daemon)",
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.19s"
       ]
     },
     {
@@ -109,7 +122,7 @@
         "--------------------------------------------------------------",
         "TOTAL                              918     25    97%",
         "Required test coverage of 90% reached. Total coverage: 97.28%",
-        "39 passed in 11.59s"
+        "39 passed in 11.78s"
       ],
       "stderr_tail": []
     },
@@ -121,7 +134,7 @@
       "passed": true,
       "stdout_tail": [
         "Analyzing miniai_app...                                         ",
-        "No issues found! (ran in 1.9s)"
+        "No issues found! (ran in 2.0s)"
       ],
       "stderr_tail": []
     },
@@ -132,19 +145,19 @@
       "exit_code": 0,
       "passed": true,
       "stdout_tail": [
-        "00:13 +91: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
-        "00:13 +92: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:14 +91: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:14 +92: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
         "00:14 +93: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
-        "00:14 +94: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:15 +94: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:15 +95: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:15 +96: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:15 +97: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:15 +98: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:15 +99: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:16 +97: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:16 +98: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:16 +99: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:16 +100: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:16 +101: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
-        "00:16 +102: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
-        "00:16 +103: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:17 +101: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:17 +102: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:17 +103: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
         "00:17 +104: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
         "00:18 +105: All tests passed!"
       ],
@@ -173,15 +186,15 @@
       "stdout_tail": [
         "      \"filename\": \"bom.json\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"addf583ab7f25ad97974d582dbac15799b834f4bfa6cb6cbadc8ea7d9fe9b35e\",",
-        "      \"actual_sha256\": \"addf583ab7f25ad97974d582dbac15799b834f4bfa6cb6cbadc8ea7d9fe9b35e\",",
+        "      \"expected_sha256\": \"e7c196e8d139dbe61d2afc33e061d5ea8719ca2e69d10ba97a744f63b3cd2839\",",
+        "      \"actual_sha256\": \"e7c196e8d139dbe61d2afc33e061d5ea8719ca2e69d10ba97a744f63b3cd2839\",",
         "      \"passed\": true",
         "    },",
         "    {",
         "      \"filename\": \"bom.xml\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"c89c7fe6bcba87133674065b7ec75496db9b85ab228c1e9c4657dd34601a9426\",",
-        "      \"actual_sha256\": \"c89c7fe6bcba87133674065b7ec75496db9b85ab228c1e9c4657dd34601a9426\",",
+        "      \"expected_sha256\": \"4b5da8ef24e17ca0f9119ae1e07fab3a2cbd705e7f00d45fecddfe680fa13fe8\",",
+        "      \"actual_sha256\": \"4b5da8ef24e17ca0f9119ae1e07fab3a2cbd705e7f00d45fecddfe680fa13fe8\",",
         "      \"passed\": true",
         "    }",
         "  ]",

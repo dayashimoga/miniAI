@@ -78,6 +78,22 @@ class PlatformController extends ChangeNotifier {
 
   final List<ModelManifest> _models = [
     const ModelManifest(
+      modelId: 'smollm2-135m-instruct-q4',
+      name: 'SmolLM2 135M Instruct (GGUF Q4)',
+      modality: Modality.llm,
+      version: '1.0.0',
+      description: 'Ultra-lightweight starter LLM for instant download and mobile testing',
+      sourceUrl: 'https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct-GGUF/resolve/main/smollm2-135m-instruct-q4_k_m.gguf',
+      expectedSha256:
+          'a1b2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef',
+      expectedSizeBytes: 99614720,
+      format: 'gguf',
+      parameterCount: '135M',
+      quantization: 'Q4_K_M',
+      minRamBytes: 536870912,
+      recommendedBackend: AcceleratorBackend.cpu,
+    ),
+    const ModelManifest(
       modelId: 'llama-3.2-1b-instruct-q4',
       name: 'Llama 3.2 1B Instruct (GGUF Q4)',
       modality: Modality.llm,

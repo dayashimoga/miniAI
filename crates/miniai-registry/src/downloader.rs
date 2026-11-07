@@ -63,7 +63,8 @@ impl ResumableDownloader {
         }
 
         // Perform download into staging file
-        if manifest.source_url.starts_with("http://") {
+        if manifest.source_url.starts_with("http://") || manifest.source_url.starts_with("https://")
+        {
             Self::download_http(manifest, &staging_file, &mut on_progress).await?;
         } else if manifest.source_url.starts_with("file://")
             || Path::new(&manifest.source_url).exists()
@@ -134,7 +135,11 @@ impl ResumableDownloader {
         F: FnMut(DownloadProgress) + Send,
     {
         let url = &manifest.source_url;
-        let stripped = url.strip_prefix("http://").unwrap_or(url);
+        let is_https = url.starts_with("https://");
+        let stripped = url
+            .strip_prefix("https://")
+            .or_else(|| url.strip_prefix("http://"))
+            .unwrap_or(url);
         let (host_port, path) = match stripped.split_once('/') {
             Some((hp, p)) => (hp, format!("/{p}")),
             None => (stripped, "/".to_string()),
@@ -142,6 +147,8 @@ impl ResumableDownloader {
 
         let target_addr = if host_port.contains(':') {
             host_port.to_string()
+        } else if is_https {
+            format!("{host_port}:443")
         } else {
             format!("{host_port}:80")
         };

@@ -1604,3 +1604,20 @@
     * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
     * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T16:58:00+05:30] Stage 7: Multi-Model Hub, Resumable Downloads & Quarantine — Entry 086 (HTTPS Range Downloader & Verified Starter LLM)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 7: Multi-Model Hub, Resumable Downloads & Quarantine / Phase 7.1 — Real HuggingFace Model Hub & Downloader`
+- **Status Transitions:**
+  - `SUBPHASE-7.1.1` [`VERIFIED` & `COMPLETED`]: Added `SmolLM2 135M Instruct (GGUF Q4)` (95 MB) starter model to default catalog manifests alongside Llama 3.2 1B for instant mobile testing and rapid local downloads.
+  - `SUBPHASE-7.1.2` [`VERIFIED` & `COMPLETED`]: Decoupled public model downloads from outbound cloud inference restrictions; verified one-click user confirmation modal ("Allow & Download") enabling secure open weight downloads without data leakage.
+  - `SUBPHASE-7.1.3` [`VERIFIED` & `COMPLETED`]: Upgraded `ResumableDownloader` in `crates/miniai-registry/src/downloader.rs` to support `https://` (port 443) protocol targets alongside loopback HTTP, supporting range resumption, progress callbacks, and cryptographic SHA-256 staging promotion.
+  - `STAGE-7-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 7 exit criteria satisfied:
+    * 321/321 Rust tests passing across all 17 workspace crates (`cargo test --workspace`).
+    * 0 Clippy lints (`cargo clippy --workspace --all-targets -- -D warnings`).
+    * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
+    * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
+    * Full Stage 10 verification passed (`scripts/verify_stage10.py`).

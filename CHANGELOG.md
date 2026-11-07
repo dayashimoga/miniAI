@@ -1128,3 +1128,15 @@
   - Added Migration 5 (`005_memory_tiers`) in `crates/miniai-storage` for `episodic_memories` and `semantic_memories` tables.
   - Added tests in `crates/miniai-memory/tests/memory_tests.rs` and `crates/miniai-storage`.
   - Reached 321/321 passing Rust tests across the workspace, 0 Clippy warnings, and 100% rustfmt compliance. Full Stage 10 verification pass.
+
+
+---
+
+## [2026-11-07T16:58:00+05:30] — Stage 7 Sign-Off: HTTPS Range Downloader & Verified Starter LLM
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.1 / Subphases 7.1.1, 7.1.2 & 7.1.3`
+- **Summary:**
+  - Upgraded `ResumableDownloader` (`crates/miniai-registry/src/downloader.rs`) to support `https://` (port 443) protocol targets with byte range resumption and cryptographic SHA-256 staging promotion.
+  - Added lightweight 95 MB `SmolLM2 135M Instruct (GGUF Q4)` starter model manifest for rapid local evaluation.
+  - Decoupled public open-weight downloads from outbound privacy barriers with explicit user confirmation.
+  - Verified 100% test pass rate across Rust workspace (321/321) and Flutter (105/105).

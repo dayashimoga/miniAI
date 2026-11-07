@@ -25,6 +25,7 @@ pub struct DaemonServer {
     listener: TcpListener,
     local_addr: SocketAddr,
     engine: Arc<BridgeEngine>,
+    auth_token: Option<String>,
 }
 
 impl DaemonServer {
@@ -50,7 +51,14 @@ impl DaemonServer {
             listener,
             local_addr,
             engine,
+            auth_token: None,
         })
+    }
+
+    /// Configures an ephemeral bearer auth token required for all inbound HTTP requests.
+    pub fn with_auth_token(mut self, token: impl Into<String>) -> Self {
+        self.auth_token = Some(token.into());
+        self
     }
 
     /// Returns the local address the daemon is bound to.
@@ -69,11 +77,13 @@ impl DaemonServer {
 
     /// Runs the accept loop for the daemon.
     pub async fn run(self) -> Result<(), DaemonError> {
+        let auth_token = self.auth_token.clone();
         loop {
             let (stream, _) = self.listener.accept().await?;
             let engine = self.engine.clone();
+            let token = auth_token.clone();
             tokio::spawn(async move {
-                let _ = Self::handle_connection(stream, engine).await;
+                let _ = Self::handle_connection(stream, engine, token).await;
             });
         }
     }
@@ -81,6 +91,7 @@ impl DaemonServer {
     async fn handle_connection(
         mut stream: TcpStream,
         engine: Arc<BridgeEngine>,
+        auth_token: Option<String>,
     ) -> Result<(), DaemonError> {
         let mut buffer = vec![0u8; 16384];
         let bytes_read = stream.read(&mut buffer).await?;
@@ -109,6 +120,29 @@ impl DaemonServer {
                             \r\n";
             stream.write_all(response.as_bytes()).await?;
             return Ok(());
+        }
+
+        // Bearer Authentication verification if auth_token is configured
+        if let Some(expected) = &auth_token {
+            let mut authorized = false;
+            for line in request_str.lines() {
+                let trimmed = line.trim();
+                if let Some(bearer) = trimmed.strip_prefix("Authorization: Bearer ") {
+                    if bearer.trim() == expected {
+                        authorized = true;
+                        break;
+                    }
+                }
+            }
+            if !authorized {
+                let err_body = serde_json::json!({
+                    "error": "UNAUTHORIZED",
+                    "message": "Valid Bearer token required for localhost daemon access"
+                })
+                .to_string();
+                Self::send_response(&mut stream, 401, "Unauthorized", &err_body).await?;
+                return Ok(());
+            }
         }
 
         // Parse body if present

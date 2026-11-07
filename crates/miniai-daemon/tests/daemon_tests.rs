@@ -106,3 +106,58 @@ async fn test_daemon_server_health_and_dispatch() {
         assert!(resp.contains("CPU (Universal Baseline)"));
     }
 }
+
+#[tokio::test]
+async fn test_daemon_server_bearer_auth() {
+    let server = DaemonServer::bind("127.0.0.1:0", None)
+        .await
+        .expect("bind daemon")
+        .with_auth_token("ephemeral_secret_token_abc123");
+    let (addr, _handle) = server.spawn();
+
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    // 1. Request without auth token must receive 401 Unauthorized
+    {
+        let mut stream = TcpStream::connect(addr).await.expect("connect to daemon");
+        let req = format!(
+            "GET /v1/health HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n",
+            addr
+        );
+        stream.write_all(req.as_bytes()).await.unwrap();
+
+        let mut resp = String::new();
+        stream.read_to_string(&mut resp).await.unwrap();
+        assert!(resp.contains("401 Unauthorized"));
+        assert!(resp.contains("UNAUTHORIZED"));
+    }
+
+    // 2. Request with invalid auth token must receive 401 Unauthorized
+    {
+        let mut stream = TcpStream::connect(addr).await.expect("connect to daemon");
+        let req = format!(
+            "GET /v1/health HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer wrong_token\r\nConnection: close\r\n\r\n",
+            addr
+        );
+        stream.write_all(req.as_bytes()).await.unwrap();
+
+        let mut resp = String::new();
+        stream.read_to_string(&mut resp).await.unwrap();
+        assert!(resp.contains("401 Unauthorized"));
+    }
+
+    // 3. Request with valid auth token must receive 200 OK
+    {
+        let mut stream = TcpStream::connect(addr).await.expect("connect to daemon");
+        let req = format!(
+            "GET /v1/health HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer ephemeral_secret_token_abc123\r\nConnection: close\r\n\r\n",
+            addr
+        );
+        stream.write_all(req.as_bytes()).await.unwrap();
+
+        let mut resp = String::new();
+        stream.read_to_string(&mut resp).await.unwrap();
+        assert!(resp.contains("200 OK"));
+        assert!(resp.contains("miniai-daemon"));
+    }
+}

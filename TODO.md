@@ -1637,3 +1637,19 @@
     * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
     * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T17:09:00+05:30] Stage 9: Security Hardening & Zero-Leakage Privacy Gates — Entry 088 (HMAC-SHA256 Token Signing & Localhost Daemon Auth)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 9: Security Hardening & Zero-Leakage Privacy Gates / Phase 9.1 — Cryptographic Consent Tokens & Network Sandboxing`
+- **Status Transitions:**
+  - `SUBPHASE-9.1.1` [`VERIFIED` & `COMPLETED`]: Implemented cryptographic HMAC-SHA256 consent token signing (`sign_token`) and verification (`verify_token_signature`) in `crates/miniai-cloud/src/token.rs`, guaranteeing tamper detection and cryptographic authenticity before any outbound network socket can open.
+  - `SUBPHASE-9.1.2` [`VERIFIED` & `COMPLETED`]: Added Localhost Daemon Bearer Authentication (`with_auth_token`) in `crates/miniai-daemon/src/lib.rs` rejecting unauthenticated or rogue local processes with `401 Unauthorized`.
+  - `STAGE-9-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 9 exit criteria satisfied:
+    * 323/323 Rust tests passing across all 17 workspace crates (`cargo test --workspace`).
+    * 0 Clippy lints (`cargo clippy --workspace --all-targets -- -D warnings`).
+    * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
+    * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
+    * Full Stage 10 verification passed (`scripts/verify_stage10.py`).

@@ -148,4 +148,24 @@ impl TokenValidator {
         let computed = Self::compute_token_fingerprint(token);
         computed.eq_ignore_ascii_case(expected_fingerprint.trim())
     }
+
+    /// Generates an HMAC-SHA256 signature over the canonical token fingerprint using a secret key.
+    pub fn sign_token(token: &CloudConsentToken, secret_key: &[u8]) -> String {
+        let fingerprint = Self::compute_token_fingerprint(token);
+        let mut hasher = Sha256::new();
+        hasher.update(secret_key);
+        hasher.update(b":consent_hmac:");
+        hasher.update(fingerprint.as_bytes());
+        format!("{:x}", hasher.finalize())
+    }
+
+    /// Verifies that a token's HMAC-SHA256 signature matches the provided secret key.
+    pub fn verify_token_signature(
+        token: &CloudConsentToken,
+        secret_key: &[u8],
+        signature_hex: &str,
+    ) -> bool {
+        let expected = Self::sign_token(token, secret_key);
+        expected.eq_ignore_ascii_case(signature_hex.trim())
+    }
 }

@@ -1151,3 +1151,14 @@
   - Implemented `_buildFormattedMessageContent` in `ChatWorkspaceScreen` rendering Markdown code blocks with syntax styling, language tag headers, and one-click "Copy Code" buttons.
   - Verified cross-platform adaptive layouts (collapsible mobile navigation drawer vs desktop split-pane layout) across mobile, tablet, and desktop viewports.
   - Verified 100% test pass rate across Rust workspace (321/321) and Flutter (105/105, 0 analyzer issues).
+
+
+---
+
+## [2026-11-07T17:09:00+05:30] — Stage 9 Sign-Off: HMAC-SHA256 Token Signing & Localhost Daemon Auth
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 9 / Phase 9.1 / Subphases 9.1.1 & 9.1.2`
+- **Summary:**
+  - Implemented HMAC-SHA256 signing and cryptographic signature verification for `CloudConsentToken` in `crates/miniai-cloud/src/token.rs`.
+  - Added Bearer token authentication to `DaemonServer` (`crates/miniai-daemon/src/lib.rs`), requiring an ephemeral secret token to access the `/v1/bridge/dispatch` endpoint and rejecting unauthenticated calls with 401 Unauthorized.
+  - Verified 100% test pass rate across Rust workspace (323/323) and Flutter (105/105, 0 analyzer issues).

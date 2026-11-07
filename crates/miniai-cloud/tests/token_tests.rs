@@ -210,3 +210,39 @@ fn test_token_fingerprint_and_integrity_verification() {
     assert_ne!(fp1, fp_tampered);
     assert!(!TokenValidator::verify_token_integrity(&tampered, &fp1));
 }
+
+#[test]
+fn test_token_hmac_signature_and_tamper_rejection() {
+    let token = CloudConsentToken {
+        token_id: "tok_hmac_1".to_string(),
+        modality: Modality::Llm,
+        target_endpoint: "https://cloud-gpu.miniai.internal/v1/infer".to_string(),
+        max_payload_bytes: 1048576,
+        issued_at_epoch_secs: 5000,
+        expires_at_epoch_secs: 10000,
+        user_acknowledged: true,
+    };
+
+    let secret = b"my_super_secret_hmac_key_12345678";
+    let wrong_secret = b"wrong_secret_key_87654321";
+
+    let sig = TokenValidator::sign_token(&token, secret);
+    assert_eq!(sig.len(), 64);
+
+    // 1. Valid signature passes
+    assert!(TokenValidator::verify_token_signature(&token, secret, &sig));
+
+    // 2. Wrong secret key fails
+    assert!(!TokenValidator::verify_token_signature(
+        &token,
+        wrong_secret,
+        &sig
+    ));
+
+    // 3. Tampered payload fails
+    let mut tampered = token.clone();
+    tampered.max_payload_bytes = 9999999;
+    assert!(!TokenValidator::verify_token_signature(
+        &tampered, secret, &sig
+    ));
+}

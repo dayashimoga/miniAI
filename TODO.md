@@ -1096,3 +1096,45 @@
     - Implemented `VideoAdapter`: implements `miniai_core::ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`), weights loading with cryptographic SHA-256 verification, and health reporting.
     - Authored 39 unit, boundary, integration, and contract tests across 6 test suites (`sanitizer_tests.rs`, `buffer_pool_tests.rs`, `demuxer_tests.rs`, `extractor_tests.rs`, `engine_and_adapter_tests.rs`, `coverage_boost_tests.rs`), achieving **91.65%** line coverage on `miniai-video` and 0 Clippy warnings.
 - **Next Subphase Ready:** `S8-P2-SUB8.2.1` (Phase 8.2: Video Synthesis & Multimodal DAG Workflows / Subphase 8.2.1: Local prompt/image-to-video adapter and composable media pipeline orchestrator chaining LLM, Image, TTS, Music, and Video adapters).
+
+
+---
+
+### [2026-11-07T09:40:00+05:30] Stage 8 — Entry 059 (Subphase 8.2.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.2 — Video Synthesis & Multimodal DAG Workflows / Subphase 8.2.1`
+- **Status Transitions:**
+  - `S8-P2-SUB8.2.1` [`IN_PROGRESS`]: Commenced implementation of Video Synthesis & Multimodal DAG Workflow Orchestrator in `crates/miniai-video`:
+    - Implementing `VideoSynthesisEngine` (local text-to-video and image-to-video interpolation synthesis on CPU, generating temporal keyframe sequences and encoded video with synthesized soundtrack).
+    - Implementing `MediaWorkflowGraph` (composable DAG specification with typed nodes: LLM, Vision, ImageGen, SpeechAsr, SpeechTts, Music, VideoSynthesis, VideoAnalysis, and AudioVideoMux).
+    - Implementing DAG topology validator with Kahn's topological sort and cycle detection (`CycleDetectedError`).
+    - Implementing `WorkflowExecutor` (asynchronous/synchronous execution with step-by-step progress events, per-node latency telemetry, intermediate artifact caching, and cooperative cancellation).
+    - Authoring comprehensive unit, boundary, and DAG execution tests under `crates/miniai-video/tests/`.
+- **Next Step:** Implement synthesis and workflow engine modules in `crates/miniai-video`.
+
+
+---
+
+### [2026-11-07T09:58:00+05:30] Stage 8 — Entry 060 (Subphase 8.2.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.2 — Video Synthesis & Multimodal DAG Workflows / Subphase 8.2.1`
+- **Status Transitions:**
+  - `S8-P2-SUB8.2.1` [`VERIFIED`]: Successfully implemented and verified local video synthesis and composable multimodal media DAG workflows in `crates/miniai-video`:
+    - Implemented `VideoSynthesisEngine`:
+      - Text-to-video generative keyframe animation with configurable camera motions (`Static`, `PanLeft`, `PanRight`, `ZoomIn`, `ZoomOut`, `TiltUp`, `TiltDown`, `Orbit`).
+      - Image-to-video motion animation applying camera shifts and zoom vectors to starting keyframe images.
+      - Two-keyframe temporal morphing and linear pixel interpolation.
+      - Synchronized ambient audio soundtrack generation verified against `miniai-speech-asr::AudioSanitizer`.
+      - RAWV video container packaging with full metadata and SHA-256 integrity digest verified via `VideoSanitizer`.
+    - Implemented `MediaWorkflowGraph`:
+      - Composable DAG specification linking typed modality nodes (`LlmPrompt`, `VisionAnalyze`, `ImageGen`, `SpeechTts`, `SpeechAsr`, `MusicGen`, `VideoSynthesis`, `VideoAnalysis`, `AudioVideoMux`, `Custom`).
+      - Graph topological dependency resolution and cycle detection using Kahn's algorithm (`VideoError::WorkflowCycleDetected`).
+      - Rejection of missing/dangling dependency nodes (`VideoError::WorkflowNodeNotFound`).
+    - Implemented `WorkflowExecutor`:
+      - Offline end-to-end multi-modality pipeline execution with typed data passing (`WorkflowData::Text`, `WorkflowData::Image`, `WorkflowData::Audio`, `WorkflowData::Video`, `WorkflowData::Json`).
+      - Per-node execution state tracking (`NodeExecutionStatus`), duration telemetry (`NodeTelemetry`), and overall workflow latency.
+      - Cooperative cancellation support via `AtomicBool`.
+    - Extended `VideoAdapter` with direct APIs for `synthesize_video` and `execute_workflow`.
+    - Authored 12 new unit and integration tests across 2 new test suites (`synthesis_tests.rs`, `workflow_tests.rs`), expanding crate tests to 51/51 passing with **90.63%** line coverage.
+    - Verified 286/286 passing Rust workspace tests with 0 Clippy warnings and 0 formatting diffs.
+- **Next Subphase Ready:** `S8-P3-SUB8.3.1` (Phase 8.3: Flutter Video Timeline & Workflow Studio / Subphase 8.3.1: Keyframe scrubber, temporal event markers, and DAG workflow execution monitor in `ui/miniai_app`).

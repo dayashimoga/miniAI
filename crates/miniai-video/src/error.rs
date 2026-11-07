@@ -56,6 +56,24 @@ pub enum VideoError {
     #[error("Video inference error: {0}")]
     InferenceError(String),
 
+    #[error("Video synthesis error: {0}")]
+    SynthesisError(String),
+
+    #[error("Workflow cycle detected: {0}")]
+    WorkflowCycleDetected(String),
+
+    #[error("Workflow node '{node_id}' not found")]
+    WorkflowNodeNotFound { node_id: String },
+
+    #[error("Workflow node '{node_id}' missing required dependency '{dependency_id}'")]
+    WorkflowDependencyMissing {
+        node_id: String,
+        dependency_id: String,
+    },
+
+    #[error("Workflow execution failed at node '{node_id}': {reason}")]
+    WorkflowExecutionError { node_id: String, reason: String },
+
     #[error("Operation cancelled by user or timeout")]
     Cancelled,
 

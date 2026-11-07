@@ -228,3 +228,183 @@ impl Default for SanitizerConfig {
         }
     }
 }
+
+/// Camera motion profile for synthesized video sequences.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CameraMotion {
+    Static,
+    PanLeft,
+    #[default]
+    PanRight,
+    ZoomIn,
+    ZoomOut,
+    TiltUp,
+    TiltDown,
+    Orbit,
+}
+
+/// Configuration parameters for prompt-to-video or image-to-video synthesis.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VideoSynthesisConfig {
+    pub prompt: String,
+    pub motion: CameraMotion,
+    pub width: u32,
+    pub height: u32,
+    pub duration_secs: f64,
+    pub fps: f64,
+    pub seed: Option<u64>,
+    pub start_frame: Option<Vec<u8>>,
+    pub end_frame: Option<Vec<u8>>,
+    pub generate_audio: bool,
+}
+
+impl Default for VideoSynthesisConfig {
+    fn default() -> Self {
+        Self {
+            prompt: "Cinematic establishing camera movement".to_string(),
+            motion: CameraMotion::PanRight,
+            width: 320,
+            height: 240,
+            duration_secs: 2.0,
+            fps: 15.0,
+            seed: Some(42),
+            start_frame: None,
+            end_frame: None,
+            generate_audio: true,
+        }
+    }
+}
+
+/// Resulting payload of a video synthesis run.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SynthesizedVideo {
+    pub metadata: VideoMetadata,
+    pub keyframes: Vec<VideoFrame>,
+    pub video_bytes: Vec<u8>,
+    pub audio: Option<DemuxedAudio>,
+}
+
+/// Data transmitted between nodes in a multimodal media workflow DAG.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "payload")]
+pub enum WorkflowData {
+    Text(String),
+    Image {
+        width: u32,
+        height: u32,
+        rgb_data: Vec<u8>,
+    },
+    Audio {
+        sample_rate: u32,
+        channels: u16,
+        wav_bytes: Vec<u8>,
+    },
+    Video {
+        metadata: VideoMetadata,
+        video_bytes: Vec<u8>,
+    },
+    Json(serde_json::Value),
+}
+
+/// Type and execution payload of an individual workflow node.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "node_type")]
+pub enum WorkflowNodeType {
+    LlmPrompt {
+        prompt: String,
+        max_tokens: u32,
+    },
+    VisionAnalyze,
+    ImageGen {
+        prompt: String,
+        width: u32,
+        height: u32,
+    },
+    SpeechTts {
+        voice: String,
+        speed: f32,
+    },
+    SpeechAsr,
+    MusicGen {
+        mood: String,
+        duration_secs: f64,
+    },
+    VideoSynthesis {
+        motion: CameraMotion,
+        duration_secs: f64,
+    },
+    VideoAnalysis,
+    AudioVideoMux,
+    Custom {
+        kind: String,
+        config: serde_json::Value,
+    },
+}
+
+/// A node within a `MediaWorkflowGraph`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WorkflowNode {
+    pub id: String,
+    pub name: String,
+    pub node_type: WorkflowNodeType,
+}
+
+impl WorkflowNode {
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        node_type: WorkflowNodeType,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            name: name.into(),
+            node_type,
+        }
+    }
+}
+
+/// A directed edge connecting the output of one workflow node to the input of another.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct WorkflowEdge {
+    pub from_node: String,
+    pub to_node: String,
+}
+
+impl WorkflowEdge {
+    pub fn new(from_node: impl Into<String>, to_node: impl Into<String>) -> Self {
+        Self {
+            from_node: from_node.into(),
+            to_node: to_node.into(),
+        }
+    }
+}
+
+/// Execution state of a workflow node.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NodeExecutionStatus {
+    Pending,
+    Running,
+    Completed,
+    Failed,
+    Skipped,
+}
+
+/// Execution telemetry for a single workflow node.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct NodeTelemetry {
+    pub node_id: String,
+    pub status: NodeExecutionStatus,
+    pub duration_ms: u64,
+    pub error_message: Option<String>,
+}
+
+/// Complete result of executing a multimodal media workflow graph.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WorkflowExecutionResult {
+    pub graph_id: String,
+    pub outputs: std::collections::HashMap<String, WorkflowData>,
+    pub telemetry: Vec<NodeTelemetry>,
+    pub total_latency_ms: u64,
+}

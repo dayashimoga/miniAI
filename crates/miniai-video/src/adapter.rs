@@ -11,8 +11,8 @@ use crate::demuxer::AudioDemuxer;
 use crate::engine::{VideoEngine, VideoEngineConfig};
 use crate::error::VideoError;
 use crate::types::{
-    BufferPoolConfig, BufferPoolStats, DemuxedAudio, TemporalQaQuery, TemporalQaResult,
-    VideoAnalysisResult, VideoMetadata,
+    BufferPoolConfig, BufferPoolStats, DemuxedAudio, SynthesizedVideo, TemporalQaQuery,
+    TemporalQaResult, VideoAnalysisResult, VideoMetadata, VideoSynthesisConfig,
 };
 
 /// Pluggable, decoupled Video Understanding & Frame Sampling runtime adapter implementing `ModalityAdapter`.
@@ -146,6 +146,25 @@ impl VideoAdapter {
             .map_err(|_| VideoError::InferenceError("Lock poisoned on video engine".to_string()))?;
         let engine = engine_guard.as_ref().ok_or(VideoError::ModelNotLoaded)?;
         engine.temporal_qa(analysis, query)
+    }
+
+    /// Synthesizes a new video sequence from a text prompt or input keyframe images.
+    pub fn synthesize_video(
+        &self,
+        config: &VideoSynthesisConfig,
+    ) -> Result<SynthesizedVideo, VideoError> {
+        let synth = crate::synthesis::VideoSynthesisEngine::new(self.pool.clone());
+        synth.synthesize(config)
+    }
+
+    /// Executes a composable multimodal media DAG workflow graph offline.
+    pub fn execute_workflow(
+        &self,
+        graph: &crate::workflow::MediaWorkflowGraph,
+        cancel_token: Option<&std::sync::atomic::AtomicBool>,
+    ) -> Result<crate::types::WorkflowExecutionResult, VideoError> {
+        let executor = crate::workflow::WorkflowExecutor::new(self.pool.clone());
+        executor.execute(graph, cancel_token)
     }
 }
 

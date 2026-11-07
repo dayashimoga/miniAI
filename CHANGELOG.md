@@ -746,3 +746,31 @@
   - Implemented `VideoAdapter` implementing `miniai_core::ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`).
   - Authored 6 test suites (39 tests) in `crates/miniai-video/tests/`, achieving **91.65%** line coverage, 0 Clippy warnings, and 0 formatting diffs.
   - Maintained 100% passing tests across all workspace crates (274 Rust tests, 39 Python tests, 71 Flutter tests).
+
+
+---
+
+## [2026-11-07T09:40:00+05:30] — Stage 8 Subphase 8.2.1 In Progress (`v0.8.3-stage8.sub8.2.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.2 / Subphase 8.2.1 — Video Synthesis & Multimodal DAG Workflows`
+- **Summary:**
+  - Commencing Subphase 8.2.1 in `crates/miniai-video`.
+  - Implementing local text-to-video and image-to-video synthesis engine on CPU.
+  - Implementing composable media pipeline DAG orchestrator chaining LLM, Image, TTS, Music, and Video adapters.
+  - Implementing DAG cycle detection, topological dependency resolution, and granular step-by-step telemetry.
+
+
+---
+
+## [2026-11-07T09:58:00+05:30] — Stage 8 Subphase 8.2.1 Verified (`v0.8.4-stage8.sub8.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.2 / Subphase 8.2.1 — Video Synthesis & Multimodal DAG Workflows`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `VideoSynthesisEngine` in `crates/miniai-video/src/synthesis.rs` providing local text-to-video generative synthesis, image-to-video camera motion animation (`PanLeft`, `PanRight`, `ZoomIn`, `ZoomOut`, `TiltUp`, `TiltDown`, `Orbit`), two-keyframe morph interpolation, and synchronized audio soundtrack generation.
+  - Implemented `MediaWorkflowGraph` in `crates/miniai-video/src/workflow.rs` supporting composable DAG pipelines chaining LLM, Vision, ImageGen, Speech ASR, Speech TTS, Music, Video Synthesis, Video Analysis, and AudioVideoMux.
+  - Implemented topological sorting via Kahn's algorithm with strict cycle rejection (`WorkflowCycleDetected`).
+  - Implemented `WorkflowExecutor` with per-node status and duration telemetry, typed data passing (`WorkflowData`), and cooperative cancellation.
+  - Extended `VideoAdapter` with `synthesize_video` and `execute_workflow` operations.
+  - Authored 12 new tests in `synthesis_tests.rs` and `workflow_tests.rs`, achieving 51/51 passing tests in `miniai-video` with **90.63%** line coverage and 0 Clippy warnings.
+  - Total Rust workspace tests expanded to 286/286 passing.

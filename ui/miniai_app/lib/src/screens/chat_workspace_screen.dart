@@ -336,6 +336,132 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
     );
   }
 
+  bool _isModelUnverified(String modelId) {
+    final status = widget.controller.getModelStatus(modelId);
+    return status.status != DownloadStatus.verified;
+  }
+
+  Widget _buildModelReadinessBanner(BuildContext context) {
+    final selectedId = widget.controller.selectedChatModelId;
+    final manifest = widget.controller.models
+        .where((m) => m.modelId == selectedId)
+        .firstOrNull;
+    final modelName = manifest?.name ?? selectedId;
+
+    return Container(
+      key: const Key('model_readiness_banner'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.amber.withValues(alpha: 0.15),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.orange, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Model "$modelName" is pending download & verification in local cache.',
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+          FilledButton.tonal(
+            key: Key('ready_model_button_$selectedId'),
+            onPressed: () {
+              widget.controller.completeDownload(selectedId);
+            },
+            child: const Text('Verify & Ready', style: TextStyle(fontSize: 11)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMemoryDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final memories = widget.controller.memories;
+          return AlertDialog(
+            key: const Key('memory_inspector_dialog'),
+            title: const Row(
+              children: [
+                Icon(Icons.psychology, size: 22),
+                SizedBox(width: 8),
+                Text('3-Tier Cognitive Memory'),
+              ],
+            ),
+            content: SizedBox(
+              width: 520,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Durable semantic facts and user preferences remembered across conversation sessions under strict local-only privacy guarantees.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  if (memories.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: Text('No memories stored yet.')),
+                    )
+                  else
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 260),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: memories.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (ctx, i) {
+                          final mem = memories[i];
+                          return ListTile(
+                            key: Key('memory_item_${mem.id}'),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(mem.content,
+                                style: const TextStyle(fontSize: 12.5)),
+                            subtitle: Text(
+                              'Type: ${mem.type} • Confidence: ${(mem.confidence * 100).toInt()}%',
+                              style: const TextStyle(fontSize: 10.5),
+                            ),
+                            trailing: IconButton(
+                              key: Key('delete_memory_${mem.id}'),
+                              icon: const Icon(Icons.delete_outline, size: 16),
+                              onPressed: () {
+                                widget.controller.deleteMemory(mem.id);
+                                setDialogState(() {});
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              if (memories.isNotEmpty)
+                TextButton.icon(
+                  key: const Key('clear_memory_button'),
+                  icon: const Icon(Icons.delete_sweep, size: 16),
+                  label: const Text('Clear All Memories'),
+                  onPressed: () {
+                    widget.controller.clearMemories();
+                    setDialogState(() {});
+                  },
+                ),
+              FilledButton(
+                key: const Key('close_memory_dialog_button'),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Done'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void _showExportDialog(BuildContext context) {
     final activeId = widget.controller.activeSessionId;
     if (activeId == null) return;
@@ -404,6 +530,8 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
                       children: [
                         _buildTopToolbar(context, isWide),
                         const Divider(height: 1, thickness: 1),
+                        if (_isModelUnverified(widget.controller.selectedChatModelId))
+                          _buildModelReadinessBanner(context),
                         Expanded(child: _buildMessageTimeline(context)),
                         if (widget.controller.isGenerating)
                           _buildStreamingStatusBar(context),
@@ -505,6 +633,13 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
             visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.tune, size: 18),
             onPressed: () => _showTuningDialog(context),
+          ),
+          IconButton(
+            key: const Key('memory_inspector_button'),
+            tooltip: 'Cognitive Memory Inspector',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.psychology_outlined, size: 18),
+            onPressed: () => _showMemoryDialog(context),
           ),
           IconButton(
             key: const Key('export_chat_button'),

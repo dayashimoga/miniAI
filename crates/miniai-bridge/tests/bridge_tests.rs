@@ -143,7 +143,10 @@ fn test_bridge_telemetry_and_model_unloading() {
     let telem2 = engine.dispatch(BridgeRequest::GetTelemetry).data.unwrap();
     assert_eq!(telem2["active_model"], "llama-3.2-1b-instruct-q4");
     assert_eq!(telem2["total_chat_requests"], 1);
-    assert_eq!(telem2["total_tokens_generated"], 25);
+    assert_eq!(
+        telem2["total_tokens_generated"],
+        chat_data["telemetry"]["tokens_generated"]
+    );
 
     // 4. Unload model
     let unload_res = engine.dispatch(BridgeRequest::UnloadModel { model_id: None });
@@ -199,4 +202,40 @@ fn test_c_ffi_lifecycle_and_dispatch() {
         // 4. Free engine
         miniai_bridge_free(engine_ptr);
     }
+}
+
+#[test]
+fn test_bridge_memory_tiers_crud() {
+    let engine = BridgeEngine::new_in_memory().expect("in-memory engine");
+
+    // 1. Initial memories should be empty
+    let list_res = engine.dispatch(BridgeRequest::ListMemories);
+    assert!(list_res.success);
+    let data = list_res.data.unwrap();
+    assert_eq!(data["semantic_facts"].as_array().unwrap().len(), 0);
+
+    // 2. Store user preference
+    let store_res = engine.dispatch(BridgeRequest::StoreMemory {
+        memory_type: "semantic".to_string(),
+        content: "User prefers local-first offline execution".to_string(),
+        metadata: None,
+    });
+    assert!(store_res.success);
+
+    // 3. Verify memory appears in ListMemories
+    let list_res2 = engine.dispatch(BridgeRequest::ListMemories);
+    assert!(list_res2.success);
+    let data2 = list_res2.data.unwrap();
+    assert_eq!(data2["semantic_facts"].as_array().unwrap().len(), 1);
+
+    // 4. Clear memories
+    let clear_res = engine.dispatch(BridgeRequest::ClearMemories);
+    assert!(clear_res.success);
+    let clear_data = clear_res.data.unwrap();
+    assert_eq!(clear_data["status"], "cleared");
+
+    // 5. Verify empty again
+    let list_res3 = engine.dispatch(BridgeRequest::ListMemories);
+    let data3 = list_res3.data.unwrap();
+    assert_eq!(data3["semantic_facts"].as_array().unwrap().len(), 0);
 }

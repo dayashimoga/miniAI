@@ -18,6 +18,7 @@ miniai-registry = { path = "../miniai-registry" }
 miniai-runtime = { path = "../miniai-runtime" }
 miniai-llm = { path = "../miniai-llm" }
 miniai-rag = { path = "../miniai-rag" }
+miniai-memory = { path = "../miniai-memory" }
 miniai-vision = { path = "../miniai-vision" }
 miniai-imagegen = { path = "../miniai-imagegen" }
 miniai-speech-asr = { path = "../miniai-speech-asr" }

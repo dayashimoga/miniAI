@@ -82,3 +82,4 @@ sequenceDiagram
 - **Mutual TLS (mTLS) 1.3**: Pinned self-signed Ed25519 certificates generated on-device during pairing.
 - **Out-of-Band Authentication**: Pairing requires physical QR code scanning or 6-digit confirmation PIN.
 - **Zero Internet Routing**: Traffic stays strictly within the local subnet (RFC 1918 private IP ranges); no external proxy or relay is ever contacted.
+

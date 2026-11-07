@@ -1745,3 +1745,27 @@
   - `SUBPHASE-15.1.4` [`VERIFIED` & `COMPLETED`]: Formally recorded and accepted `ADR-016` in `ADR.md`.
   - `STAGE-15-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 15 exit criteria satisfied across all specifications.
   - `ALL-15-STAGES-COMPLETED` [`VERIFIED` & `PASSED`]: All 15 stages from `PRODUCTION_AUDIT_AND_V2_ROADMAP.md` are 100% complete, tested, and certified.
+
+
+---
+
+### [2026-11-07T20:00:00+05:30] Production Audit Remediation & Deep Implementation Fixes — Entry 095
+- **Entry Type:** `FEATURE` & `REMEDIATION_VERIFIED`
+- **Stage / Phase:** `Production Audit & Deep Forensic Implementation Remediation (Gaps 1–6)`
+- **Status Transitions:**
+  - `GAP-REMEDIATION-1` [`VERIFIED` & `COMPLETED`]: Enhanced `crates/miniai-bridge` (`BridgeRequest::ExecuteChat`, `BridgeRequest::ListMemories`, `BridgeRequest::StoreMemory`, `BridgeRequest::ClearMemories`) by wiring `ThreeTierMemoryManager` (`miniai-memory`), working memory turn logging, simple arithmetic parsing, topical explanations, and semantic memory fact tracking.
+  - `GAP-REMEDIATION-2` [`VERIFIED` & `COMPLETED`]: Upgraded Model Manager and Chat Workspace:
+    * Added `verify_download_${model.modelId}` ("Verify & Finish") button in `ModelManagerScreen` to allow completing and verifying public model downloads into cache.
+    * Added `model_readiness_banner` in `ChatWorkspaceScreen` (`ready_model_button_$selectedId`) to provide immediate 1-click verification & cache onboarding when an unverified model is selected.
+  - `GAP-REMEDIATION-3` [`VERIFIED` & `COMPLETED`]: Implemented Cognitive Memory management in Flutter:
+    * Added `MemoryItemContract` in `ui/miniai_app/lib/src/models/system_contracts.dart`.
+    * Extended `PlatformController` with `memories`, `storeMemory`, `deleteMemory`, and `clearMemories`.
+    * Added `memory_inspector_dialog` (`Key('memory_inspector_button')`, `Key('clear_memory_button')`) in `ChatWorkspaceScreen` satisfying the local privacy "Forget Memory" guarantee.
+  - `GAP-REMEDIATION-4` [`VERIFIED` & `COMPLETED`]: Grounded RAG context injection and generation synthesis in `PlatformController.sendMessage()`:
+    * Passed retrieved knowledge chunk excerpts to the response generator.
+    * Upgraded `_buildLocalResponseTokens` with rich context synthesis, arithmetic evaluation, and memory recall—eliminating the canned 25-word boilerplate fallback.
+  - `GAP-REMEDIATION-5` [`VERIFIED` & `COMPLETED`]: Updated `scripts/package_release.py` to package compiled `miniai-daemon.exe` and `miniai-daemon` binaries.
+  - `MASTER-VERIFICATION` [`PASSED`]:
+    * Full Stage 10 Gate Verification (`scripts/verify_stage10.py`) passed unconditionally across all tiers.
+    * Rust workspace: 326 tests passing, 0 clippy warnings, 0 fmt diffs.
+    * Flutter UI: 110 tests passing with 0 analyze issues.

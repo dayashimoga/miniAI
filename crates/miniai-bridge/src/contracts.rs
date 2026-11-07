@@ -49,6 +49,20 @@ pub enum BridgeRequest {
 
     #[serde(rename = "export_redacted_diagnostics")]
     ExportRedactedDiagnostics,
+
+    #[serde(rename = "list_memories")]
+    ListMemories,
+
+    #[serde(rename = "store_memory")]
+    StoreMemory {
+        memory_type: String,
+        content: String,
+        #[serde(default)]
+        metadata: Option<serde_json::Value>,
+    },
+
+    #[serde(rename = "clear_memories")]
+    ClearMemories,
 }
 
 fn default_audit_limit() -> usize {

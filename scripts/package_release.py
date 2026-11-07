@@ -283,10 +283,13 @@ def package_release(output_dir: Path, version: str) -> dict[str, Any]:
                 if target["os"] == "windows":
                     win_runner_dir = REPO_ROOT / "ui" / "miniai_app" / "build" / "windows" / "x64" / "runner" / "Release"
                     win_rust_server = REPO_ROOT / "target" / "release" / "miniai-server.exe"
+                    win_rust_daemon = REPO_ROOT / "target" / "release" / "miniai-daemon.exe"
                     if win_runner_dir.is_dir():
                         for item in win_runner_dir.rglob("*"):
                             if item.is_file():
                                 zf.write(item, item.relative_to(win_runner_dir))
+                    elif win_rust_daemon.is_file():
+                        zf.write(win_rust_daemon, "miniai-daemon.exe")
                     elif win_rust_server.is_file():
                         zf.write(win_rust_server, target["binary"])
                     else:

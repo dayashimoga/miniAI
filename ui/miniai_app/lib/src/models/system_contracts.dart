@@ -2539,3 +2539,37 @@ class ComputeTaskResponseContract {
     );
   }
 }
+
+class MemoryItemContract {
+  const MemoryItemContract({
+    required this.id,
+    required this.type,
+    required this.content,
+    required this.confidence,
+    required this.createdAtEpochSecs,
+  });
+
+  final String id;
+  final String type;
+  final String content;
+  final double confidence;
+  final int createdAtEpochSecs;
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'type': type,
+        'content': content,
+        'confidence': confidence,
+        'created_at_epoch_secs': createdAtEpochSecs,
+      };
+
+  factory MemoryItemContract.fromJson(Map<String, Object?> json) {
+    return MemoryItemContract(
+      id: json['id'] as String? ?? '',
+      type: json['type'] as String? ?? 'semantic',
+      content: json['content'] as String? ?? '',
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 1.0,
+      createdAtEpochSecs: json['created_at_epoch_secs'] as int? ?? 0,
+    );
+  }
+}

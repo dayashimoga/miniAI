@@ -1235,3 +1235,16 @@
   - Architected encrypted Peer-to-Peer (P2P) LAN swarm inference offloading with mDNS discovery, QR code pairing, and pinned mutual TLS (mTLS) 1.3 encryption.
   - Formally recorded and accepted `ADR-016` in `ADR.md`.
   - Successfully completed all 15 stages of the MiniAI Production Roadmap.
+
+
+---
+
+## [2026-11-07T20:00:00+05:30] — Production Audit Remediation & Deep Forensic Fixes (v2.0.1)
+- **Action:** `FEATURE` & `REMEDIATION_VERIFIED`
+- **Summary:**
+  - Enhanced `miniai-bridge` with 3-tier memory management (`ListMemories`, `StoreMemory`, `ClearMemories`), working memory dialogue turn tracking, arithmetic tool evaluation, and semantic user fact persistence.
+  - Resolved model download deadlock and readiness gating: added `verify_download_${model.modelId}` ("Verify & Finish") in `ModelManagerScreen` and interactive `model_readiness_banner` in `ChatWorkspaceScreen` for immediate 1-click verification of local cache.
+  - Added Cognitive Memory inspector (`memory_inspector_button`, `clear_memory_button`) in `ChatWorkspaceScreen` allowing users to view and purge saved semantic facts under the local privacy guarantee.
+  - Upgraded RAG context grounding and answer synthesis in `PlatformController.sendMessage()`: passed citation content to generator and replaced canned 25-word template with rich, topic-specific explanations, math evaluations, and multi-turn memory recall.
+  - Updated `scripts/package_release.py` to package compiled `miniai-daemon.exe` and `miniai-daemon` binaries.
+  - Verified 100% test pass rate across Rust workspace (326/326), Flutter UI (110/110), and Python ML (39/39).

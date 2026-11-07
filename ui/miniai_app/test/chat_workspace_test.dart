@@ -355,5 +355,89 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Conversations'), findsOneWidget);
     });
+
+    testWidgets('Memory Inspector Dialog views, stores, and clears cognitive facts',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1024, 768);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: ChatWorkspaceScreen(controller: controller)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Open Memory Inspector
+      expect(find.byKey(const Key('memory_inspector_button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('memory_inspector_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('memory_inspector_dialog')), findsOneWidget);
+      expect(find.text('3-Tier Cognitive Memory'), findsOneWidget);
+      expect(find.byKey(const Key('memory_item_mem-default-pref')), findsOneWidget);
+
+      // Clear all memories
+      await tester.tap(find.byKey(const Key('clear_memory_button')));
+      await tester.pumpAndSettle();
+      expect(controller.memories, isEmpty);
+      expect(find.text('No memories stored yet.'), findsOneWidget);
+
+      // Close dialog
+      await tester.tap(find.byKey(const Key('close_memory_dialog_button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('memory_inspector_dialog')), findsNothing);
+    });
+
+    testWidgets('ChatWorkspaceScreen displays Model Readiness Banner for unverified models and allows 1-click verification',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1024, 768);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: ChatWorkspaceScreen(controller: controller)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Initially llama-3.2-1b-instruct-q4 is not verified
+      expect(find.byKey(const Key('model_readiness_banner')), findsOneWidget);
+      final readyBtn = find.byKey(const Key('ready_model_button_llama-3.2-1b-instruct-q4'));
+      expect(readyBtn, findsOneWidget);
+
+      // Tap 1-click verify & ready
+      await tester.tap(readyBtn);
+      await tester.pumpAndSettle();
+
+      // Banner should disappear as model is now verified
+      expect(find.byKey(const Key('model_readiness_banner')), findsNothing);
+    });
+
+    test('Cognitive memory and arithmetic evaluation generate accurate responses', () async {
+      // 1. Math calculation
+      await controller.sendMessage('calculate 25 * 48', delayTokens: false);
+      final mathMsg = controller.currentMessages.last;
+      expect(mathMsg.content, contains('Calculated: 25 * 48 = 1200.'));
+
+      // 2. Personal name storage
+      await controller.sendMessage('My name is Alice', delayTokens: false);
+      final nameMsg = controller.currentMessages.last;
+      expect(nameMsg.content, contains('Alice'));
+      expect(controller.memories.any((m) => m.content.contains('Alice')), isTrue);
+
+      // 3. Name recall from memory
+      await controller.sendMessage('what is my name', delayTokens: false);
+      final recallMsg = controller.currentMessages.last;
+      expect(recallMsg.content, contains('Alice'));
+    });
   });
 }

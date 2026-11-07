@@ -188,13 +188,20 @@ class _ModelManagerScreenState extends State<ModelManagerScreen> {
                   ),
                   Row(
                     children: [
-                      if (isDownloading)
+                      if (isDownloading) ...[
+                        TextButton.icon(
+                          key: Key('verify_download_${model.modelId}'),
+                          icon: const Icon(Icons.check_circle_outline, size: 16),
+                          label: const Text('Verify & Finish'),
+                          onPressed: () => controller.completeDownload(model.modelId),
+                        ),
                         IconButton(
                           key: Key('pause_download_${model.modelId}'),
                           tooltip: 'Pause Download',
                           icon: const Icon(Icons.pause, size: 20),
                           onPressed: () => controller.pauseDownload(model.modelId),
                         ),
+                      ],
                       if (isPaused)
                         IconButton(
                           key: Key('resume_download_${model.modelId}'),

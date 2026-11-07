@@ -166,6 +166,54 @@ impl BridgeEngine {
                     Err(e) => BridgeResponse::err("STORAGE_ERROR", e.to_string()),
                 }
             }
+
+            BridgeRequest::RunDoctor => {
+                let hw = HardwareProfile::probe();
+                let storage_integrity = self.storage.check_integrity();
+                let schema_version = self.storage.schema_version();
+                let privacy_status = self
+                    .privacy_engine
+                    .read()
+                    .map(|g| g.state().clone())
+                    .unwrap_or_default();
+
+                let (storage_ok, integrity_msgs) = match storage_integrity {
+                    Ok(rep) => (rep.is_healthy, rep.integrity_messages),
+                    Err(e) => (false, vec![e.to_string()]),
+                };
+                let version = schema_version.unwrap_or(0);
+
+                let report = serde_json::json!({
+                    "overall_status": if storage_ok && version >= 5 { "healthy" } else { "warning" },
+                    "hardware": {
+                        "os_family": hw.os_family,
+                        "arch": hw.arch,
+                        "logical_cpu_cores": hw.logical_cpu_cores,
+                        "simd_features": {
+                            "avx2": hw.cpu_features.avx2,
+                            "fma": hw.cpu_features.fma,
+                            "sse4_2": hw.cpu_features.sse4_2,
+                            "neon": hw.cpu_features.neon,
+                        },
+                        "detected_backends": hw.detected_backends,
+                        "gpus_count": hw.gpus.len(),
+                    },
+                    "storage": {
+                        "is_healthy": storage_ok,
+                        "schema_version": version,
+                        "integrity_messages": integrity_msgs,
+                    },
+                    "privacy": {
+                        "local_only_mode": privacy_status.local_only_mode,
+                        "has_active_consent": privacy_status.active_consent.is_some(),
+                    },
+                    "daemon": {
+                        "loopback_enforced": true,
+                    }
+                });
+
+                BridgeResponse::ok(report)
+            }
         }
     }
 

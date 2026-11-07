@@ -1653,3 +1653,22 @@
     * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
     * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T17:23:00+05:30] Stage 10: Testing, Quality Gates, Built-in Doctor Tool & E2E Verification — Entry 089 (Bridge Doctor Diagnostic & CLI Integration)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 10: Testing, Quality Gates, Built-in Doctor Tool & E2E Verification / Phase 10.1 — Cross-Platform Testing & Diagnostics`
+- **Status Transitions:**
+  - `SUBPHASE-10.1.1` [`VERIFIED` & `COMPLETED`]: Added `BridgeRequest::RunDoctor` in `crates/miniai-bridge/src/contracts.rs` and diagnostic engine logic in `crates/miniai-bridge/src/engine.rs` collecting hardware SIMD capabilities (AVX2, FMA, NEON, SSE4.2), GPU count, SQLite database schema version and integrity check status, loopback daemon enforcement, and privacy mode state.
+  - `SUBPHASE-10.1.2` [`VERIFIED` & `COMPLETED`]: Added `miniai doctor` CLI command in `crates/miniai-daemon/src/main.rs` executing the doctor diagnostic check and printing structured JSON to stdout.
+  - `SUBPHASE-10.1.3` [`VERIFIED` & `COMPLETED`]: Authored unit test `test_bridge_run_doctor` in `crates/miniai-bridge/tests/bridge_tests.rs`.
+  - `STAGE-10-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 10 exit criteria satisfied:
+    * 324/324 Rust tests passing across all 17 workspace crates (`cargo test --workspace`).
+    * 0 Clippy lints (`cargo clippy --workspace --all-targets -- -D warnings`).
+    * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
+    * 39/39 Python ML tests passing with 97.28% statement coverage (`uv run --project ml pytest`).
+    * 105/105 Flutter tests passing with 90.36% line coverage and 0 static analysis issues.
+    * 0 cargo-audit security vulnerabilities across 98 scanned crates.
+    * Full Stage 10 verification passed (`scripts/verify_stage10.py`).

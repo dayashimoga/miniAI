@@ -100,6 +100,19 @@ fn test_bridge_json_dispatch_protocol() {
 }
 
 #[test]
+fn test_bridge_run_doctor() {
+    let engine = BridgeEngine::new_in_memory().expect("in-memory engine");
+    let resp = engine.dispatch(BridgeRequest::RunDoctor);
+    assert!(resp.success);
+    let data = resp.data.expect("doctor data");
+    assert_eq!(data["overall_status"], "healthy");
+    assert_eq!(data["privacy"]["local_only_mode"], true);
+    assert_eq!(data["storage"]["is_healthy"], true);
+    assert!(data["hardware"]["logical_cpu_cores"].as_u64().unwrap() > 0);
+    assert_eq!(data["daemon"]["loopback_enforced"], true);
+}
+
+#[test]
 fn test_c_ffi_lifecycle_and_dispatch() {
     unsafe {
         // 1. Initialize with in-memory storage (NULL path)

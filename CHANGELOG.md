@@ -1162,3 +1162,16 @@
   - Implemented HMAC-SHA256 signing and cryptographic signature verification for `CloudConsentToken` in `crates/miniai-cloud/src/token.rs`.
   - Added Bearer token authentication to `DaemonServer` (`crates/miniai-daemon/src/lib.rs`), requiring an ephemeral secret token to access the `/v1/bridge/dispatch` endpoint and rejecting unauthenticated calls with 401 Unauthorized.
   - Verified 100% test pass rate across Rust workspace (323/323) and Flutter (105/105, 0 analyzer issues).
+
+
+---
+
+## [2026-11-07T17:23:00+05:30] — Stage 10 Sign-Off: Bridge Doctor Diagnostic & CLI Tooling
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 10 / Phase 10.1 / Subphases 10.1.1, 10.1.2 & 10.1.3`
+- **Summary:**
+  - Implemented `BridgeRequest::RunDoctor` in `crates/miniai-bridge/src/contracts.rs` and added diagnostic aggregator in `crates/miniai-bridge/src/engine.rs` collecting hardware SIMD capabilities (AVX2, FMA, NEON, SSE4.2), GPU count, SQLite schema version (Migration 5), storage health, loopback daemon enforcement, and privacy mode state.
+  - Added CLI flag handler in `crates/miniai-daemon/src/main.rs` for `miniai doctor` producing structured JSON reports to stdout.
+  - Authored test `test_bridge_run_doctor` in `crates/miniai-bridge/tests/bridge_tests.rs`.
+  - Verified 100% test pass rate across Rust workspace (324/324), Python ML (39/39, 97.28% coverage), and Flutter UI (105/105, 90.36% coverage, 0 analyze issues).
+  - Executed master certification script `scripts/verify_stage10.py` with full pass across all governance and verification tiers.

@@ -34,6 +34,9 @@ pub enum BridgeRequest {
         #[serde(default = "default_audit_limit")]
         limit: usize,
     },
+
+    #[serde(rename = "run_doctor")]
+    RunDoctor,
 }
 
 fn default_audit_limit() -> usize {

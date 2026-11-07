@@ -44,6 +44,21 @@ pub enum CloudError {
     #[error("Consent token not found: '{token_id}'")]
     TokenNotFound { token_id: String },
 
+    #[error("Remote transport error: {reason}")]
+    RemoteTransportError { reason: String },
+
+    #[error("Remote worker error (status {status_code}): {message}")]
+    RemoteWorkerError { status_code: u16, message: String },
+
+    #[error("TLS/mTLS configuration error: {reason}")]
+    TlsConfigurationError { reason: String },
+
+    #[error("Local fallback execution failed: {reason}")]
+    FallbackFailed { reason: String },
+
+    #[error("Compute operation was cancelled")]
+    OperationCancelled,
+
     #[error("Storage error: {0}")]
     Storage(#[from] miniai_storage::StorageError),
 

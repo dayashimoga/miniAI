@@ -848,3 +848,30 @@
   - Implemented `ConsentManager` in `crates/miniai-cloud/src/manager.rs` orchestrating token issuance, pre-flight authorization verification, dispatch byte accounting, quota exhaustion, manual/emergency revocation (`revoke_all`), and active synchronization with `PrivacyPolicyEngine`.
   - Authored 16 unit and integration tests across `token_tests.rs`, `ledger_tests.rs`, and `manager_tests.rs`, achieving **95.21%** line coverage in `miniai-cloud` with 0 Clippy warnings and 0 formatting diffs.
   - Expanded total Rust workspace tests to 302/302 passing across 14 crates.
+
+
+---
+
+## [2026-11-07T10:50:00+05:30] — Stage 9 Subphase 9.2.1 In Progress (`v0.9.3-stage9.sub9.2.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 9 / Phase 9.2 / Subphase 9.2.1 — Encrypted Remote Compute Dispatcher & Automatic Local Fallback`
+- **Summary:**
+  - Initiated Stage 9 Subphase 9.2.1 in `crates/miniai-cloud`.
+  - Adding mTLS remote compute client configuration, pre-flight consent verification, and payload bounding in `dispatcher.rs`.
+  - Adding `FallbackCoordinator` in `fallback.rs` guaranteeing immediate local CPU execution fallback on remote network error, timeout, or mid-flight consent revocation.
+
+
+---
+
+## [2026-11-07T11:05:00+05:30] — Stage 9 Subphase 9.2.1 Verified (`v0.9.4-stage9.sub9.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 9 / Phase 9.2 / Subphase 9.2.1 — Encrypted Remote Compute Dispatcher & Automatic Local Fallback`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented mTLS and TLS 1.3 configuration validator (`TlsConfig`) and remote compute dispatch engine (`RemoteDispatcher`) in `crates/miniai-cloud/src/dispatcher.rs`.
+  - Enforced pre-flight consent authorization gate and zero egress guarantee when `LocalOnlyPrivacyMode` is active or tokens are expired, revoked, mismatched, or exhausted.
+  - Implemented cooperative cancellation monitoring before transmission and mid-flight.
+  - Implemented `LocalFallbackHandler` and `FallbackCoordinator` in `crates/miniai-cloud/src/fallback.rs` guaranteeing transparent local CPU fallback upon remote network failure, timeout, or 5xx worker errors, with immutable audit ledger recording of fallback events.
+  - Authored 11 unit and integration tests across `dispatcher_tests.rs` and `fallback_tests.rs`.
+  - Reached **95.00%** line coverage in `miniai-cloud` (27/27 tests passing) with 0 Clippy warnings and 0 formatting diffs.
+  - Reached 329/329 passing Rust tests across all 14 workspace crates.

@@ -1112,3 +1112,19 @@
   - Implemented RAG query routing and dual relevance cutoff gating (`min_dense_threshold = 0.40`, `min_rrf_threshold = 0.010`) in `crates/miniai-rag/src/retrieval.rs`. Out-of-domain queries like "what is adventure" bypass workspace citation attachment entirely, while repository queries like "how does AdmissionGuard work?" attach `ARCHITECTURE.md` with high confidence.
   - Verified structure-aware chunking for code and documentation formats (.md, .txt, .rs, .py, .dart, .json, .yaml, .toml, .c, .cpp, .pdf).
   - Verified 100% test pass rate across Rust workspace (316/316) and Flutter (105/105).
+
+
+---
+
+## [2026-11-07T16:50:00+05:30] — Stage 6 Sign-Off: Three-Tier Memory Systems & SQLite Persistence
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 6 / Phase 6.1 / Subphases 6.1.1, 6.1.2 & 6.1.3`
+- **Summary:**
+  - Created `crates/miniai-memory` workspace crate implementing the three-tier memory architecture:
+    * `WorkingMemory`: token-budgeted rolling context window with pinned system instructions and scratchpad.
+    * `EpisodicMemoryService`: automatic session summarization, key decisions tracking, and keyword topic search.
+    * `SemanticMemoryService`: durable facts and preferences with category filtering and GDPR "Forget Memory" erasure.
+    * `ThreeTierMemoryManager`: coordinates working turns, episodic history, and semantic facts into augmented prompt context.
+  - Added Migration 5 (`005_memory_tiers`) in `crates/miniai-storage` for `episodic_memories` and `semantic_memories` tables.
+  - Added tests in `crates/miniai-memory/tests/memory_tests.rs` and `crates/miniai-storage`.
+  - Reached 321/321 passing Rust tests across the workspace, 0 Clippy warnings, and 100% rustfmt compliance. Full Stage 10 verification pass.

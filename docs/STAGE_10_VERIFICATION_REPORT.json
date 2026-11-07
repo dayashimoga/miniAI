@@ -1,7 +1,7 @@
 {
   "stage": 10,
   "title": "Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases (v1.0.0)",
-  "generated_at": "2026-11-07T11:06:13.058068+00:00",
+  "generated_at": "2026-11-07T11:19:57.592444+00:00",
   "overall_passed": true,
   "governance_audit": {
     "passed": true,
@@ -29,14 +29,8 @@
       "passed": true,
       "stdout_tail": [],
       "stderr_tail": [
-        "Checking miniai-rag v0.1.0 (G:\\miniAI\\crates\\miniai-rag)",
-        "    Checking miniai-llm v0.1.0 (G:\\miniAI\\crates\\miniai-llm)",
-        "    Checking miniai-speech-tts v0.1.0 (G:\\miniAI\\crates\\miniai-speech-tts)",
-        "    Checking miniai-bridge v0.1.0 (G:\\miniAI\\crates\\miniai-bridge)",
-        "    Checking miniai-video v0.1.0 (G:\\miniAI\\crates\\miniai-video)",
-        "    Checking miniai-stress-tests v0.1.0 (G:\\miniAI\\tests)",
-        "    Checking miniai-daemon v0.1.0 (G:\\miniAI\\crates\\miniai-daemon)",
-        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.96s"
+        "Checking miniai-memory v0.1.0 (G:\\miniAI\\crates\\miniai-memory)",
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.89s"
       ]
     },
     {
@@ -63,11 +57,11 @@
         "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
       ],
       "stderr_tail": [
-        "   Doc-tests miniai_cloud",
         "   Doc-tests miniai_core",
         "   Doc-tests miniai_daemon",
         "   Doc-tests miniai_imagegen",
         "   Doc-tests miniai_llm",
+        "   Doc-tests miniai_memory",
         "   Doc-tests miniai_music",
         "   Doc-tests miniai_rag",
         "   Doc-tests miniai_registry",
@@ -91,7 +85,7 @@
         "Fetching advisory database from `https://github.com/RustSec/advisory-db.git`",
         "      Loaded 1422 security advisories (from C:\\Users\\daya\\.cargo\\advisory-db)",
         "    Updating crates.io index",
-        "    Scanning Cargo.lock for vulnerabilities (97 crate dependencies)"
+        "    Scanning Cargo.lock for vulnerabilities (98 crate dependencies)"
       ]
     },
     {
@@ -115,7 +109,7 @@
         "--------------------------------------------------------------",
         "TOTAL                              918     25    97%",
         "Required test coverage of 90% reached. Total coverage: 97.28%",
-        "39 passed in 11.58s"
+        "39 passed in 11.59s"
       ],
       "stderr_tail": []
     },
@@ -138,8 +132,8 @@
       "exit_code": 0,
       "passed": true,
       "stdout_tail": [
-        "00:14 +91: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
-        "00:14 +92: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:13 +91: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:13 +92: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
         "00:14 +93: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
         "00:14 +94: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:15 +95: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
@@ -149,10 +143,10 @@
         "00:15 +99: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:16 +100: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:16 +101: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
-        "00:16 +102: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:16 +102: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
         "00:16 +103: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
         "00:17 +104: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
-        "00:24 +105: All tests passed!"
+        "00:18 +105: All tests passed!"
       ],
       "stderr_tail": []
     },
@@ -179,15 +173,15 @@
       "stdout_tail": [
         "      \"filename\": \"bom.json\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"c5a64f4a3c783ef8fff1d778650201f603710ca81a8741ce7c8644a4330d9e97\",",
-        "      \"actual_sha256\": \"c5a64f4a3c783ef8fff1d778650201f603710ca81a8741ce7c8644a4330d9e97\",",
+        "      \"expected_sha256\": \"addf583ab7f25ad97974d582dbac15799b834f4bfa6cb6cbadc8ea7d9fe9b35e\",",
+        "      \"actual_sha256\": \"addf583ab7f25ad97974d582dbac15799b834f4bfa6cb6cbadc8ea7d9fe9b35e\",",
         "      \"passed\": true",
         "    },",
         "    {",
         "      \"filename\": \"bom.xml\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"2965b488a491841527e7d610e1fd9c9587c3fc6555005b7db0bf0072a93ff5ed\",",
-        "      \"actual_sha256\": \"2965b488a491841527e7d610e1fd9c9587c3fc6555005b7db0bf0072a93ff5ed\",",
+        "      \"expected_sha256\": \"c89c7fe6bcba87133674065b7ec75496db9b85ab228c1e9c4657dd34601a9426\",",
+        "      \"actual_sha256\": \"c89c7fe6bcba87133674065b7ec75496db9b85ab228c1e9c4657dd34601a9426\",",
         "      \"passed\": true",
         "    }",
         "  ]",

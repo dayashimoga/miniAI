@@ -1587,3 +1587,20 @@
     * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
     * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T16:50:00+05:30] Stage 6: Multi-Tier Memory Systems — Entry 085 (Three-Tier Memory Architecture & SQLite Persistence)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 6: Multi-Tier Memory Systems / Phase 6.1 — Three-Tier Memory Architecture`
+- **Status Transitions:**
+  - `SUBPHASE-6.1.1` [`VERIFIED` & `COMPLETED`]: Implemented `WorkingMemory` in `crates/miniai-memory/src/working.rs` with token-budgeted rolling context window, pinned system instructions (preserved against eviction), active scratchpad observations, and oldest-turn eviction.
+  - `SUBPHASE-6.1.2` [`VERIFIED` & `COMPLETED`]: Implemented `EpisodicMemoryService` in `crates/miniai-memory/src/episodic.rs` and Migration 5 (`005_memory_tiers`) in `crates/miniai-storage`, supporting automatic conversation summarization, key decisions extraction, and keyword topic indexing.
+  - `SUBPHASE-6.1.3` [`VERIFIED` & `COMPLETED`]: Implemented `SemanticMemoryService` in `crates/miniai-memory/src/semantic.rs` for durable facts and user preferences with deterministic fact hashing, category filtering, and immediate GDPR "Forget Memory" deletion.
+  - `STAGE-6-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 6 exit criteria satisfied:
+    * 321/321 Rust tests passing across all 17 workspace crates (`cargo test --workspace`).
+    * 0 Clippy lints (`cargo clippy --workspace --all-targets -- -D warnings`).
+    * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
+    * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
+    * Full Stage 10 verification passed (`scripts/verify_stage10.py`).

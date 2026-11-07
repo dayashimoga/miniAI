@@ -17,6 +17,7 @@ members = [
     "crates/miniai-cloud",
     "crates/miniai-bridge",
     "crates/miniai-daemon",
+    "crates/miniai-memory",
     "tests",
 ]
 

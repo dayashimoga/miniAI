@@ -129,6 +129,34 @@ pub const MIGRATIONS: &[Migration] = &[
         CREATE INDEX IF NOT EXISTS idx_chat_messages_parent ON chat_messages(parent_id);
         "#,
     ),
+    Migration::new(
+        5,
+        "005_memory_tiers",
+        r#"
+        CREATE TABLE IF NOT EXISTS episodic_memories (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            topic TEXT NOT NULL,
+            summary TEXT NOT NULL,
+            key_decisions TEXT NOT NULL,
+            created_at_epoch_secs INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_episodic_memories_topic ON episodic_memories(topic);
+        CREATE INDEX IF NOT EXISTS idx_episodic_memories_created ON episodic_memories(created_at_epoch_secs);
+
+        CREATE TABLE IF NOT EXISTS semantic_memories (
+            id TEXT PRIMARY KEY,
+            category TEXT NOT NULL,
+            content TEXT NOT NULL,
+            confidence REAL NOT NULL DEFAULT 1.0,
+            created_at_epoch_secs INTEGER NOT NULL,
+            updated_at_epoch_secs INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_semantic_memories_category ON semantic_memories(category);
+        "#,
+    ),
 ];
 
 /// Manages and executes database schema migrations.

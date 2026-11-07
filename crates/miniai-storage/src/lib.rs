@@ -15,8 +15,8 @@ pub use error::StorageError;
 pub use migrations::{Migration, MigrationRunner, MIGRATIONS};
 pub use models::{
     AppSetting, CachedModelRecord, ChatMessageRecord, ChatSessionExport, ChatSessionRecord,
-    ConsentAuditEvent, DiagnosticEventRecord, IntegrityReport, MessageRole, ModelManifestRecord,
-    QuarantineResult, Workspace,
+    ConsentAuditEvent, DiagnosticEventRecord, EpisodicMemoryRecord, IntegrityReport, MessageRole,
+    ModelManifestRecord, QuarantineResult, SemanticFactRecord, Workspace,
 };
 
 #[cfg(test)]
@@ -29,7 +29,7 @@ mod tests {
         let engine = StorageEngine::in_memory().expect("in-memory engine init");
         assert!(engine.is_in_memory());
         assert!(engine.path().is_none());
-        assert_eq!(engine.schema_version().expect("schema version"), 4);
+        assert_eq!(engine.schema_version().expect("schema version"), 5);
 
         let integrity = engine.check_integrity().expect("integrity check");
         assert!(integrity.is_healthy);
@@ -45,7 +45,7 @@ mod tests {
         let engine = StorageEngine::open(&db_path).expect("open on-disk storage");
         assert!(!engine.is_in_memory());
         assert_eq!(engine.path().unwrap(), db_path.as_path());
-        assert_eq!(engine.schema_version().expect("schema version"), 4);
+        assert_eq!(engine.schema_version().expect("schema version"), 5);
 
         // Verify WAL mode was enabled on disk
         let integrity = engine.check_integrity().expect("integrity check");
@@ -417,7 +417,7 @@ mod tests {
         assert!(quarantine_result.recreated_healthy);
         assert!(std::path::Path::new(&quarantine_result.quarantined_backup_path).exists());
         assert!(recovered_engine.check_integrity().unwrap().is_healthy);
-        assert_eq!(recovered_engine.schema_version().unwrap(), 4);
+        assert_eq!(recovered_engine.schema_version().unwrap(), 5);
 
         // Verify recovered database accepts new writes
         recovered_engine
@@ -852,5 +852,83 @@ mod tests {
         assert_eq!(export.messages.len(), 2);
         assert_eq!(export.messages[0].role, MessageRole::User);
         assert_eq!(export.messages[1].role, MessageRole::Assistant);
+    }
+
+    #[test]
+    fn test_episodic_and_semantic_memories_crud_and_search() {
+        let engine = StorageEngine::in_memory().unwrap();
+
+        // 1. Episodic memory operations
+        let ep = EpisodicMemoryRecord {
+            id: "ep-001".to_string(),
+            session_id: "sess-101".to_string(),
+            topic: "Architecture Design Review".to_string(),
+            summary: "Discussed three-tier memory model and CPU-first inference guarantees."
+                .to_string(),
+            key_decisions:
+                "Adopted WorkingMemory, EpisodicMemory, and SemanticMemory with SQLite backing."
+                    .to_string(),
+            created_at_epoch_secs: 1700000000,
+        };
+        engine.insert_episodic_memory(&ep).unwrap();
+
+        let list_ep = engine.list_episodic_memories(10).unwrap();
+        assert_eq!(list_ep.len(), 1);
+        assert_eq!(list_ep[0].id, "ep-001");
+
+        let search_ep = engine.search_episodic_memories("three-tier").unwrap();
+        assert_eq!(search_ep.len(), 1);
+        assert_eq!(search_ep[0].topic, "Architecture Design Review");
+
+        let no_search_ep = engine
+            .search_episodic_memories("quantum computing")
+            .unwrap();
+        assert!(no_search_ep.is_empty());
+
+        // 2. Semantic fact memory operations
+        let fact1 = SemanticFactRecord {
+            id: "fact-001".to_string(),
+            category: "preference".to_string(),
+            content: "User prefers concise answers with clickable file links.".to_string(),
+            confidence: 0.95,
+            created_at_epoch_secs: 1700000000,
+            updated_at_epoch_secs: 1700000000,
+        };
+        let fact2 = SemanticFactRecord {
+            id: "fact-002".to_string(),
+            category: "project_fact".to_string(),
+            content: "MiniAI uses SQLite with WAL mode on disk.".to_string(),
+            confidence: 1.0,
+            created_at_epoch_secs: 1700000100,
+            updated_at_epoch_secs: 1700000100,
+        };
+        engine.insert_semantic_fact(&fact1).unwrap();
+        engine.insert_semantic_fact(&fact2).unwrap();
+
+        let facts = engine.list_semantic_facts().unwrap();
+        assert_eq!(facts.len(), 2);
+
+        let filtered_category = engine
+            .search_semantic_facts(Some("preference"), None)
+            .unwrap();
+        assert_eq!(filtered_category.len(), 1);
+        assert_eq!(filtered_category[0].id, "fact-001");
+
+        let filtered_content = engine
+            .search_semantic_facts(None, Some("WAL mode"))
+            .unwrap();
+        assert_eq!(filtered_content.len(), 1);
+        assert_eq!(filtered_content[0].id, "fact-002");
+
+        // 3. GDPR "Forget Memory" guarantee
+        let forgotten = engine.forget_semantic_fact("fact-001").unwrap();
+        assert!(forgotten);
+
+        let remaining = engine.list_semantic_facts().unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].id, "fact-002");
+
+        let forget_non_existent = engine.forget_semantic_fact("non-existent").unwrap();
+        assert!(!forget_non_existent);
     }
 }

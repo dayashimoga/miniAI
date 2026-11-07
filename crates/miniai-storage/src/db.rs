@@ -1167,4 +1167,198 @@ impl StorageEngine {
             is_pinned: is_pinned_int != 0,
         })
     }
+
+    // =========================================================================
+    // Tier 2: Episodic Memory Persistence
+    // =========================================================================
+
+    /// Inserts or updates an episodic memory record.
+    pub fn insert_episodic_memory(
+        &self,
+        memory: &crate::models::EpisodicMemoryRecord,
+    ) -> Result<(), StorageError> {
+        let conn = self.lock_conn()?;
+        conn.execute(
+            r#"
+            INSERT INTO episodic_memories (id, session_id, topic, summary, key_decisions, created_at_epoch_secs)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            ON CONFLICT(id) DO UPDATE SET
+                topic = excluded.topic,
+                summary = excluded.summary,
+                key_decisions = excluded.key_decisions
+            "#,
+            rusqlite::params![
+                memory.id,
+                memory.session_id,
+                memory.topic,
+                memory.summary,
+                memory.key_decisions,
+                memory.created_at_epoch_secs as i64,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Lists recent episodic memories ordered by creation time descending.
+    pub fn list_episodic_memories(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<crate::models::EpisodicMemoryRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, topic, summary, key_decisions, created_at_epoch_secs FROM episodic_memories ORDER BY created_at_epoch_secs DESC LIMIT ?1",
+        )?;
+        let rows = stmt.query_map(rusqlite::params![limit as i64], |row| {
+            Ok(crate::models::EpisodicMemoryRecord {
+                id: row.get(0)?,
+                session_id: row.get(1)?,
+                topic: row.get(2)?,
+                summary: row.get(3)?,
+                key_decisions: row.get(4)?,
+                created_at_epoch_secs: row.get::<_, i64>(5)? as u64,
+            })
+        })?;
+        let mut results = Vec::new();
+        for r in rows {
+            results.push(r?);
+        }
+        Ok(results)
+    }
+
+    /// Searches episodic memories by topic or summary keyword matching.
+    pub fn search_episodic_memories(
+        &self,
+        query: &str,
+    ) -> Result<Vec<crate::models::EpisodicMemoryRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let pattern = format!("%{}%", query.trim());
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, topic, summary, key_decisions, created_at_epoch_secs FROM episodic_memories WHERE topic LIKE ?1 OR summary LIKE ?1 ORDER BY created_at_epoch_secs DESC",
+        )?;
+        let rows = stmt.query_map(rusqlite::params![pattern], |row| {
+            Ok(crate::models::EpisodicMemoryRecord {
+                id: row.get(0)?,
+                session_id: row.get(1)?,
+                topic: row.get(2)?,
+                summary: row.get(3)?,
+                key_decisions: row.get(4)?,
+                created_at_epoch_secs: row.get::<_, i64>(5)? as u64,
+            })
+        })?;
+        let mut results = Vec::new();
+        for r in rows {
+            results.push(r?);
+        }
+        Ok(results)
+    }
+
+    // =========================================================================
+    // Tier 3: Semantic Fact Memory Persistence
+    // =========================================================================
+
+    /// Inserts or updates an extracted semantic fact record.
+    pub fn insert_semantic_fact(
+        &self,
+        fact: &crate::models::SemanticFactRecord,
+    ) -> Result<(), StorageError> {
+        let conn = self.lock_conn()?;
+        conn.execute(
+            r#"
+            INSERT INTO semantic_memories (id, category, content, confidence, created_at_epoch_secs, updated_at_epoch_secs)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            ON CONFLICT(id) DO UPDATE SET
+                category = excluded.category,
+                content = excluded.content,
+                confidence = excluded.confidence,
+                updated_at_epoch_secs = excluded.updated_at_epoch_secs
+            "#,
+            rusqlite::params![
+                fact.id,
+                fact.category,
+                fact.content,
+                fact.confidence,
+                fact.created_at_epoch_secs as i64,
+                fact.updated_at_epoch_secs as i64,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Lists all stored semantic facts.
+    pub fn list_semantic_facts(
+        &self,
+    ) -> Result<Vec<crate::models::SemanticFactRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, category, content, confidence, created_at_epoch_secs, updated_at_epoch_secs FROM semantic_memories ORDER BY updated_at_epoch_secs DESC",
+        )?;
+        let rows = stmt.query_map([], Self::decode_semantic_fact_row)?;
+        let mut results = Vec::new();
+        for r in rows {
+            results.push(r?);
+        }
+        Ok(results)
+    }
+
+    /// Searches semantic facts by category and optional query substring.
+    pub fn search_semantic_facts(
+        &self,
+        category: Option<&str>,
+        query: Option<&str>,
+    ) -> Result<Vec<crate::models::SemanticFactRecord>, StorageError> {
+        let conn = self.lock_conn()?;
+        let query_part = query.map(|q| format!("%{}%", q.trim()));
+
+        let mut sql = "SELECT id, category, content, confidence, created_at_epoch_secs, updated_at_epoch_secs FROM semantic_memories WHERE 1=1".to_string();
+        if category.is_some() {
+            sql.push_str(" AND category = ?");
+        }
+        if query_part.is_some() {
+            sql.push_str(" AND content LIKE ?");
+        }
+        sql.push_str(" ORDER BY confidence DESC, updated_at_epoch_secs DESC");
+
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = match (category, &query_part) {
+            (Some(c), Some(q)) => {
+                stmt.query_map(rusqlite::params![c, q], Self::decode_semantic_fact_row)?
+            }
+            (Some(c), None) => {
+                stmt.query_map(rusqlite::params![c], Self::decode_semantic_fact_row)?
+            }
+            (None, Some(q)) => {
+                stmt.query_map(rusqlite::params![q], Self::decode_semantic_fact_row)?
+            }
+            (None, None) => stmt.query_map([], Self::decode_semantic_fact_row)?,
+        };
+
+        let mut results = Vec::new();
+        for r in rows {
+            results.push(r?);
+        }
+        Ok(results)
+    }
+
+    /// Deletes a specific semantic fact immediately (GDPR "Forget Memory" guarantee).
+    pub fn forget_semantic_fact(&self, id: &str) -> Result<bool, StorageError> {
+        let conn = self.lock_conn()?;
+        let rows_affected = conn.execute(
+            "DELETE FROM semantic_memories WHERE id = ?1",
+            rusqlite::params![id],
+        )?;
+        Ok(rows_affected > 0)
+    }
+
+    fn decode_semantic_fact_row(
+        row: &rusqlite::Row,
+    ) -> rusqlite::Result<crate::models::SemanticFactRecord> {
+        Ok(crate::models::SemanticFactRecord {
+            id: row.get(0)?,
+            category: row.get(1)?,
+            content: row.get(2)?,
+            confidence: row.get(3)?,
+            created_at_epoch_secs: row.get::<_, i64>(4)? as u64,
+            updated_at_epoch_secs: row.get::<_, i64>(5)? as u64,
+        })
+    }
 }

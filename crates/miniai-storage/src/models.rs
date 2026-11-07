@@ -157,3 +157,25 @@ pub struct QuarantineResult {
     pub quarantined_backup_path: String,
     pub recreated_healthy: bool,
 }
+
+/// Record of an episodic memory summarizing a historical conversation session.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EpisodicMemoryRecord {
+    pub id: String,
+    pub session_id: String,
+    pub topic: String,
+    pub summary: String,
+    pub key_decisions: String,
+    pub created_at_epoch_secs: u64,
+}
+
+/// Record of an extracted semantic fact or durable user preference.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SemanticFactRecord {
+    pub id: String,
+    pub category: String,
+    pub content: String,
+    pub confidence: f64,
+    pub created_at_epoch_secs: u64,
+    pub updated_at_epoch_secs: u64,
+}

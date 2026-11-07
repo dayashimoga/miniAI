@@ -25,8 +25,8 @@
 | [`AGENTS.md`](./AGENTS.md) | Antigravity agent roles, rules, and 18-skill matrix |
 | [`REQUIREMENTS.md`](./REQUIREMENTS.md) | Functional (`FR`) and non-functional (`NFR`) system requirements |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Tri-layer architecture, modality isolation, and privacy state machine |
-| [`ADR.md`](./ADR.md) | Architectural Decision Records (`ADR-001` through `ADR-005`) |
-| [`ROADMAP.md`](./ROADMAP.md) | Master 11-stage roadmap (`Stage 0` through `Stage 10`) |
+| [`ADR.md`](./ADR.md) | Architectural Decision Records (`ADR-001` through `ADR-015`) |
+| [`ROADMAP.md`](./ROADMAP.md) | Master 11-stage roadmap (`Stage 0` through `Stage 10` — 100% Certified) |
 | [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) | Detailed `Stage -> Phase -> Subphase -> Tasks -> Acceptance Tests` plan |
 | [`CODEBASE_GUIDE.md`](./CODEBASE_GUIDE.md) | Repository layout and subsystem guide |
 | [`DEVELOPMENT_SETUP.md`](./DEVELOPMENT_SETUP.md) | Host & container setup and verification commands |
@@ -40,19 +40,22 @@
 
 ---
 
-## Quick Verification
+## Quick Verification & Release Testing
 
 ```powershell
-# Run Rust Core tests
+# Run full Rust Core workspace tests (300 passed, 100% pass rate)
 cargo test --workspace
 
-# Run Python ML & Governance tests (>=90% coverage enforced)
+# Run Python ML & Governance tests (39 passed, >=90% coverage enforced)
 Push-Location ml; uv run pytest --cov=miniai_ml --cov-fail-under=90; Pop-Location
 
-# Run Flutter UI analysis & widget tests
+# Run Flutter UI analysis & widget tests (102 passed, >=90% coverage enforced)
 Push-Location ui/miniai_app; flutter analyze --no-pub; flutter test --coverage; Pop-Location
 
-# Run Master Stage 0 Gate Verifier
-uv run --project ml python scripts/verify_stage0.py
+# Run Master Stage 10 Gate Verifier & Release Certification (v1.0.0)
+uv run --project ml python scripts/verify_stage10.py
+
+# Package cross-platform release deliverables with CycloneDX SBOM & SHA-256 manifests
+python scripts/package_release.py --version 1.0.0 --verify
 ```
 

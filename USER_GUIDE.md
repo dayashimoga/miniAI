@@ -38,10 +38,46 @@ When MiniAI opens, the **Platform Control & Modality Dashboard** displays:
 
 ---
 
-## 3. Troubleshooting & Recovery
+## 3. Workspaces & Specialized Creative Studios
+
+MiniAI organizes all AI capabilities across dedicated, responsive workspace tabs accessible via the desktop `NavigationRail` and mobile `NavigationBar`:
+
+### Tab 1: Platform Dashboard & Hardware Telemetry
+Monitor host CPU/GPU admission budgets, real-time memory pressure, event bus telemetry, and universal CPU baseline execution.
+
+### Tab 2: Model Registry & Cryptographic Quarantine
+Browse certified offline models, inspect SHA-256 cryptographic digests, download weights with resumable downloads, and verify that corrupted files are quarantined automatically.
+
+### Tab 3: Offline LLM Chat & Hyperparameter Tuning
+Interact with local GGUF models. Tune temperature, top-p, context length, and stop sequences. Edit and branch conversation messages with export to Markdown and JSON.
+
+### Tab 6: Training Studio (LoRA, QLoRA & Distillation)
+Curate dataset splits, run micro-training on CPU, configure LoRA rank/alpha hyperparameters, and track teacher-student distillation loss curves with verifiable checkpoint provenance manifests.
+
+### Tab 7: Knowledge Base & Offline Document RAG
+Index local documents, Markdown files, and source code. Query the offline vector index with exact cosine similarity matching, and review grounded citation badges linking directly to source line numbers.
+
+### Tab 8: Canvas Studio (Vision Understanding & Diffusion Inpainting)
+Analyze images with OCR text extraction, scene captioning, and grounded VQA. Generate high-resolution images via scheduled denoising diffusion, draw interactive inpainting masks, and inspect embedded PNG cryptographic provenance chunks.
+
+### Tab 9: Sound Studio (Speech ASR, Formant TTS & Polyphonic Music)
+Transcribe speech with offline 16 kHz ASR and energy/ZCR Voice Activity Detection. Synthesize natural speech across 6 acoustic voice profiles. Compose multi-track polyphonic music (melody, harmony pad, bassline, and rhythm) in modal scales.
+
+### Tab 10: Video Studio (Temporal Scene QA & Multimodal DAGs)
+Extract keyframes safely within a 64 MB bounded buffer pool. Run grounded temporal VQA across scenes. Synthesize camera-motion animations. Build and execute composable multimodal DAG workflows (e.g., Video -> Audio Demux -> ASR -> LLM Summary -> TTS Voiceover).
+
+### Tab 11: Hybrid Compute & Consent Inspector
+For users desiring cloud GPU offload: inspect active `CloudConsentToken` authorizations, enforce HTTPS-only endpoints, monitor quota countdown timers, simulate fail-closed network errors with automatic local CPU execution fallback, and trigger the instant **Emergency Kill-Switch** (`Revoke All`).
+
+---
+
+## 4. Troubleshooting, Privacy Guarantees & Recovery
 
 - **"PrivacyModeBlocked: Outbound cloud execution is prohibited..."**:
   - This confirms `Local-Only Privacy Mode` is protecting your workspace. To run a task on a remote cloud worker (Stage 9), disable Local-Only Privacy Mode and grant an explicit consent token, or run the task locally on CPU/GPU.
 - **"InsufficientMemory: Model requires X bytes, exceeding safe limit..."**:
   - MiniAI prevents system freezes by enforcing an 85% available RAM/VRAM admission ceiling. Choose a higher quantization level (e.g., `Q4_K_M`) or close background applications.
+- **"Database Corrupted or Quarantine Triggered"**:
+  - If unexpected hardware failure or sudden power loss corrupts SQLite storage, MiniAI automatically quarantines the damaged database to a timestamped backup directory and spins up a healthy replacement database with full schema migrations preserved.
+
 

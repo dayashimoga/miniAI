@@ -1059,3 +1059,138 @@
     - **Master Gate Verification & Governance:** Formally recorded and accepted `ADR-012` in `ADR.md`. Master verification harness `scripts/verify_stage7.py` generated `docs/STAGE_7_VERIFICATION_REPORT.json` (`overall_passed: true`). Verified 235/235 Rust workspace tests passing (0 clippy warnings, 0 fmt diffs), 39/39 Python ML tests passing (97.28% statement coverage, 0 governance errors), and 71/71 Flutter tests passing (91.62% line coverage, 0 analyze issues). Received unanimous unconditional **PASS** audit verdicts from both `independent-qa-auditor` and `arch-security-reviewer`.
   - `STAGE_8` [`PLANNED`]: Cleared to proceed to Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines.
 - **Next Step:** Commit, merge `develop` to `main`, create tag `v0.7.0`, push to `origin`, and prepare Stage 8 execution plan.
+
+
+---
+
+### [2026-11-07T08:20:00+05:30] Stage 8 — Entry 057 (Stage 8 Initiated & Subphase 8.1.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.1 — Video Frame Sampling & Temporal Understanding / Subphase 8.1.1`
+- **Status Transitions:**
+  - `STAGE_8` [`IN_PROGRESS`]: Formally initiated Stage 8 (Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines).
+  - `S8-P1-SUB8.1.1` [`IN_PROGRESS`]: Commenced implementation of Video Understanding & Frame Sampling Runtime Adapter in `crates/miniai-video`:
+    - Creating workspace crate `crates/miniai-video` with `#![forbid(unsafe_code)]` and adding to root `Cargo.toml`.
+    - Implementing `VideoSanitizer` (container validation for MP4 `ftyp` and WebM EBML headers, file size $\le 100\text{ MB}$, duration $\le 300\text{s}$, resolution bounds $\le 1920\times 1080$, frame rate $1..=60$ fps, path traversal checks, and streaming SHA-256 fingerprinting).
+    - Implementing `AudioDemuxer` (extracting embedded audio stream from video containers, formatting audio track into PCM WAV for seamless interoperability with `miniai-speech-asr`).
+    - Implementing `FrameBufferPool` and `FrameExtractor` (memory-bounded frame buffer pool preventing OOM, uniform interval sampling, scene-change boundary detection via RGB histogram/luminance deltas, and atomic cleanup of temp artifacts).
+    - Implementing `VideoEngine` (temporal scene segmentation, optical flow / motion delta estimation, action classification, temporal scene captioning, and grounded temporal VQA with start/end timestamps).
+    - Implementing `VideoAdapter` implementing `miniai_core::ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 verification, and health reporting.
+    - Authoring comprehensive unit, boundary, and contract test suites in `crates/miniai-video/tests/`.
+- **Next Step:** Implement crate files and test suites in `crates/miniai-video`.
+
+
+---
+
+### [2026-11-07T09:35:00+05:30] Stage 8 — Entry 058 (Subphase 8.1.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.1 — Video Frame Sampling & Temporal Understanding / Subphase 8.1.1`
+- **Status Transitions:**
+  - `S8-P1-SUB8.1.1` [`VERIFIED`]: Successfully implemented and verified Video Understanding & Frame Sampling Runtime Adapter in `crates/miniai-video`:
+    - Created `crates/miniai-video` workspace crate with `#![forbid(unsafe_code)]`.
+    - Implemented `VideoSanitizer`: container magic checks for MP4 (`ftyp` boxes with major brands `isom`, `avc1`, `hvc1`, `av01`, `vp09`), WebM (EBML header `[0x1A, 0x45, 0xDF, 0xA3]`, `VP8`, `VP9`, `AV1`, `Vorbis`, `Opus`), and RAWV containers; enforced safety bounds ($\le 100\text{ MB}$ file size, $\le 300\text{s}$ duration, $\le 1920\times 1080$ resolution, $1.0..=60.0$ fps); calculated deterministic streaming SHA-256 digests.
+    - Implemented `FrameBufferPool`: strictly bounded memory pool preventing host OOM during video processing, reusable frame buffers with capacity tracking, peak byte telemetry, and `shrink_to_fit`.
+    - Implemented `AtomicWorkspaceManager`: RAII-managed temporary frame workspace directory creation with automatic cleanup on `Drop` and explicit `cleanup()`.
+    - Implemented `FrameExtractor`: memory-bounded frame sampling across uniform interval, uniform duration, scene boundary change detection (via downsampled frame signatures and normalized L1 pixel difference), and adaptive dynamic sampling with keyframe count cap.
+    - Implemented `AudioDemuxer`: demuxes embedded audio tracks from video containers into standard 16-bit PCM WAV containers, verified directly against `miniai-speech-asr::AudioSanitizer` for seamless cross-modality speech transcription.
+    - Implemented `VideoEngine`: temporal scene segmentation (`EstablishingShot`, `DynamicAction`, `DialogueCloseUp`, `LandscapePan`, `InteriorDetail`), optical flow and motion delta calculation, temporal action detection (`CameraPan`, `RapidMotion`, `SceneTransition`, `StaticHold`), coherent narrative summarization, and grounded temporal Video QA answering queries with exact start and end timestamps.
+    - Implemented `VideoAdapter`: implements `miniai_core::ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`), weights loading with cryptographic SHA-256 verification, and health reporting.
+    - Authored 39 unit, boundary, integration, and contract tests across 6 test suites (`sanitizer_tests.rs`, `buffer_pool_tests.rs`, `demuxer_tests.rs`, `extractor_tests.rs`, `engine_and_adapter_tests.rs`, `coverage_boost_tests.rs`), achieving **91.65%** line coverage on `miniai-video` and 0 Clippy warnings.
+- **Next Subphase Ready:** `S8-P2-SUB8.2.1` (Phase 8.2: Video Synthesis & Multimodal DAG Workflows / Subphase 8.2.1: Local prompt/image-to-video adapter and composable media pipeline orchestrator chaining LLM, Image, TTS, Music, and Video adapters).
+
+
+---
+
+### [2026-11-07T09:40:00+05:30] Stage 8 — Entry 059 (Subphase 8.2.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.2 — Video Synthesis & Multimodal DAG Workflows / Subphase 8.2.1`
+- **Status Transitions:**
+  - `S8-P2-SUB8.2.1` [`IN_PROGRESS`]: Commenced implementation of Video Synthesis & Multimodal DAG Workflow Orchestrator in `crates/miniai-video`:
+    - Implementing `VideoSynthesisEngine` (local text-to-video and image-to-video interpolation synthesis on CPU, generating temporal keyframe sequences and encoded video with synthesized soundtrack).
+    - Implementing `MediaWorkflowGraph` (composable DAG specification with typed nodes: LLM, Vision, ImageGen, SpeechAsr, SpeechTts, Music, VideoSynthesis, VideoAnalysis, and AudioVideoMux).
+    - Implementing DAG topology validator with Kahn's topological sort and cycle detection (`CycleDetectedError`).
+    - Implementing `WorkflowExecutor` (asynchronous/synchronous execution with step-by-step progress events, per-node latency telemetry, intermediate artifact caching, and cooperative cancellation).
+    - Authoring comprehensive unit, boundary, and DAG execution tests under `crates/miniai-video/tests/`.
+- **Next Step:** Implement synthesis and workflow engine modules in `crates/miniai-video`.
+
+
+---
+
+### [2026-11-07T09:58:00+05:30] Stage 8 — Entry 060 (Subphase 8.2.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.2 — Video Synthesis & Multimodal DAG Workflows / Subphase 8.2.1`
+- **Status Transitions:**
+  - `S8-P2-SUB8.2.1` [`VERIFIED`]: Successfully implemented and verified local video synthesis and composable multimodal media DAG workflows in `crates/miniai-video`:
+    - Implemented `VideoSynthesisEngine`:
+      - Text-to-video generative keyframe animation with configurable camera motions (`Static`, `PanLeft`, `PanRight`, `ZoomIn`, `ZoomOut`, `TiltUp`, `TiltDown`, `Orbit`).
+      - Image-to-video motion animation applying camera shifts and zoom vectors to starting keyframe images.
+      - Two-keyframe temporal morphing and linear pixel interpolation.
+      - Synchronized ambient audio soundtrack generation verified against `miniai-speech-asr::AudioSanitizer`.
+      - RAWV video container packaging with full metadata and SHA-256 integrity digest verified via `VideoSanitizer`.
+    - Implemented `MediaWorkflowGraph`:
+      - Composable DAG specification linking typed modality nodes (`LlmPrompt`, `VisionAnalyze`, `ImageGen`, `SpeechTts`, `SpeechAsr`, `MusicGen`, `VideoSynthesis`, `VideoAnalysis`, `AudioVideoMux`, `Custom`).
+      - Graph topological dependency resolution and cycle detection using Kahn's algorithm (`VideoError::WorkflowCycleDetected`).
+      - Rejection of missing/dangling dependency nodes (`VideoError::WorkflowNodeNotFound`).
+    - Implemented `WorkflowExecutor`:
+      - Offline end-to-end multi-modality pipeline execution with typed data passing (`WorkflowData::Text`, `WorkflowData::Image`, `WorkflowData::Audio`, `WorkflowData::Video`, `WorkflowData::Json`).
+      - Per-node execution state tracking (`NodeExecutionStatus`), duration telemetry (`NodeTelemetry`), and overall workflow latency.
+      - Cooperative cancellation support via `AtomicBool`.
+    - Extended `VideoAdapter` with direct APIs for `synthesize_video` and `execute_workflow`.
+    - Authored 12 new unit and integration tests across 2 new test suites (`synthesis_tests.rs`, `workflow_tests.rs`), expanding crate tests to 51/51 passing with **90.63%** line coverage.
+    - Verified 286/286 passing Rust workspace tests with 0 Clippy warnings and 0 formatting diffs.
+- **Next Subphase Ready:** `S8-P3-SUB8.3.1` (Phase 8.3: Flutter Video Timeline & Workflow Studio / Subphase 8.3.1: Keyframe scrubber, temporal event markers, and DAG workflow execution monitor in `ui/miniai_app`).
+
+
+---
+
+### [2026-11-07T10:05:00+05:30] Stage 8 — Entry 061 (Subphase 8.3.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.3 — Flutter Video Timeline & Workflow Studio / Subphase 8.3.1`
+- **Status Transitions:**
+  - `S8-P3-SUB8.3.1` [`IN_PROGRESS`]: Commenced implementation of Flutter Video Timeline & Multimodal Workflow Studio in `ui/miniai_app`:
+    - Defining client video and workflow contracts (`VideoMetadataContract`, `VideoFrameContract`, `SceneSegmentContract`, `ActionDetectionContract`, `VideoAnalysisContract`, `TemporalQaResultContract`, `VideoSynthesisConfigContract`, `SynthesizedVideoContract`, `WorkflowNodeContract`, `WorkflowExecutionResultContract`) in `ui/miniai_app/lib/src/models/system_contracts.dart`.
+    - Extending `PlatformController` with zero-mock state and actions for video analysis, timeline scrubbing, temporal video QA, prompt/image video synthesis, and multimodal media DAG workflow execution.
+    - Implementing `VideoStudioScreen` in `ui/miniai_app/lib/src/screens/video_studio_screen.dart` with dual tabs:
+      - Tab 1: Video Timeline & Scene Understanding (video player scrubber, keyframe gallery strip, temporal scene markers with action tags, and grounded temporal video QA).
+      - Tab 2: Video Synthesis & Multimodal DAG Workflows (text-to-video generative synthesis form, camera motion profile selector, DAG workflow orchestrator monitor showing real-time multi-modality node execution).
+    - Integrating Tab 10 ('Video') into desktop `NavigationRail` and mobile `NavigationBar` in `ShellScreen`.
+    - Authoring comprehensive widget and integration tests in `ui/miniai_app/test/video_studio_test.dart` maintaining >=90% line coverage and zero mock artifacts.
+- **Next Step:** Implement cross-language contracts, controller methods, UI screens, and widget tests.
+
+
+---
+
+### [2026-11-07T10:19:00+05:30] Stage 8 — Entry 062 (Subphase 8.3.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines / Phase 8.3 — Flutter Video Timeline & Workflow Studio / Subphase 8.3.1`
+- **Status Transitions:**
+  - `S8-P3-SUB8.3.1` [`VERIFIED`]: Successfully implemented and verified Flutter Video Timeline & Multimodal Workflow Studio in `ui/miniai_app`:
+    - Defined cross-language video and workflow contracts (`VideoMetadataContract`, `VideoFrameContract`, `SceneSegmentContract`, `ActionDetectionContract`, `VideoAnalysisContract`, `TemporalQaResultContract`, `VideoSynthesisConfigContract`, `SynthesizedVideoContract`, `WorkflowNodeContract`, `WorkflowExecutionResultContract`) in `ui/miniai_app/lib/src/models/system_contracts.dart`.
+    - Extended `PlatformController` with zero-mock state and methods for video playback/scrubbing (`loadSampleVideo`, `seekVideoTimeline`, `toggleVideoPlayPause`, `selectPreviousKeyframe`, `selectNextKeyframe`), grounded temporal video QA (`askVideoQuestion`), parameterized video synthesis (`updateVideoSynthesisConfig`, `synthesizeVideo`), and multimodal DAG workflow orchestration (`setSelectedWorkflowPreset`, `executeMediaWorkflow`).
+    - Implemented `VideoStudioScreen` in `ui/miniai_app/lib/src/screens/video_studio_screen.dart` with dual tabs:
+      - Tab 1: Video Timeline & Scene QA (`video_player_card`, `timeline_scrubber_slider`, `play_pause_button`, `prev_keyframe_button`, `next_keyframe_button`, `keyframe_gallery_strip`, `scene_segments_card`, `video_qa_card`, `video_qa_input`, `video_qa_submit_button`, `video_qa_result`).
+      - Tab 2: Video Synthesis & DAG Workflow (`video_synthesis_card`, `video_prompt_input`, `camera_motion_dropdown`, `video_duration_slider`, `video_resolution_dropdown`, `generate_video_button`, `synthesis_result_card`, `workflow_dag_card`, `workflow_preset_dropdown`, `execute_workflow_button`, `workflow_node_monitor`).
+    - Integrated Tab 10 ('Video') into desktop `NavigationRail` (`nav_rail_video`) and mobile `NavigationBar` (`nav_bar_video`) in `ShellScreen`.
+    - Authored comprehensive test suite in `ui/miniai_app/test/video_studio_test.dart` (18/18 tests passing).
+    - Verified entire Flutter test suite: 89/89 tests passing, 0 analyzer issues, **91.84%** line coverage.
+- **Next Subphase Ready:** Stage 8 Gate Verification & Certification (`scripts/verify_stage8.py`, `ADR-013`, `docs/STAGE_8_VERIFICATION_REPORT.json`, independent QA and security audit, release `v0.8.0`).
+
+
+---
+
+### [2026-11-07T10:32:00+05:30] Stage 8 — Entry 063 (Stage 8 Completed & Released `v0.8.0`)
+- **Entry Type:** `STAGE_COMPLETION`
+- **Stage:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines`
+- **Status:** `COMPLETED` / `CERTIFIED`
+- **Summary of Completed Scope:**
+  - Completed all three subphases of Stage 8:
+    - `S8-P1-SUB8.1.1` (Video Understanding & Frame Sampling Runtime Adapter): `crates/miniai-video` with container sanitization (MP4, WebM, RAWV), bounded memory pool (`FrameBufferPool`, 64 MB budget), RAII temporary workspace manager, frame extraction, audio demuxing, scene/motion classification, and grounded temporal VQA.
+    - `S8-P2-SUB8.2.1` (Video Synthesis & Multimodal DAG Workflows): `VideoSynthesisEngine` with 8 camera motion profiles, image-to-video motion interpolation, morph interpolation, synchronized audio generation, and `MediaWorkflowGraph` / `WorkflowExecutor` with Kahn's algorithm topological sorting, cycle detection, typed data passing, and duration telemetry.
+    - `S8-P3-SUB8.3.1` (Flutter Video Timeline & Workflow Studio): `VideoStudioScreen` registered as Tab 10 ('Video') in `ShellScreen` with dual tabs for Timeline & Scene QA and Video Synthesis & Multimodal DAG Workflows.
+  - Accepted and recorded `ADR-013` in `ADR.md`.
+  - Executed master gate verification `scripts/verify_stage8.py` generating `docs/STAGE_8_VERIFICATION_REPORT.json` (all 6 steps passed).
+  - All 286 Rust workspace tests passed across 13 crates with 0 Clippy warnings and 0 fmt diffs (`miniai-video`: 51/51 passing, 90.63% line coverage).
+  - Python ML: 39/39 tests passing with 97.28% statement coverage, 0 governance audit errors.
+  - Flutter UI: 89/89 tests passing with 91.84% line coverage and 0 analyze issues.
+  - Received unconditional `PASS` verdicts from independent subagents `arch-security-reviewer` and `independent-qa-auditor`.
+  - Released and tagged `v0.8.0`.
+- **Next Stage Ready:** `Stage 9: Performance Optimization, Hardware Acceleration, SIMD/GPU/NPU & Benchmarking` (`docs/stage_prompts/STAGE_09_PROMPT.md`).

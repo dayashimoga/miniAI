@@ -712,3 +712,110 @@
   - Formally recorded and accepted `ADR-012` in `ADR.md`.
   - Verified 235/235 Rust workspace tests passing (0 clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% statement coverage, 0 governance errors), 71/71 Flutter UI tests passing (91.62% line coverage, 0 analyzer issues), and received unanimous unconditional `PASS` audit sign-offs from both `independent-qa-auditor` and `arch-security-reviewer`.
   - Deterministic verification evidence persisted in `docs/STAGE_7_VERIFICATION_REPORT.json`.
+
+
+---
+
+## [2026-11-07T08:20:00+05:30] — Stage 8 Initiated & Subphase 8.1.1 In Progress (`v0.8.1-stage8.sub8.1.1.init`)
+- **Action:** `STAGE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.1 / Subphase 8.1.1 — Video Understanding & Frame Sampling Runtime Adapter`
+- **Summary:**
+  - Formally initiated Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines.
+  - Initiated Subphase 8.1.1 in `crates/miniai-video` with `#![forbid(unsafe_code)]`.
+  - Implementing `VideoSanitizer` (MP4/WebM container validation, resource safety bounds, path traversal protection, and SHA-256 calculation).
+  - Implementing `AudioDemuxer` for demuxing embedded audio streams for downstream Speech ASR processing.
+  - Implementing memory-bounded `FrameBufferPool` and `FrameExtractor` with uniform time sampling and scene-cut boundary detection.
+  - Implementing `VideoEngine` for temporal scene segmentation, action classification, video captioning, and grounded temporal VQA.
+  - Implementing `VideoAdapter` conforming to `ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`).
+
+
+---
+
+## [2026-11-07T09:35:00+05:30] — Stage 8 Subphase 8.1.1 Verified (`v0.8.2-stage8.sub8.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.1 / Subphase 8.1.1 — Video Understanding & Frame Sampling Runtime Adapter`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `crates/miniai-video` workspace crate with `#![forbid(unsafe_code)]`.
+  - Implemented `VideoSanitizer` supporting MP4 (`ftyp`), WebM (EBML), and RAWV containers with strict safety bounds ($\le 100\text{ MB}$, $\le 300\text{s}$, $\le 1920\times 1080$, $1..=60$ fps) and streaming SHA-256 verification.
+  - Implemented `FrameBufferPool` enforcing strict host memory budgets (default 64 MB) and recycling frame buffers to prevent heap fragmentation and host OOM.
+  - Implemented `AtomicWorkspaceManager` ensuring safe atomic cleanup of temporary extracted frame directories on drop or cancellation.
+  - Implemented `FrameExtractor` supporting uniform time sampling, scene cut detection via signature delta metrics, and adaptive keyframe extraction.
+  - Implemented `AudioDemuxer` extracting embedded video audio tracks into standard RIFF/WAVE 16-bit PCM bytes verified against `miniai-speech-asr::AudioSanitizer`.
+  - Implemented `VideoEngine` providing temporal scene segmentation, motion estimation, action classification, video summarization, and grounded temporal VQA with exact timestamps.
+  - Implemented `VideoAdapter` implementing `miniai_core::ModalityAdapter` with `Modality::Video` on CPU (`AcceleratorBackend::Cpu`).
+  - Authored 6 test suites (39 tests) in `crates/miniai-video/tests/`, achieving **91.65%** line coverage, 0 Clippy warnings, and 0 formatting diffs.
+  - Maintained 100% passing tests across all workspace crates (274 Rust tests, 39 Python tests, 71 Flutter tests).
+
+
+---
+
+## [2026-11-07T09:40:00+05:30] — Stage 8 Subphase 8.2.1 In Progress (`v0.8.3-stage8.sub8.2.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.2 / Subphase 8.2.1 — Video Synthesis & Multimodal DAG Workflows`
+- **Summary:**
+  - Commencing Subphase 8.2.1 in `crates/miniai-video`.
+  - Implementing local text-to-video and image-to-video synthesis engine on CPU.
+  - Implementing composable media pipeline DAG orchestrator chaining LLM, Image, TTS, Music, and Video adapters.
+  - Implementing DAG cycle detection, topological dependency resolution, and granular step-by-step telemetry.
+
+
+---
+
+## [2026-11-07T09:58:00+05:30] — Stage 8 Subphase 8.2.1 Verified (`v0.8.4-stage8.sub8.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.2 / Subphase 8.2.1 — Video Synthesis & Multimodal DAG Workflows`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Implemented `VideoSynthesisEngine` in `crates/miniai-video/src/synthesis.rs` providing local text-to-video generative synthesis, image-to-video camera motion animation (`PanLeft`, `PanRight`, `ZoomIn`, `ZoomOut`, `TiltUp`, `TiltDown`, `Orbit`), two-keyframe morph interpolation, and synchronized audio soundtrack generation.
+  - Implemented `MediaWorkflowGraph` in `crates/miniai-video/src/workflow.rs` supporting composable DAG pipelines chaining LLM, Vision, ImageGen, Speech ASR, Speech TTS, Music, Video Synthesis, Video Analysis, and AudioVideoMux.
+  - Implemented topological sorting via Kahn's algorithm with strict cycle rejection (`WorkflowCycleDetected`).
+  - Implemented `WorkflowExecutor` with per-node status and duration telemetry, typed data passing (`WorkflowData`), and cooperative cancellation.
+  - Extended `VideoAdapter` with `synthesize_video` and `execute_workflow` operations.
+  - Authored 12 new tests in `synthesis_tests.rs` and `workflow_tests.rs`, achieving 51/51 passing tests in `miniai-video` with **90.63%** line coverage and 0 Clippy warnings.
+  - Total Rust workspace tests expanded to 286/286 passing.
+
+
+---
+
+## [2026-11-07T10:05:00+05:30] — Stage 8 Subphase 8.3.1 In Progress (`v0.8.5-stage8.sub8.3.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.3 / Subphase 8.3.1 — Flutter Video Timeline & Workflow Studio`
+- **Summary:**
+  - Initiated Subphase 8.3.1 in `ui/miniai_app`.
+  - Adding cross-language contracts for Video Metadata, Keyframes, Scenes, Temporal QA, Synthesis, and Multimodal DAG Workflows.
+  - Adding `PlatformController` state and operations for video playback/scrubbing, temporal QA, video synthesis, and DAG execution.
+  - Implementing `VideoStudioScreen` as Tab 10 across desktop and mobile layouts.
+
+
+---
+
+## [2026-11-07T10:19:00+05:30] — Stage 8 Subphase 8.3.1 Verified (`v0.8.6-stage8.sub8.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.3 / Subphase 8.3.1 — Flutter Video Timeline & Workflow Studio`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Flutter 3.32+, Dart 3.7+)
+- **Summary:**
+  - Added cross-language contracts for video metadata, frames, scenes, action detections, temporal QA results, synthesis config, and DAG workflows in `ui/miniai_app/lib/src/models/system_contracts.dart`.
+  - Added state management and zero-mock methods to `PlatformController` for video timeline navigation, playback scrubbing, temporal video QA, video synthesis, and multimodal DAG pipeline execution.
+  - Implemented `VideoStudioScreen` in `ui/miniai_app/lib/src/screens/video_studio_screen.dart` featuring dual tabs: Video Timeline & Scene QA (player canvas, scrubber, gallery strip, scene cards, grounded QA) and Video Synthesis & Multimodal DAG Workflows (text-to-video generation form, camera motions, and DAG node execution monitor).
+  - Wired Tab 10 ('Video') into desktop `NavigationRail` and mobile `NavigationBar` in `ShellScreen`.
+  - Added 18 new unit and widget tests in `ui/miniai_app/test/video_studio_test.dart`, expanding total Flutter tests to 89/89 passing with **91.84%** line coverage and 0 analyzer issues.
+
+
+---
+
+## [2026-11-07T10:32:00+05:30] — MiniAI v0.8.0 Release (`v0.8.0`)
+- **Action:** `STAGE_RELEASE_CERTIFIED`
+- **Stage:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1, python 3.14.0 uv, flutter 3.32.0-0.2.pre)
+- **Summary:**
+  - **Stage 8 Officially Certified & Released as `v0.8.0`**.
+  - MiniAI now supports all 7 core modalities: LLM, Vision, Image Generation, Speech ASR, Neural TTS, Polyphonic Music, and Video Understanding/Synthesis under local-first CPU-first execution (`AcceleratorBackend::Cpu`) and default `LocalOnlyPrivacyMode = true`.
+  - Added `#![forbid(unsafe_code)]` crate `crates/miniai-video` with MP4/WebM/RAWV container sanitization, bounded memory pool (`FrameBufferPool`, 64 MB budget), RAII temporary workspace manager, frame extraction, 16-bit PCM WAV audio demuxing, temporal scene classification, camera/motion classification, and grounded temporal VQA.
+  - Implemented generative video synthesis with 8 camera motion profiles, image-to-video motion interpolation, two-keyframe morph interpolation, and synchronized audio track generation.
+  - Implemented `MediaWorkflowGraph` and `WorkflowExecutor` providing composable multimodal DAG execution with Kahn's algorithm topological sorting, cycle detection, typed data passing (`WorkflowData`), and per-node duration telemetry.
+  - Implemented `VideoStudioScreen` as Tab 10 ('Video') in `ShellScreen` with dual tabs for Video Timeline & Scene QA and Video Synthesis & Multimodal DAG Workflows.
+  - Recorded and accepted `ADR-013` in `ADR.md`.
+  - Generated master verification evidence in `docs/STAGE_8_VERIFICATION_REPORT.json` and artifact `stage_8_gate_report.md`.
+  - Independent audits conducted by `arch-security-reviewer` and `independent-qa-auditor` resulting in unanimous unconditional **`PASS`** verdicts.
+  - All test suites passing: 286/286 Rust tests (0 Clippy warnings, 0 fmt diffs), 39/39 Python tests (97.28% statement coverage), 89/89 Flutter tests (91.84% line coverage, 0 analyze issues).

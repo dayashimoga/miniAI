@@ -1896,3 +1896,433 @@ class MusicTrackOutputContract {
         wavBytesBase64: json['wav_bytes_base64'] as String? ?? '',
       );
 }
+
+class VideoMetadataContract {
+  const VideoMetadataContract({
+    required this.containerFormat,
+    required this.codec,
+    required this.width,
+    required this.height,
+    required this.durationSecs,
+    required this.fps,
+    required this.totalFrames,
+    required this.hasAudio,
+    required this.audioChannels,
+    required this.audioSampleRate,
+    required this.fileSizeBytes,
+    required this.sha256Hash,
+  });
+
+  final String containerFormat;
+  final String codec;
+  final int width;
+  final int height;
+  final double durationSecs;
+  final double fps;
+  final int totalFrames;
+  final bool hasAudio;
+  final int audioChannels;
+  final int audioSampleRate;
+  final int fileSizeBytes;
+  final String sha256Hash;
+
+  Map<String, dynamic> toJson() => {
+        'container_format': containerFormat,
+        'codec': codec,
+        'width': width,
+        'height': height,
+        'duration_secs': durationSecs,
+        'fps': fps,
+        'total_frames': totalFrames,
+        'has_audio': hasAudio,
+        'audio_channels': audioChannels,
+        'audio_sample_rate': audioSampleRate,
+        'file_size_bytes': fileSizeBytes,
+        'sha256_hash': sha256Hash,
+      };
+
+  factory VideoMetadataContract.fromJson(Map<String, dynamic> json) =>
+      VideoMetadataContract(
+        containerFormat: json['container_format'] as String? ?? 'mp4',
+        codec: json['codec'] as String? ?? 'h264',
+        width: json['width'] as int? ?? 1280,
+        height: json['height'] as int? ?? 720,
+        durationSecs: (json['duration_secs'] as num?)?.toDouble() ?? 5.0,
+        fps: (json['fps'] as num?)?.toDouble() ?? 30.0,
+        totalFrames: json['total_frames'] as int? ?? 150,
+        hasAudio: json['has_audio'] as bool? ?? false,
+        audioChannels: json['audio_channels'] as int? ?? 0,
+        audioSampleRate: json['audio_sample_rate'] as int? ?? 0,
+        fileSizeBytes: json['file_size_bytes'] as int? ?? 0,
+        sha256Hash: json['sha256_hash'] as String? ?? '',
+      );
+}
+
+class VideoFrameContract {
+  const VideoFrameContract({
+    required this.frameIndex,
+    required this.timestampMs,
+    required this.width,
+    required this.height,
+    required this.isKeyframe,
+    required this.sceneId,
+    required this.luminanceMean,
+    required this.sha256,
+  });
+
+  final int frameIndex;
+  final int timestampMs;
+  final int width;
+  final int height;
+  final bool isKeyframe;
+  final int sceneId;
+  final double luminanceMean;
+  final String sha256;
+
+  Map<String, dynamic> toJson() => {
+        'frame_index': frameIndex,
+        'timestamp_ms': timestampMs,
+        'width': width,
+        'height': height,
+        'is_keyframe': isKeyframe,
+        'scene_id': sceneId,
+        'luminance_mean': luminanceMean,
+        'sha256': sha256,
+      };
+
+  factory VideoFrameContract.fromJson(Map<String, dynamic> json) =>
+      VideoFrameContract(
+        frameIndex: json['frame_index'] as int? ?? 0,
+        timestampMs: json['timestamp_ms'] as int? ?? 0,
+        width: json['width'] as int? ?? 640,
+        height: json['height'] as int? ?? 360,
+        isKeyframe: json['is_keyframe'] as bool? ?? true,
+        sceneId: json['scene_id'] as int? ?? 1,
+        luminanceMean: (json['luminance_mean'] as num?)?.toDouble() ?? 0.5,
+        sha256: json['sha256'] as String? ?? '',
+      );
+}
+
+class SceneSegmentContract {
+  const SceneSegmentContract({
+    required this.sceneId,
+    required this.startMs,
+    required this.endMs,
+    required this.keyframeIndex,
+    required this.sceneType,
+    required this.visualSummary,
+    required this.detectedActions,
+    required this.confidence,
+  });
+
+  final int sceneId;
+  final int startMs;
+  final int endMs;
+  final int keyframeIndex;
+  final String sceneType;
+  final String visualSummary;
+  final List<String> detectedActions;
+  final double confidence;
+
+  Map<String, dynamic> toJson() => {
+        'scene_id': sceneId,
+        'start_ms': startMs,
+        'end_ms': endMs,
+        'keyframe_index': keyframeIndex,
+        'scene_type': sceneType,
+        'visual_summary': visualSummary,
+        'detected_actions': detectedActions,
+        'confidence': confidence,
+      };
+
+  factory SceneSegmentContract.fromJson(Map<String, dynamic> json) =>
+      SceneSegmentContract(
+        sceneId: json['scene_id'] as int? ?? 1,
+        startMs: json['start_ms'] as int? ?? 0,
+        endMs: json['end_ms'] as int? ?? 1000,
+        keyframeIndex: json['keyframe_index'] as int? ?? 0,
+        sceneType: json['scene_type'] as String? ?? 'EstablishingShot',
+        visualSummary: json['visual_summary'] as String? ?? '',
+        detectedActions: (json['detected_actions'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const [],
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 0.9,
+      );
+}
+
+class ActionDetectionContract {
+  const ActionDetectionContract({
+    required this.action,
+    required this.startMs,
+    required this.endMs,
+    required this.confidence,
+    required this.movementMagnitude,
+  });
+
+  final String action;
+  final int startMs;
+  final int endMs;
+  final double confidence;
+  final double movementMagnitude;
+
+  Map<String, dynamic> toJson() => {
+        'action': action,
+        'start_ms': startMs,
+        'end_ms': endMs,
+        'confidence': confidence,
+        'movement_magnitude': movementMagnitude,
+      };
+
+  factory ActionDetectionContract.fromJson(Map<String, dynamic> json) =>
+      ActionDetectionContract(
+        action: json['action'] as String? ?? '',
+        startMs: json['start_ms'] as int? ?? 0,
+        endMs: json['end_ms'] as int? ?? 1000,
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 0.85,
+        movementMagnitude:
+            (json['movement_magnitude'] as num?)?.toDouble() ?? 0.1,
+      );
+}
+
+class VideoAnalysisContract {
+  const VideoAnalysisContract({
+    required this.metadata,
+    required this.keyframes,
+    required this.scenes,
+    required this.overallSummary,
+    required this.detectedActions,
+    required this.processingTimeMs,
+  });
+
+  final VideoMetadataContract metadata;
+  final List<VideoFrameContract> keyframes;
+  final List<SceneSegmentContract> scenes;
+  final String overallSummary;
+  final List<ActionDetectionContract> detectedActions;
+  final int processingTimeMs;
+
+  Map<String, dynamic> toJson() => {
+        'metadata': metadata.toJson(),
+        'keyframes': keyframes.map((k) => k.toJson()).toList(),
+        'scenes': scenes.map((s) => s.toJson()).toList(),
+        'overall_summary': overallSummary,
+        'detected_actions': detectedActions.map((a) => a.toJson()).toList(),
+        'processing_time_ms': processingTimeMs,
+      };
+
+  factory VideoAnalysisContract.fromJson(Map<String, dynamic> json) =>
+      VideoAnalysisContract(
+        metadata: VideoMetadataContract.fromJson(
+          json['metadata'] as Map<String, dynamic>? ?? {},
+        ),
+        keyframes: (json['keyframes'] as List<dynamic>?)
+                ?.map((e) =>
+                    VideoFrameContract.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        scenes: (json['scenes'] as List<dynamic>?)
+                ?.map((e) =>
+                    SceneSegmentContract.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        overallSummary: json['overall_summary'] as String? ?? '',
+        detectedActions: (json['detected_actions'] as List<dynamic>?)
+                ?.map((e) =>
+                    ActionDetectionContract.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        processingTimeMs: json['processing_time_ms'] as int? ?? 0,
+      );
+}
+
+class TemporalQaResultContract {
+  const TemporalQaResultContract({
+    required this.question,
+    required this.answer,
+    required this.startMs,
+    required this.endMs,
+    required this.confidence,
+    required this.supportingSceneId,
+    required this.supportingFrameIndices,
+  });
+
+  final String question;
+  final String answer;
+  final int startMs;
+  final int endMs;
+  final double confidence;
+  final int supportingSceneId;
+  final List<int> supportingFrameIndices;
+
+  Map<String, dynamic> toJson() => {
+        'question': question,
+        'answer': answer,
+        'start_ms': startMs,
+        'end_ms': endMs,
+        'confidence': confidence,
+        'supporting_scene_id': supportingSceneId,
+        'supporting_frame_indices': supportingFrameIndices,
+      };
+
+  factory TemporalQaResultContract.fromJson(Map<String, dynamic> json) =>
+      TemporalQaResultContract(
+        question: json['question'] as String? ?? '',
+        answer: json['answer'] as String? ?? '',
+        startMs: json['start_ms'] as int? ?? 0,
+        endMs: json['end_ms'] as int? ?? 0,
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 0.8,
+        supportingSceneId: json['supporting_scene_id'] as int? ?? 1,
+        supportingFrameIndices:
+            (json['supporting_frame_indices'] as List<dynamic>?)
+                    ?.map((e) => (e as num).toInt())
+                    .toList() ??
+                const [],
+      );
+}
+
+class VideoSynthesisConfigContract {
+  const VideoSynthesisConfigContract({
+    this.prompt = 'Cinematic establishing camera movement',
+    this.motion = 'pan_right',
+    this.width = 320,
+    this.height = 240,
+    this.durationSecs = 2.0,
+    this.fps = 15.0,
+    this.seed = 42,
+    this.generateAudio = true,
+  });
+
+  final String prompt;
+  final String motion;
+  final int width;
+  final int height;
+  final double durationSecs;
+  final double fps;
+  final int? seed;
+  final bool generateAudio;
+
+  Map<String, dynamic> toJson() => {
+        'prompt': prompt,
+        'motion': motion,
+        'width': width,
+        'height': height,
+        'duration_secs': durationSecs,
+        'fps': fps,
+        if (seed != null) 'seed': seed,
+        'generate_audio': generateAudio,
+      };
+
+  factory VideoSynthesisConfigContract.fromJson(Map<String, dynamic> json) =>
+      VideoSynthesisConfigContract(
+        prompt: json['prompt'] as String? ?? '',
+        motion: json['motion'] as String? ?? 'pan_right',
+        width: json['width'] as int? ?? 320,
+        height: json['height'] as int? ?? 240,
+        durationSecs: (json['duration_secs'] as num?)?.toDouble() ?? 2.0,
+        fps: (json['fps'] as num?)?.toDouble() ?? 15.0,
+        seed: json['seed'] as int?,
+        generateAudio: json['generate_audio'] as bool? ?? true,
+      );
+}
+
+class SynthesizedVideoContract {
+  const SynthesizedVideoContract({
+    required this.metadata,
+    required this.keyframes,
+    this.videoBytesBase64 = '',
+    required this.hasAudio,
+  });
+
+  final VideoMetadataContract metadata;
+  final List<VideoFrameContract> keyframes;
+  final String videoBytesBase64;
+  final bool hasAudio;
+
+  Map<String, dynamic> toJson() => {
+        'metadata': metadata.toJson(),
+        'keyframes': keyframes.map((k) => k.toJson()).toList(),
+        'video_bytes_base64': videoBytesBase64,
+        'has_audio': hasAudio,
+      };
+
+  factory SynthesizedVideoContract.fromJson(Map<String, dynamic> json) =>
+      SynthesizedVideoContract(
+        metadata: VideoMetadataContract.fromJson(
+          json['metadata'] as Map<String, dynamic>? ?? {},
+        ),
+        keyframes: (json['keyframes'] as List<dynamic>?)
+                ?.map((e) =>
+                    VideoFrameContract.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        videoBytesBase64: json['video_bytes_base64'] as String? ?? '',
+        hasAudio: json['has_audio'] as bool? ?? false,
+      );
+}
+
+class WorkflowNodeContract {
+  const WorkflowNodeContract({
+    required this.id,
+    required this.name,
+    required this.nodeType,
+    required this.status,
+    required this.durationMs,
+    this.outputSummary = '',
+  });
+
+  final String id;
+  final String name;
+  final String nodeType;
+  final String status;
+  final int durationMs;
+  final String outputSummary;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'node_type': nodeType,
+        'status': status,
+        'duration_ms': durationMs,
+        'output_summary': outputSummary,
+      };
+
+  factory WorkflowNodeContract.fromJson(Map<String, dynamic> json) =>
+      WorkflowNodeContract(
+        id: json['id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        nodeType: json['node_type'] as String? ?? 'custom',
+        status: json['status'] as String? ?? 'pending',
+        durationMs: json['duration_ms'] as int? ?? 0,
+        outputSummary: json['output_summary'] as String? ?? '',
+      );
+}
+
+class WorkflowExecutionResultContract {
+  const WorkflowExecutionResultContract({
+    required this.graphId,
+    required this.totalLatencyMs,
+    required this.nodeTelemetry,
+  });
+
+  final String graphId;
+  final int totalLatencyMs;
+  final List<WorkflowNodeContract> nodeTelemetry;
+
+  Map<String, dynamic> toJson() => {
+        'graph_id': graphId,
+        'total_latency_ms': totalLatencyMs,
+        'node_telemetry': nodeTelemetry.map((n) => n.toJson()).toList(),
+      };
+
+  factory WorkflowExecutionResultContract.fromJson(Map<String, dynamic> json) =>
+      WorkflowExecutionResultContract(
+        graphId: json['graph_id'] as String? ?? '',
+        totalLatencyMs: json['total_latency_ms'] as int? ?? 0,
+        nodeTelemetry: (json['node_telemetry'] as List<dynamic>?)
+                ?.map((e) =>
+                    WorkflowNodeContract.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      );
+}

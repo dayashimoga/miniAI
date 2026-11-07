@@ -9,6 +9,7 @@ import 'settings_screen.dart';
 import 'training_studio_screen.dart';
 import 'knowledge_base_screen.dart';
 import 'sound_studio_screen.dart';
+import 'video_studio_screen.dart';
 import 'vision_canvas_screen.dart';
 
 class ShellScreen extends StatelessWidget {
@@ -160,6 +161,11 @@ class ShellScreen extends StatelessWidget {
                           selectedIcon: Icon(Icons.graphic_eq),
                           label: Text('Sound'),
                         ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.movie_outlined, key: Key('nav_rail_video')),
+                          selectedIcon: Icon(Icons.movie),
+                          label: Text('Video'),
+                        ),
                       ],
                     ),
                   ),
@@ -244,6 +250,12 @@ class ShellScreen extends StatelessWidget {
                     selectedIcon: Icon(Icons.graphic_eq),
                     label: 'Sound',
                   ),
+                  NavigationDestination(
+                    key: Key('nav_bar_video'),
+                    icon: Icon(Icons.movie_outlined),
+                    selectedIcon: Icon(Icons.movie),
+                    label: 'Video',
+                  ),
                 ],
               );
             },
@@ -273,6 +285,8 @@ class ShellScreen extends StatelessWidget {
         return VisionCanvasScreen(controller: controller);
       case 9:
         return SoundStudioScreen(controller: controller);
+      case 10:
+        return VideoStudioScreen(controller: controller);
       case 0:
       default:
         return DashboardScreen(controller: controller, embedded: true);

@@ -902,3 +902,20 @@
   - Authored 13 unit, contract, and widget tests in `ui/miniai_app/test/cloud_consent_test.dart`.
   - Reached **91.47%** line coverage in Flutter UI (102/102 tests passing, 0 analyzer issues).
   - Maintained 100% test pass rate across Rust (329/329 tests passing, **95.00%** coverage in `miniai-cloud`) and Python (39/39 tests passing, **97%** coverage).
+
+
+---
+
+## [2026-11-07T11:45:00+05:30] — MiniAI v0.9.0 Release (`v0.9.0`)
+- **Action:** `STAGE_RELEASE_CERTIFIED`
+- **Stage:** `Stage 9: Hybrid Cloud GPU & Secure Distributed Compute`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1, python 3.14.0 uv, flutter 3.32.0-0.2.pre)
+- **Summary:**
+  - **Stage 9 Officially Certified & Released as `v0.9.0`**.
+  - MiniAI delivers consent-gated hybrid cloud GPU acceleration and secure distributed compute dispatch with cryptographic `CloudConsentToken` lifecycle management, TLS 1.3/mTLS transport, append-only SQLite audit ledger, and instant automatic local CPU fallback (`AcceleratorBackend::Cpu`) under default `LocalOnlyPrivacyMode = true`.
+  - Added `#![forbid(unsafe_code)]` crate `crates/miniai-cloud` containing domain errors, types, token validator, append-only SQLite ledger, thread-safe consent manager, remote dispatcher, and local fallback coordinator.
+  - Implemented `ConsentInspectorScreen` as Tab 11 ('Cloud') in `ShellScreen` featuring instant emergency kill-switch, scoped consent request dialog, active token manager with countdown timers, interactive hybrid dispatch simulator, and immutable audit ledger viewer.
+  - Recorded and accepted `ADR-014` in `ADR.md`.
+  - Generated master verification report `docs/STAGE_9_VERIFICATION_REPORT.json` and gate report artifact `stage_9_gate_report.md`.
+  - Independent audits conducted by `arch-security-reviewer` and `independent-qa-auditor`, both resulting in unanimous unconditional **`PASS`** verdicts.
+  - All test suites passing: 329/329 Rust workspace tests (**95.00%** line coverage in `miniai-cloud`, 0 Clippy warnings, 0 fmt diffs), 39/39 Python ML tests (**97.00%** statement coverage, 0 secret pattern violations), 102/102 Flutter UI tests (**91.47%** line coverage, 0 analyze issues).

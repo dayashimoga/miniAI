@@ -261,3 +261,32 @@ This document records binding architectural decisions for **MiniAI**, including 
     - `video_studio_screen.dart`: Tab 10 in `ShellScreen` with dual tabs for Video Timeline & Scene QA and Video Synthesis & Multimodal DAG Workflows.
 - **Consequences:**
   Completes the 7-modality architecture of MiniAI without external cloud dependencies or GPU hardware lock-in, eliminates host out-of-memory risks during high-resolution frame extraction via bounded frame memory pooling, provides mathematically verified topological DAG execution across text, vision, audio, music, and video pipelines, and guarantees local-first privacy protection with zero mock implementations across desktop and mobile platforms.
+
+---
+
+## ADR-014: Scoped Cryptographic Cloud Consent Governance, mTLS Distributed Compute Dispatch, and Seamless Local CPU Fallback
+- **Date:** `2026-11-07`
+- **Status:** `ACCEPTED`
+- **Context:**
+  Stage 9 delivers secure distributed compute and hybrid cloud GPU execution (`crates/miniai-cloud`) while uncompromisingly upholding MiniAI's core architectural tenets: local-first privacy, zero secret leakage, fail-closed access control, and deterministic CPU-first execution (`AcceleratorBackend::Cpu`):
+  1. Consent Governance & Scoped Cryptographic Tokens: Default `LocalOnlyPrivacyMode = true` strictly blocks all outbound network transmissions. Explicit cloud compute requires a cryptographically validated `CloudConsentToken` specifying token ID, target HTTPS endpoint, modality binding, maximum payload byte limit ($\le 100\text{ MB}$), validity duration ($\le 24\text{ hours}$), and mandatory user acknowledgement. Loopback endpoints (`127.0.0.1`, `::1`, `localhost`) are strictly forbidden in production to prevent SSRF and local sandbox bypasses.
+  2. Append-Only Immutable Audit Ledger: Every consent event (`Granted`, `Verified`, `Revoked`, `Expired`, `Rejected`, `PayloadDispatched`) is persisted to an append-only SQLite audit table with zero update/delete operations, monotonic sequence IDs, and rich query filters (`query_by_token`, `query_by_action`, `query_by_modality`, `query_by_time_range`).
+  3. Pre-Flight Verification Gate & Mid-Flight Cancellation: `ConsentManager::verify_and_authorize` must pass prior to payload serialization or network transmission; if privacy mode is active, consent is revoked, expired, mismatched, or quota exhausted, the dispatch fails closed locally with zero egress. Mid-flight cooperative cancellation token checks abort pending remote operations.
+  4. Encrypted Remote Compute Dispatcher & mTLS: `TlsConfig` enforces mandatory TLS 1.3 policy and optional mutual TLS (mTLS) with client certificate and private key validation against CA roots. `RemoteDispatcher` submits scoped `ComputeTaskRequest` envelopes and accounts consumed bytes in the ledger.
+  5. Automatic Local CPU Fallback: `FallbackCoordinator` intercepts remote worker network failures, timeouts, 5xx server errors, or mid-flight revocations, transparently executing the workload on local CPU runtime adapters (`local_cpu_adapter`) with zero data loss while recording fallback audit telemetry.
+  6. Flutter Consent Inspector & Emergency Kill-Switch: Tab 11 ('Cloud') in `ShellScreen` provides a prominent instant Emergency Kill-Switch button, a scoped token issuance form with user acknowledgement gating, active token manager with countdown timers, a hybrid dispatch simulator testing remote vs local fallback, and an immutable audit ledger table.
+- **Decision:**
+  - Create `#![forbid(unsafe_code)]` crate `crates/miniai-cloud`:
+    - `error.rs`: `CloudError` domain failure variants.
+    - `types.rs`: Core data types (`ConsentAction`, `ConsentStatus`, `ConsentScope`, `ConsentAuditRecord`, `ManagedConsentToken`).
+    - `token.rs`: `TokenValidator` with defense-in-depth boundary checks and SHA-256 token fingerprinting.
+    - `ledger.rs`: `ConsentLedger` append-only audit repository backed by transactional SQLite via `StorageEngine`.
+    - `manager.rs`: `ConsentManager` thread-safe coordinator orchestrating issuance, verification, revocation, and quota tracking.
+    - `dispatcher.rs`: `TlsConfig`, `ComputeTaskRequest`, `ComputeTaskResponse`, `RemoteWorkerTransport` trait, `SimulatedRemoteTransport`, and `RemoteDispatcher`.
+    - `fallback.rs`: `LocalFallbackHandler` trait, `DefaultLocalFallbackHandler`, and `FallbackCoordinator`.
+  - Extend Flutter UI under `ui/miniai_app`:
+    - `system_contracts.dart`: Contracts for `ConsentActionContract`, `ConsentAuditRecordContract`, `ManagedConsentTokenContract`, `ComputeTaskRequestContract`, and `ComputeTaskResponseContract`.
+    - `platform_controller.dart`: State and zero-mock methods for scoped token issuance, revocation, emergency kill-switch, and hybrid compute dispatch with local CPU fallback.
+    - `consent_inspector_screen.dart`: Tab 11 in `ShellScreen` featuring emergency kill-switch, scoped consent request dialog, active token manager, interactive hybrid dispatch simulator, and immutable audit ledger viewer.
+- **Consequences:**
+  Enables scalable cloud GPU acceleration without compromising local privacy or user sovereignty; guarantees zero egress in local-only privacy mode; prevents SSRF and secret leaks; eliminates task dropouts through transparent local CPU fallback; and provides verifiable append-only auditing for enterprise compliance.

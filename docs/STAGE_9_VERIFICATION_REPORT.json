@@ -1,0 +1,240 @@
+{
+  "stage": "Stage 9",
+  "stage_title": "Hybrid Cloud GPU & Secure Distributed Compute",
+  "timestamp_utc": "2026-11-07T06:10:32.774919+00:00",
+  "verification_tier": "PROVEN_ON_HOST",
+  "overall_passed": true,
+  "governance_audit": {
+    "passed": true,
+    "governance_files_checked": 19,
+    "rules_checked": 6,
+    "skills_checked": 18,
+    "stage_prompts_checked": 11,
+    "errors": []
+  },
+  "flutter_coverage": {
+    "present": true,
+    "lines_found": 5663,
+    "lines_hit": 5180,
+    "percent": 91.47
+  },
+  "stage9_contracts": {
+    "phase_9_1_consent_governance_and_immutable_audit_ledger": {
+      "crate": "crates/miniai-cloud",
+      "unsafe_code_forbidden": true,
+      "error_module": "crates/miniai-cloud/src/error.rs",
+      "types_module": "crates/miniai-cloud/src/types.rs",
+      "token_module": "crates/miniai-cloud/src/token.rs",
+      "ledger_module": "crates/miniai-cloud/src/ledger.rs",
+      "manager_module": "crates/miniai-cloud/src/manager.rs",
+      "https_target_endpoint_enforcement": true,
+      "loopback_prohibition_in_production": true,
+      "max_payload_ceiling_100mb": true,
+      "max_consent_duration_24h": true,
+      "deterministic_sha256_token_fingerprint": true,
+      "append_only_sqlite_audit_ledger": true,
+      "zero_update_or_delete_queries": true,
+      "monotonic_audit_sequence_ids": true,
+      "quota_tracking_and_exhaustion": true,
+      "emergency_revocation_kill_switch": true,
+      "privacy_policy_engine_sync": true
+    },
+    "phase_9_2_encrypted_remote_compute_dispatcher_and_fallback": {
+      "crate": "crates/miniai-cloud",
+      "unsafe_code_forbidden": true,
+      "dispatcher_module": "crates/miniai-cloud/src/dispatcher.rs",
+      "fallback_module": "crates/miniai-cloud/src/fallback.rs",
+      "tls_config_mtls_and_tls13_policy": true,
+      "client_cert_and_key_pem_validation": true,
+      "preflight_authorization_gate": true,
+      "zero_egress_when_privacy_mode_active": true,
+      "midflight_cooperative_cancellation_guards": true,
+      "local_fallback_handler_trait": true,
+      "default_local_fallback_handler_cpu": true,
+      "fallback_coordinator_automatic_local_cpu_execution": true,
+      "fallback_audit_ledger_telemetry": true,
+      "network_timeout_and_500_resilience": true
+    },
+    "phase_9_3_flutter_hybrid_compute_and_consent_ui": {
+      "system_contracts_module": "ui/miniai_app/lib/src/models/system_contracts.dart",
+      "consent_action_and_audit_contracts": true,
+      "managed_consent_token_contract": true,
+      "compute_task_request_and_response_contracts": true,
+      "platform_controller_module": "ui/miniai_app/lib/src/controllers/platform_controller.dart",
+      "managed_tokens_and_audit_history_state": true,
+      "grant_cloud_consent_validation": true,
+      "emergency_kill_switch_method": true,
+      "dispatch_hybrid_compute_task_zero_mock_fallback": true,
+      "consent_inspector_screen": "ui/miniai_app/lib/src/screens/consent_inspector_screen.dart",
+      "shell_screen_tab_11_integration": true,
+      "desktop_nav_rail_cloud_destination": true,
+      "mobile_nav_bar_cloud_destination": true,
+      "app_bar_privacy_status_action_chip": true,
+      "active_tokens_table_and_countdown_timer": true,
+      "grant_consent_dialog_with_ack_checkbox": true,
+      "hybrid_dispatch_simulator_with_fault_checkboxes": true,
+      "immutable_audit_ledger_table": true
+    }
+  },
+  "steps": [
+    {
+      "name": "rust_fmt_check",
+      "command": "cargo fmt --all -- --check",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": []
+    },
+    {
+      "name": "rust_clippy",
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": [
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s"
+      ]
+    },
+    {
+      "name": "rust_tests",
+      "command": "cargo test --workspace",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "stderr_tail": [
+        "     Running tests\\tensor_tests.rs (target\\debug\\deps\\tensor_tests-98d5759242498d67.exe)",
+        "   Doc-tests miniai_cloud",
+        "   Doc-tests miniai_core",
+        "   Doc-tests miniai_imagegen",
+        "   Doc-tests miniai_llm",
+        "   Doc-tests miniai_music",
+        "   Doc-tests miniai_rag",
+        "   Doc-tests miniai_registry",
+        "   Doc-tests miniai_runtime",
+        "   Doc-tests miniai_server",
+        "   Doc-tests miniai_speech_asr",
+        "   Doc-tests miniai_speech_tts",
+        "   Doc-tests miniai_storage",
+        "   Doc-tests miniai_video",
+        "   Doc-tests miniai_vision"
+      ]
+    },
+    {
+      "name": "rust_cloud_coverage",
+      "command": "cargo llvm-cov -p miniai-cloud --summary-only",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "Filename                      Regions    Missed Regions     Cover   Functions  Missed Functions  Executed       Lines      Missed Lines     Cover    Branches   Missed Branches     Cover",
+        "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "dispatcher.rs                     138                14    89.86%          11                 2    81.82%         157                13    91.72%           0                 0         -",
+        "fallback.rs                        74                 1    98.65%           5                 0   100.00%          76                 1    98.68%           0                 0         -",
+        "ledger.rs                         115                12    89.57%          14                 1    92.86%          77                 1    98.70%           0                 0         -",
+        "manager.rs                        390                22    94.36%          15                 4    73.33%         403                16    96.03%           0                 0         -",
+        "token.rs                          106                 2    98.11%           3                 0   100.00%         101                 4    96.04%           0                 0         -",
+        "types.rs                           92                15    83.70%           7                 0   100.00%          66                 9    86.36%           0                 0         -",
+        "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------",
+        "TOTAL                             915                66    92.79%          55                 7    87.27%         880                44    95.00%           0                 0         -"
+      ],
+      "stderr_tail": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+        "",
+        "     Running tests\\token_tests.rs (target\\llvm-cov-target\\debug\\deps\\token_tests-308ea3fe809318cc.exe)",
+        "",
+        "running 8 tests",
+        "test test_valid_token_passes_validation ... ok",
+        "test test_empty_or_oversized_token_id_rejected ... ok",
+        "test test_non_https_endpoint_rejected ... ok",
+        "test test_loopback_endpoints_rejected_in_production ... ok",
+        "test test_unacknowledged_token_rejected ... ok",
+        "test test_payload_limits_validation ... ok",
+        "test test_time_window_validation ... ok",
+        "test test_token_fingerprint_and_integrity_verification ... ok",
+        "",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ]
+    },
+    {
+      "name": "python_pytest_coverage",
+      "command": "uv run --group dev pytest --cov=miniai_ml --cov-report=term-missing --cov-fail-under=90",
+      "cwd": "ml",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "_______________ coverage: platform win32, python 3.14.0-final-0 _______________",
+        "",
+        "Name                             Stmts   Miss  Cover   Missing",
+        "--------------------------------------------------------------",
+        "src\\miniai_ml\\__init__.py            7      0   100%",
+        "src\\miniai_ml\\contracts.py         101      0   100%",
+        "src\\miniai_ml\\dataset.py           162      0   100%",
+        "src\\miniai_ml\\governance.py         95      4    96%   124, 149-150, 171",
+        "src\\miniai_ml\\provenance.py        150      1    99%   318",
+        "src\\miniai_ml\\runtime_probe.py      29      5    83%   23-24, 30-32",
+        "src\\miniai_ml\\training.py          374     15    96%   43-45, 60, 62, 68, 72, 560-561, 571, 638-639, 646, 650-651",
+        "--------------------------------------------------------------",
+        "TOTAL                              918     25    97%",
+        "Required test coverage of 90% reached. Total coverage: 97.28%",
+        "39 passed in 7.05s"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_analyze",
+      "command": "flutter analyze --no-pub",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "Analyzing miniai_app...                                         ",
+        "No issues found! (ran in 2.0s)"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_test_coverage",
+      "command": "flutter test --coverage",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "00:12 +88: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:13 +89: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:13 +90: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:13 +91: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:13 +92: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:14 +93: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:14 +94: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:14 +95: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:14 +96: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:14 +97: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:14 +98: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:15 +99: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:15 +100: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:15 +101: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:16 +102: All tests passed!"
+      ],
+      "stderr_tail": []
+    }
+  ]
+}

@@ -486,6 +486,9 @@ impl SandboxedTool for RagQueryTool {
 // Sandbox Runner
 // -----------------------------------------------------------------------------
 
+/// Alias for ToolSandboxRunner to serve as the system tool registry.
+pub type ToolRegistry = ToolSandboxRunner;
+
 /// Orchestrates registration, capability verification, timeout guards, and execution of sandboxed tools.
 #[derive(Default)]
 pub struct ToolSandboxRunner {
@@ -514,6 +517,21 @@ impl ToolSandboxRunner {
                 required_capability: t.required_capability(),
             })
             .collect()
+    }
+
+    /// Returns descriptors of registered tools for LLM prompt schemas.
+    pub fn describe_tools(&self) -> Vec<ToolDescriptor> {
+        self.list_tools()
+    }
+
+    /// Safely executes a registered tool within the specified execution context.
+    pub fn execute_tool(
+        &self,
+        tool_name: &str,
+        input_json: &str,
+        context: &ToolExecutionContext,
+    ) -> ToolExecutionResult {
+        self.execute(tool_name, input_json, context)
     }
 
     /// Safely executes a registered tool within the specified execution context.

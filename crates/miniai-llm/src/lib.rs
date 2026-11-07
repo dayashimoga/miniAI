@@ -1,15 +1,18 @@
 #![forbid(unsafe_code)]
 
 pub mod adapter;
+pub mod agent;
 pub mod benchmark;
 pub mod config;
 pub mod engine;
 pub mod error;
 pub mod model;
+pub mod prompt;
 pub mod sampler;
 pub mod tokenizer;
 
 pub use adapter::LlmAdapter;
+pub use agent::{AgentStep, ReActAgent};
 pub use benchmark::{
     LlmBenchmarkConfig, LlmBenchmarkHarness, LlmBenchmarkReport, LlmIterationMetrics,
 };
@@ -17,6 +20,7 @@ pub use config::{FinishReason, GenerationConfig, GenerationOutput, StreamToken, 
 pub use engine::LlmEngine;
 pub use error::LlmError;
 pub use model::{ModelMetadata, ModelWeights, GGUF_MAGIC};
+pub use prompt::{ChatMessage, ChatTemplate, MessageRole, PromptCompiler};
 pub use sampler::{Prng, Sampler};
 pub use tokenizer::{Tokenizer, BOS_TOKEN_ID, EOS_TOKEN_ID, PAD_TOKEN_ID, UNK_TOKEN_ID};
 

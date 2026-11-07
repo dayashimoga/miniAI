@@ -1088,3 +1088,15 @@
   - Expanded `miniai-core` hardware detection to discover DirectML on Windows and NNAPI on Android, augmenting existing CUDA, Metal, CoreML, and Vulkan backends.
   - Connected `ui/miniai_app/lib/main.dart` with platform-aware persistent storage paths (`resolveSettingsPath()` across Windows `%APPDATA%`, macOS `Library/Application Support`, Linux `~/.config`) and verified persistent loading on app startup.
   - Verified 100% test pass rate across Rust workspace (305/305 tests passing) and Flutter (105/105 tests passing).
+
+
+---
+
+## [2026-11-07T16:30:00+05:30] — Stage 4 Sign-Off: Prompt Compiler & Autonomous ReAct Agent Loop
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 4 / Phase 4.1 & Phase 4.2 / Subphases 4.1.2 & 4.2.1`
+- **Summary:**
+  - Implemented `PromptCompiler` (`crates/miniai-llm/src/prompt.rs`) supporting ChatML, Llama-3, Gemma, and Raw templates with context window counting and sliding-window truncation.
+  - Implemented `ReActAgent` and `AgentStep` (`crates/miniai-llm/src/agent.rs`) wired directly to `miniai-rag::tools::ToolRegistry`, enabling multi-step autonomous reasoning with local sandboxed tools (`calculator`, `workspace_read_file`, `code_symbol_search`).
+  - Created test suites `crates/miniai-llm/tests/agent_tests.rs` and `prompt_tests.rs`.
+  - Reached 316/316 passing Rust tests across the workspace, 0 Clippy warnings, and 100% rustfmt compliance. Full Stage 10 verification pass.

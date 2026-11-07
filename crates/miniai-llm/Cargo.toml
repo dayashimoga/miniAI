@@ -11,6 +11,7 @@ miniai-core = { path = "../miniai-core" }
 miniai-storage = { path = "../miniai-storage" }
 miniai-server = { path = "../miniai-server" }
 miniai-runtime = { path = "../miniai-runtime" }
+miniai-rag = { path = "../miniai-rag" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

@@ -33,7 +33,7 @@ pub use pipeline::IngestionPipeline;
 pub use retrieval::{HybridSearchEngine, RetrievalConfig, RetrievalResult};
 pub use tools::{
     CalculatorTool, CodeSymbolSearchTool, RagQueryTool, SandboxedTool, ToolCapability,
-    ToolDescriptor, ToolExecutionContext, ToolExecutionResult, ToolSandboxRunner,
+    ToolDescriptor, ToolExecutionContext, ToolExecutionResult, ToolRegistry, ToolSandboxRunner,
     WorkspaceFileReadTool,
 };
 pub use types::{

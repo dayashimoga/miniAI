@@ -142,3 +142,4 @@ miniai-daemon doctor
   1. Click **Events** in the navigation bar.
   2. Click the **Export Redacted Diagnostics** download icon in the toolbar.
   3. A sanitized JSON bundle is generated where username file paths (`C:\Users\<user>`) and bearer tokens are automatically replaced with `<redacted_user>`.
+

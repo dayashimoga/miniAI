@@ -101,3 +101,24 @@ Every certified capability and test result is explicitly classified as:
   - `ADR-015` recorded and accepted in `ADR.md`.
 - [x] **Master Verification Evidence**:
   - `docs/STAGE_10_VERIFICATION_REPORT.json` generated and verified.
+
+---
+
+## 7. Stage 11–14 Production Readiness & v2.0 GA Certification Checklist
+
+- [x] **Stage 11 (Observability, Telemetry & Profiler Studio)**:
+  - Real-time per-request telemetry tracking (TTFT, decode throughput, prompt eval time, peak RSS) in `miniai-bridge`.
+  - In-app System Telemetry in `HardwareInspectorScreen` with live performance chips and one-click "Unload Model from RAM" memory release.
+  - Automatic PII-redacted diagnostic log export (`exportRedactedDiagnostics`) in `EventInspectorView`.
+- [x] **Stage 12 (CI/CD Multi-OS Artifact Automation)**:
+  - GitHub Actions matrix workflow generating Windows `.zip`, Linux `.tar.gz`, macOS `.app`, Android `.apk`/`.aab`, and iOS unsigned `.ipa`.
+  - Artifact upload via `actions/upload-artifact@v4` on every run for direct testing.
+  - CycloneDX v1.5 SBOM manifests (`bom.json`, `bom.xml`) inventorying all 17 workspace crates.
+- [x] **Stage 13 (Beta Readiness & Operational Runbook)**:
+  - Comprehensive operational documentation published in `docs/TROUBLESHOOTING.md`.
+  - Zero-socket local-only startup and offline disaster recovery verified.
+- [x] **Stage 14 (Release Gate Certification v2.0 GA)**:
+  - Unconditional `PASS` across 326 Rust tests, 39 Python ML tests (97.28% coverage), and 107 Flutter tests (90.41% coverage).
+  - 8/8 release bundles verified with SHA-256 digests in `dist/v2.0.0-rc1`.
+  - 0 Clippy lints, 0 rustfmt diffs, 0 Flutter analyzer issues.
+

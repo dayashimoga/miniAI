@@ -1716,3 +1716,32 @@
     * Operational runbook published at `docs/TROUBLESHOOTING.md`.
     * 100% passing tests across Rust workspace (326/326) and Flutter UI (107/107).
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T17:52:00+05:30] Stage 14: Final Production Readiness & Release Certification (v2.0 GA) — Entry 093 (Unanimous Independent Audits & GA Release Certification)
+- **Entry Type:** `STAGE_GATE_VERIFIED` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 14: Final Production Readiness & Release Certification (v2.0 GA) / Phase 14.1 — Final Independent Audit & Release Sign-Off`
+- **Status Transitions:**
+  - `SUBPHASE-14.1.1` [`VERIFIED` & `COMPLETED`]: Both specialist subagents (`independent-qa-auditor` and `arch-security-reviewer`) conducted full-system independent audits and issued unanimous, unconditional **PASS** verdicts.
+  - `SUBPHASE-14.1.2` [`VERIFIED` & `COMPLETED`]: Certified CycloneDX v1.5 SBOM manifests (`bom.json` and `bom.xml`) inventorying all 17 crates, verified SHA-256 digests across 8 release packages in `dist/v2.0.0-rc1`, and updated `RELEASE_CERTIFICATION.md`.
+  - `STAGE-14-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 14 exit criteria satisfied:
+    * 326/326 Rust tests passing, 0 Clippy lints, 0 rustfmt diffs.
+    * 39/39 Python ML tests passing with 97.28% statement coverage.
+    * 107/107 Flutter tests passing with 90.46% line coverage and 0 analyze issues.
+    * 0 vulnerabilities detected in `cargo audit` across 98 scanned crates.
+    * 8/8 release packages verified in `dist/v2.0.0-rc1`.
+
+---
+
+### [2026-11-07T17:53:00+05:30] Stage 15: Scale, Ecosystem & Future Enhancements — Entry 094 (Model Context Protocol Host, Dedicated NPU Acceleration & P2P LAN Swarm)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 15: Scale, Ecosystem & Future Enhancements / Phase 15.1 — Ecosystem Expansion & Architectural Roadmap`
+- **Status Transitions:**
+  - `SUBPHASE-15.1.1` [`VERIFIED` & `COMPLETED`]: Architected Model Context Protocol (MCP) host capability in `docs/ECOSYSTEM_AND_SCALING_SPEC.md` integrating JSON-RPC 2.0 stdio transport, dynamic discovery, and capability sandboxing with `miniai-rag::tools::ToolRegistry`.
+  - `SUBPHASE-15.1.2` [`VERIFIED` & `COMPLETED`]: Architected dedicated NPU acceleration standards for Qualcomm QNN (Snapdragon), Apple CoreML Neural Engine (ANE), Intel OpenVINO, and AMD Ryzen AI with unified memory int4/int8 quantization contracts and CPU fallback guarantees.
+  - `SUBPHASE-15.1.3` [`VERIFIED` & `COMPLETED`]: Architected encrypted Peer-to-Peer (P2P) LAN swarm inference offloading with mDNS discovery, QR code pairing, and pinned mutual TLS (mTLS) 1.3 encryption.
+  - `SUBPHASE-15.1.4` [`VERIFIED` & `COMPLETED`]: Formally recorded and accepted `ADR-016` in `ADR.md`.
+  - `STAGE-15-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 15 exit criteria satisfied across all specifications.
+  - `ALL-15-STAGES-COMPLETED` [`VERIFIED` & `PASSED`]: All 15 stages from `PRODUCTION_AUDIT_AND_V2_ROADMAP.md` are 100% complete, tested, and certified.

@@ -312,3 +312,22 @@ This document records binding architectural decisions for **MiniAI**, including 
   - Require unanimous `PASS` sign-offs from `independent-qa-auditor` and `arch-security-reviewer` before certifying `v1.0.0`.
 - **Consequences:**
   Guarantees enterprise-grade release provenance, supply chain transparency, reproducible builds across desktop and mobile platforms, zero known security vulnerabilities, and verifiable compliance with the MiniAI Global Engineering Contract.
+
+
+---
+
+## ADR-016: Ecosystem Expansion, Model Context Protocol (MCP) Host Architecture, Dedicated NPU Acceleration, and P2P LAN Swarm for MiniAI v2.0
+- **Date:** `2026-11-07`
+- **Status:** `ACCEPTED`
+- **Context:**
+  Stage 15 establishes the production scaling and ecosystem architecture for MiniAI v2.0 GA, expanding the system with:
+  1. Model Context Protocol (MCP) Host Architecture: Enabling local JSON-RPC 2.0 stdio tool servers with capability sandboxing for filesystem, external execution, and consent-gated network access via `miniai-rag::tools::ToolRegistry`.
+  2. Dedicated NPU Hardware Acceleration: Establishing hardware driver and unified memory quantization contracts for Qualcomm QNN (Snapdragon), Apple CoreML Neural Engine (ANE), Intel OpenVINO NPU, and AMD Ryzen AI (XDNA).
+  3. Encrypted Peer-to-Peer LAN Swarm: Providing zero-cloud mobile-to-desktop local inference offloading via mDNS discovery (`_miniai._tcp.local.`), out-of-band QR code pairing, and pinned mutual TLS (mTLS) 1.3 encryption.
+- **Decision:**
+  - Standardize tool extensibility on the Model Context Protocol (MCP) using capability sandboxing.
+  - Implement CPU-first fallback guarantees across all NPU backend extensions.
+  - Require mutual TLS 1.3 with pinned certificates and zero internet routing for LAN swarm peering.
+  - Formalize architecture and contract specifications in `docs/ECOSYSTEM_AND_SCALING_SPEC.md`.
+- **Consequences:**
+  Allows MiniAI to scale across local devices, external developer tooling, and heterogeneous edge accelerators without compromising the fundamental Local-First Privacy mandate or introducing external cloud dependencies.

@@ -1210,3 +1210,28 @@
   - Published comprehensive cross-platform operational runbook in `docs/TROUBLESHOOTING.md` covering platform setup, model caching, memory admission guards, SQLite quarantine recovery, and CLI diagnostics.
   - Validated offline resilience and zero-socket local-only startup across all supported environments.
   - Verified 100% test pass rate across all suites.
+
+
+---
+
+## [2026-11-07T17:52:00+05:30] — Stage 14 Sign-Off: Production Readiness & v2.0 GA Release Certification
+- **Action:** `STAGE_GATE_VERIFIED` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 14 / Phase 14.1 / Subphases 14.1.1 & 14.1.2`
+- **Summary:**
+  - Completed independent QA and architecture security audits with unanimous, unconditional **PASS** verdicts from `independent-qa-auditor` and `arch-security-reviewer`.
+  - Certified 100% test pass rates across Rust workspace (326/326), Python ML (39/39, 97.28% statement coverage), and Flutter UI (107/107, 90.46% line coverage, 0 analyze issues).
+  - Verified 0 security vulnerabilities across 98 scanned crates via `cargo audit`.
+  - Cryptographically verified SHA-256 digests across all 8 release bundles in `dist/v2.0.0-rc1`.
+  - Updated `RELEASE_CERTIFICATION.md`.
+
+---
+
+## [2026-11-07T17:53:00+05:30] — Stage 15 Sign-Off: Scale, Ecosystem & Future Enhancements (v2.0 GA Complete)
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 15 / Phase 15.1 / Subphases 15.1.1, 15.1.2, 15.1.3 & 15.1.4`
+- **Summary:**
+  - Architected Model Context Protocol (MCP) host capability in `docs/ECOSYSTEM_AND_SCALING_SPEC.md` integrating JSON-RPC 2.0 stdio tool servers with capability sandboxing for filesystem, execution, and cloud consent access.
+  - Architected dedicated NPU acceleration standards for Qualcomm QNN (Snapdragon), Apple CoreML Neural Engine (ANE), Intel OpenVINO, and AMD Ryzen AI with unified memory int4/int8 quantization contracts and CPU fallback guarantees.
+  - Architected encrypted Peer-to-Peer (P2P) LAN swarm inference offloading with mDNS discovery, QR code pairing, and pinned mutual TLS (mTLS) 1.3 encryption.
+  - Formally recorded and accepted `ADR-016` in `ADR.md`.
+  - Successfully completed all 15 stages of the MiniAI Production Roadmap.

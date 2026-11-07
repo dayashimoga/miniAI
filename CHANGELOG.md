@@ -626,3 +626,28 @@
   - Formally recorded and accepted `ADR-011` in `ADR.md`.
   - Verified 141/141 Rust tests passing (0 Clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% statement coverage, 0 governance errors), 57/57 Flutter UI tests passing (91.51% line coverage, 0 analyzer issues), and unanimous `PASS` audit sign-off from both `independent-qa-auditor` and `arch-security-reviewer`.
   - Deterministic verification evidence persisted in `docs/STAGE_6_VERIFICATION_REPORT.json`.
+
+
+---
+
+## [2026-11-07T06:36:00+05:30] — Stage 7 Subphase 7.1.1 In Progress (`v0.7.1-stage7.sub7.1.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.1 / Subphase 7.1.1 — Offline Speech Recognition (ASR) Runtime Adapter`
+- **Summary:**
+  - Initiated Subphase 7.1.1 in `crates/miniai-speech-asr`.
+  - Creating audio format sanitizer (WAV/FLAC/OGG), 16 kHz mono resampler, Voice Activity Detection (VAD) segmenter, deterministic timestamped transcription engine, and `SpeechAsrAdapter` implementing `ModalityAdapter` with `Modality::SpeechAsr` on CPU.
+
+
+---
+
+## [2026-11-07T06:50:00+05:30] — Stage 7 Subphase 7.1.1 Verified (`v0.7.1-stage7.sub7.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.1 / Subphase 7.1.1 — Offline Speech Recognition (ASR) Runtime Adapter`
+- **Summary:**
+  - Implemented `crates/miniai-speech-asr` workspace crate with `#![forbid(unsafe_code)]`.
+  - Implemented `AudioSanitizer` with format validation for WAV (PCM & float), FLAC (`fLaC`), and OGG (`OggS`), channel range 1..=8, sample rate range 8 kHz..=192 kHz, max file size 25 MB, max duration 600 seconds, and SHA-256 fingerprinting.
+  - Implemented `AudioResampler` supporting multi-channel downmixing to mono, linear interpolation to 16 kHz mono float32, and RMS loudness normalization.
+  - Implemented `VadEngine` with 30ms short-time energy (STE), zero-crossing rate (ZCR), adaptive noise floor estimation, hangover smoothing, and continuous speech detection.
+  - Implemented `SpeechAsrEngine` with deterministic acoustic energy mapping to phonetic tokens, timestamped speech segments (`start_secs`, `end_secs`, `text`, `confidence`), and token alignment.
+  - Implemented `SpeechAsrAdapter` implementing `ModalityAdapter` with `Modality::SpeechAsr` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 validation, and health checks.
+  - Added 5 test suites (26 unit and integration tests) all passing, 0 clippy warnings, and clean formatting.

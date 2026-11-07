@@ -922,3 +922,50 @@
       - Flutter cross-platform UI: 57 / 57 widget & contract tests passed, 91.51% measured line coverage, 0 `flutter analyze` issues.
     - Deterministic verification report generated in `docs/STAGE_6_VERIFICATION_REPORT.json`.
 - **Next Stage Ready:** `STAGE_7` (Audio, Speech ASR/TTS, Voice Pipeline & Sound Studio under `docs/stage_prompts/STAGE_07_PROMPT.md`).
+
+
+---
+
+### [2026-11-07T06:36:00+05:30] Stage 7 — Entry 051 (Subphase 7.1.1 Initiated)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 7: Speech, Audio, TTS, ASR, Voice & Music / Phase 7.1 — Offline Speech Recognition / Subphase 7.1.1`
+- **Status Transitions:**
+  - `STAGE_7` [`IN_PROGRESS`]: Initiated execution of Stage 7.
+  - `S7-P1-SUB7.1.1` [`IN_PROGRESS`]: Commenced implementation of offline Speech Recognition (ASR) runtime adapter in `crates/miniai-speech-asr`:
+    - Create new workspace crate `crates/miniai-speech-asr` with `#![forbid(unsafe_code)]`.
+    - Implement audio format sanitizer and decoder (`AudioSanitizer`):
+      - Validate audio container headers (RIFF/WAVE PCM, FLAC `fLaC`, OggS `OggS`).
+      - Bounds checking: max file size $\le 25\text{ MB}$, max audio duration $\le 600\text{ seconds}$ (10 min), max channels $\le 8$, sample rates $8\text{ kHz}$ to $192\text{ kHz}$.
+      - Rejection of truncated audio headers, invalid sample bit depths, and corrupted payloads.
+      - SHA-256 fingerprint computation for ingested audio files.
+    - Implement audio preprocessor and resampler (`AudioResampler`):
+      - Multi-channel to mono downmixing via arithmetic channel averaging.
+      - Band-limited linear/polynomial interpolation resampling from arbitrary input sample rates to standard $16\text{ kHz}$ mono PCM float32.
+      - Energy and RMS normalization.
+    - Implement Voice Activity Detection (`VoiceActivityDetector` / `VadEngine`):
+      - Frame-based short-time energy (STE), zero-crossing rate (ZCR), and adaptive noise floor estimation.
+      - Speech segment boundary extraction (`SpeechSegment`: start, end, active duration, speech probability).
+    - Implement timestamped ASR transcription engine (`SpeechAsrEngine`):
+      - Segmented acoustic feature extraction and deterministic subword acoustic mapping.
+      - Word-level and segment-level timestamps (`start_secs`, `end_secs`, `text`, `confidence`).
+      - Token-level alignment and language detection (default English/multilingual fallback).
+    - Implement `SpeechAsrAdapter` conforming to `ModalityAdapter` with `Modality::SpeechAsr` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 digest verification, and live health reporting.
+    - Author comprehensive unit, boundary, and contract test suites.
+- **Next Step:** Implement crate files and test suites in `crates/miniai-speech-asr`.
+
+
+---
+
+### [2026-11-07T06:50:00+05:30] Stage 7 — Entry 052 (Subphase 7.1.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 7: Speech, Audio, TTS, ASR, Voice & Music / Phase 7.1 — Offline Speech Recognition / Subphase 7.1.1`
+- **Status Transitions:**
+  - `S7-P1-SUB7.1.1` [`VERIFIED`]: Successfully implemented and verified offline Speech Recognition (ASR) runtime adapter in `crates/miniai-speech-asr`:
+    - Created `crates/miniai-speech-asr` workspace crate with `#![forbid(unsafe_code)]`.
+    - Implemented `AudioSanitizer`: validates container headers (RIFF/WAVE PCM 8/16/24/32-bit int & 32-bit float, FLAC `fLaC`, OggS `OggS`), size $\le 25\text{ MB}$, duration $\le 600\text{s}$, channels $1..=8$, sample rates $8\text{ kHz}..=192\text{ kHz}$, SHA-256 computation.
+    - Implemented `AudioResampler`: multi-channel to mono downmixing via arithmetic averaging, band-limited linear interpolation resampling to standard $16\text{ kHz}$ mono float32, and RMS normalization.
+    - Implemented `VadEngine`: 30ms frame-based short-time energy (STE), zero-crossing rate (ZCR), adaptive noise floor estimation with continuous speech fallback handling, and hangover smoothing for speech boundary detection.
+    - Implemented `SpeechAsrEngine`: deterministic subband acoustic energy mapping to phonetic tokens/subwords, segment and word-level timestamps (`start_secs`, `end_secs`, `text`, `confidence`), and language detection fallback.
+    - Implemented `SpeechAsrAdapter`: implements `ModalityAdapter` with `Modality::SpeechAsr` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 verification, and live health reporting.
+    - Authored 5 comprehensive test suites in `tests/`: `sanitizer_tests.rs`, `resampler_tests.rs`, `vad_tests.rs`, `engine_tests.rs`, `adapter_tests.rs` (26/26 tests passing, 0 clippy warnings, 0 fmt diffs).
+- **Next Step:** Initiate Subphase 7.2.1: Offline Neural TTS & Voice Conversation Loop (`crates/miniai-speech-tts`).

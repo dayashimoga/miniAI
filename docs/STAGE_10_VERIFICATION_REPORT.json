@@ -1,7 +1,7 @@
 {
   "stage": 10,
   "title": "Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases (v1.0.0)",
-  "generated_at": "2026-11-07T10:58:00.595463+00:00",
+  "generated_at": "2026-11-07T11:06:13.058068+00:00",
   "overall_passed": true,
   "governance_audit": {
     "passed": true,
@@ -36,7 +36,7 @@
         "    Checking miniai-video v0.1.0 (G:\\miniAI\\crates\\miniai-video)",
         "    Checking miniai-stress-tests v0.1.0 (G:\\miniAI\\tests)",
         "    Checking miniai-daemon v0.1.0 (G:\\miniAI\\crates\\miniai-daemon)",
-        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.32s"
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.96s"
       ]
     },
     {
@@ -115,7 +115,7 @@
         "--------------------------------------------------------------",
         "TOTAL                              918     25    97%",
         "Required test coverage of 90% reached. Total coverage: 97.28%",
-        "39 passed in 11.50s"
+        "39 passed in 11.58s"
       ],
       "stderr_tail": []
     },
@@ -127,7 +127,7 @@
       "passed": true,
       "stdout_tail": [
         "Analyzing miniai_app...                                         ",
-        "No issues found! (ran in 2.0s)"
+        "No issues found! (ran in 1.9s)"
       ],
       "stderr_tail": []
     },
@@ -140,19 +140,19 @@
       "stdout_tail": [
         "00:14 +91: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
         "00:14 +92: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
-        "00:14 +93: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:14 +93: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
         "00:14 +94: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:15 +95: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:15 +96: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:16 +97: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:16 +98: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:16 +99: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:15 +97: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:15 +98: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:15 +99: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:16 +100: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:16 +101: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
-        "00:17 +102: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
-        "00:17 +103: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:16 +101: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:16 +102: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:16 +103: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
         "00:17 +104: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
-        "00:18 +105: All tests passed!"
+        "00:24 +105: All tests passed!"
       ],
       "stderr_tail": []
     },
@@ -179,15 +179,15 @@
       "stdout_tail": [
         "      \"filename\": \"bom.json\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"8003551b7f99f0ada27ac2d57312c0ccb8547879670b4b39cba92d6e086d3fed\",",
-        "      \"actual_sha256\": \"8003551b7f99f0ada27ac2d57312c0ccb8547879670b4b39cba92d6e086d3fed\",",
+        "      \"expected_sha256\": \"c5a64f4a3c783ef8fff1d778650201f603710ca81a8741ce7c8644a4330d9e97\",",
+        "      \"actual_sha256\": \"c5a64f4a3c783ef8fff1d778650201f603710ca81a8741ce7c8644a4330d9e97\",",
         "      \"passed\": true",
         "    },",
         "    {",
         "      \"filename\": \"bom.xml\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"11c158ffa79a05005c05eb69d3bd055fa552c7fdcc810763e5fc7455db8d9123\",",
-        "      \"actual_sha256\": \"11c158ffa79a05005c05eb69d3bd055fa552c7fdcc810763e5fc7455db8d9123\",",
+        "      \"expected_sha256\": \"2965b488a491841527e7d610e1fd9c9587c3fc6555005b7db0bf0072a93ff5ed\",",
+        "      \"actual_sha256\": \"2965b488a491841527e7d610e1fd9c9587c3fc6555005b7db0bf0072a93ff5ed\",",
         "      \"passed\": true",
         "    }",
         "  ]",

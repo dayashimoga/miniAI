@@ -1571,3 +1571,19 @@
     * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
     * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T16:36:00+05:30] Stage 5: RAG, Semantic Embeddings & Grounded Knowledge — Entry 084 (Stopword Filtering & RAG Query Routing Cutoff)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 5: RAG, Semantic Embeddings & Grounded Knowledge / Phase 5.1 — Neural Embedding Engine & Relevance Gating`
+- **Status Transitions:**
+  - `SUBPHASE-5.1.2` [`VERIFIED` & `COMPLETED`]: Implemented lexical stopword filtering in `crates/miniai-rag/src/bm25.rs` and RAG query routing with minimum relevance cutoffs (`min_dense_threshold = 0.40`, `min_rrf_threshold = 0.010`) in `crates/miniai-rag/src/retrieval.rs`. Out-of-domain queries like "what is adventure" bypass workspace citation attachment completely (`0` citations), while technical domain queries like "how does AdmissionGuard work?" attach `ARCHITECTURE.md` with high confidence.
+  - `SUBPHASE-5.1.3` [`VERIFIED` & `COMPLETED`]: Verified structure-aware AST and paragraph chunking across `.md`, `.txt`, `.rs`, `.py`, `.dart`, `.json`, `.yaml`, `.toml`, `.c`, `.cpp`, and `.pdf` in `crates/miniai-rag/src/chunker.rs`.
+  - `STAGE-5-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 5 exit criteria satisfied:
+    * 316/316 Rust tests passing across all 16 workspace crates (`cargo test --workspace`).
+    * 0 Clippy lints (`cargo clippy --workspace --all-targets -- -D warnings`).
+    * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
+    * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
+    * Full Stage 10 verification passed (`scripts/verify_stage10.py`).

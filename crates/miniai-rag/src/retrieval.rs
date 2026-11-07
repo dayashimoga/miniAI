@@ -18,6 +18,10 @@ pub struct RetrievalConfig {
     pub lexical_weight: f64,
     /// Maximum candidate chunks fetched from each ranker before fusion.
     pub candidate_pool_size: usize,
+    /// Minimum dense similarity threshold required to consider a semantic match (default: 0.40).
+    pub min_dense_threshold: f64,
+    /// Minimum RRF score threshold required to qualify for citation attachment (default: 0.010).
+    pub min_rrf_threshold: f64,
 }
 
 impl Default for RetrievalConfig {
@@ -27,6 +31,8 @@ impl Default for RetrievalConfig {
             dense_weight: 0.5,
             lexical_weight: 0.5,
             candidate_pool_size: 50,
+            min_dense_threshold: 0.40,
+            min_rrf_threshold: 0.010,
         }
     }
 }
@@ -131,7 +137,15 @@ impl HybridSearchEngine {
             dense_ranks.insert(chunk.chunk_id, rank + 1);
         }
 
-        // 3. Reciprocal Rank Fusion (RRF)
+        // 3. Reciprocal Rank Fusion (RRF) with Query Routing & Relevance Gating
+        // If there are zero lexical matches after stopword removal AND the top dense similarity
+        // is below min_dense_threshold, the query is out-of-domain (e.g. "what is adventure").
+        // Return empty vec to prevent hallucinated citations.
+        let max_dense_score = dense_scores.values().copied().fold(0.0f64, f64::max);
+        if lexical_scores.is_empty() && max_dense_score < self.config.min_dense_threshold {
+            return Vec::new();
+        }
+
         let mut candidate_ids: Vec<String> = lexical_ranks.keys().cloned().collect();
         for id in dense_ranks.keys() {
             if !candidate_ids.contains(id) {
@@ -155,13 +169,23 @@ impl HybridSearchEngine {
         fused.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         fused.truncate(limit);
 
-        // 4. Construct grounded result structures
+        // 4. Construct grounded result structures with relevance thresholding
         fused
             .into_iter()
             .filter_map(|(id, rrf_score)| {
+                if rrf_score < self.config.min_rrf_threshold {
+                    return None;
+                }
+
                 let chunk = self.chunk_map.get(&id)?.clone();
                 let lex_score = lexical_scores.get(&id).copied().unwrap_or(0.0);
                 let dense_score = dense_scores.get(&id).copied().unwrap_or(0.0);
+
+                // Discard candidate if it has 0 lexical matches and dense similarity is below threshold
+                if lex_score == 0.0 && dense_score < self.config.min_dense_threshold {
+                    return None;
+                }
+
                 let excerpt = extract_excerpt(&chunk.text, trimmed_query, 240);
                 let citation_tag = chunk.citation_tag.clone();
 
@@ -181,7 +205,12 @@ impl HybridSearchEngine {
 /// Extracts a contextual snippet surrounding matching terms in text.
 fn extract_excerpt(text: &str, query: &str, max_len: usize) -> String {
     let lower_text = text.to_ascii_lowercase();
-    let query_terms = crate::bm25::Bm25Index::tokenize(query);
+    let filtered_terms = crate::bm25::Bm25Index::tokenize_filtered(query);
+    let query_terms = if filtered_terms.is_empty() {
+        crate::bm25::Bm25Index::tokenize(query)
+    } else {
+        filtered_terms
+    };
 
     let mut first_match = None;
     for term in &query_terms {

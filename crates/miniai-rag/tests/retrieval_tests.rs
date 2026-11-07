@@ -56,6 +56,7 @@ impl ModelImporter {
         dense_weight: 0.5,
         lexical_weight: 0.5,
         candidate_pool_size: 20,
+        ..Default::default()
     });
     let indexed_count = engine.index_pipeline_chunks(&pipeline);
     assert_eq!(indexed_count, pipeline.all_chunks().len());
@@ -89,6 +90,22 @@ impl ModelImporter {
     assert!(code_results[0]
         .citation_tag
         .starts_with("src/importer.rs#L"));
+
+    // 4. Out-of-domain query: "what is adventure" must attach 0 citations
+    let ood_results = engine.search("what is adventure", 3);
+    assert!(
+        ood_results.is_empty(),
+        "Expected 0 citations for out-of-domain query 'what is adventure', got {}",
+        ood_results.len()
+    );
+
+    // 5. Natural language query: "how does AdmissionGuard work?" must attach ARCHITECTURE.md
+    let guard_results = engine.search("how does AdmissionGuard work?", 3);
+    assert!(
+        !guard_results.is_empty(),
+        "Expected citations for AdmissionGuard inquiry"
+    );
+    assert_eq!(guard_results[0].chunk.file_path, "ARCHITECTURE.md");
 
     // Verify citation tags are non-empty and well-formed
     for res in &arch_results {

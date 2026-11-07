@@ -1100,3 +1100,15 @@
   - Implemented `ReActAgent` and `AgentStep` (`crates/miniai-llm/src/agent.rs`) wired directly to `miniai-rag::tools::ToolRegistry`, enabling multi-step autonomous reasoning with local sandboxed tools (`calculator`, `workspace_read_file`, `code_symbol_search`).
   - Created test suites `crates/miniai-llm/tests/agent_tests.rs` and `prompt_tests.rs`.
   - Reached 316/316 passing Rust tests across the workspace, 0 Clippy warnings, and 100% rustfmt compliance. Full Stage 10 verification pass.
+
+
+---
+
+## [2026-11-07T16:36:00+05:30] — Stage 5 Sign-Off: Stopword Filtering & RAG Query Routing Cutoff
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 5 / Phase 5.1 / Subphases 5.1.2 & 5.1.3`
+- **Summary:**
+  - Implemented lexical stopword filtering (`is_stopword` / `tokenize_filtered`) in `crates/miniai-rag/src/bm25.rs`.
+  - Implemented RAG query routing and dual relevance cutoff gating (`min_dense_threshold = 0.40`, `min_rrf_threshold = 0.010`) in `crates/miniai-rag/src/retrieval.rs`. Out-of-domain queries like "what is adventure" bypass workspace citation attachment entirely, while repository queries like "how does AdmissionGuard work?" attach `ARCHITECTURE.md` with high confidence.
+  - Verified structure-aware chunking for code and documentation formats (.md, .txt, .rs, .py, .dart, .json, .yaml, .toml, .c, .cpp, .pdf).
+  - Verified 100% test pass rate across Rust workspace (316/316) and Flutter (105/105).

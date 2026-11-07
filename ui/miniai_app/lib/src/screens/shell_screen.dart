@@ -11,6 +11,7 @@ import 'knowledge_base_screen.dart';
 import 'sound_studio_screen.dart';
 import 'video_studio_screen.dart';
 import 'vision_canvas_screen.dart';
+import 'consent_inspector_screen.dart';
 
 class ShellScreen extends StatelessWidget {
   const ShellScreen({
@@ -56,7 +57,7 @@ class ShellScreen extends StatelessWidget {
                   label: controller.localOnlyMode
                       ? 'Privacy Status: Local-Only Privacy Mode Active'
                       : 'Privacy Status: Hybrid Consent Mode',
-                  child: Chip(
+                  child: ActionChip(
                     key: const Key('privacy_status_badge'),
                     avatar: Icon(
                       controller.localOnlyMode
@@ -71,6 +72,9 @@ class ShellScreen extends StatelessWidget {
                                 ? 'LOCAL-ONLY PRIVACY'
                                 : 'HYBRID CONSENT-GATED',
                           ),
+                    onPressed: () {
+                      controller.setSelectedNavigationIndex(11);
+                    },
                   ),
                 ),
               ),
@@ -166,6 +170,11 @@ class ShellScreen extends StatelessWidget {
                           selectedIcon: Icon(Icons.movie),
                           label: Text('Video'),
                         ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.cloud_sync_outlined, key: Key('nav_rail_cloud')),
+                          selectedIcon: Icon(Icons.cloud_sync),
+                          label: Text('Cloud'),
+                        ),
                       ],
                     ),
                   ),
@@ -256,6 +265,12 @@ class ShellScreen extends StatelessWidget {
                     selectedIcon: Icon(Icons.movie),
                     label: 'Video',
                   ),
+                  NavigationDestination(
+                    key: Key('nav_bar_cloud'),
+                    icon: Icon(Icons.cloud_sync_outlined),
+                    selectedIcon: Icon(Icons.cloud_sync),
+                    label: 'Cloud',
+                  ),
                 ],
               );
             },
@@ -287,6 +302,8 @@ class ShellScreen extends StatelessWidget {
         return SoundStudioScreen(controller: controller);
       case 10:
         return VideoStudioScreen(controller: controller);
+      case 11:
+        return ConsentInspectorScreen(controller: controller);
       case 0:
       default:
         return DashboardScreen(controller: controller, embedded: true);

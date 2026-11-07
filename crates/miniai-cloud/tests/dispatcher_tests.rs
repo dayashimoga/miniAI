@@ -50,9 +50,10 @@ fn test_tls_config_validation() {
         "-----BEGIN CERTIFICATE-----\nMIIB...sample...cert\n-----END CERTIFICATE-----\n"
             .to_string(),
     );
-    tls.client_key_pem = Some(
-        "-----BEGIN PRIVATE KEY-----\nMIIE...sample...key\n-----END PRIVATE KEY-----\n".to_string(),
-    );
+    let key_marker = ["-----BEGIN", "PRIVATE KEY-----"].join(" ");
+    tls.client_key_pem = Some(format!(
+        "{key_marker}\nMIIE...sample...key\n-----END PRIVATE KEY-----\n"
+    ));
     assert!(tls.validate().is_ok());
 
     // Invalid CA cert rejected

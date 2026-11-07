@@ -1258,3 +1258,44 @@
     - Expanded `miniai-cloud` test suite to 27/27 passing tests with **95.00%** line coverage (880/924 lines across crate), 0 Clippy warnings, and 0 formatting diffs.
     - Verified all 329 tests across all 14 Rust workspace crates passing.
 - **Next Subphase Ready:** `S9-P3-SUB9.3.1` (Phase 9.3: Consent UI & Runtime Observability / Subphase 9.3.1: Flutter Cloud Consent Inspector, Dynamic Token Manager, and Kill-Switch in `ui/miniai_app`).
+
+
+---
+
+### [2026-11-07T11:10:00+05:30] Stage 9 — Entry 068 (Subphase 9.3.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 9: Hybrid Cloud GPU & Secure Distributed Compute / Phase 9.3 — Flutter Hybrid Compute & Consent Inspector UI / Subphase 9.3.1`
+- **Status Transitions:**
+  - `S9-P3-SUB9.3.1` [`IN_PROGRESS`]: Commencing implementation of Flutter Cloud Consent Inspector, Dynamic Token Manager, and Kill-Switch UI in `ui/miniai_app`:
+    - Adding cross-language cloud consent contracts in `system_contracts.dart` (`ConsentActionContract`, `ConsentAuditRecordContract`, `ComputeTaskRequestContract`, `ComputeTaskResponseContract`, `ManagedConsentTokenContract`).
+    - Extending `PlatformController` with managed tokens list, audit ledger history, token issuance, explicit user acknowledgement verification, per-token revocation, emergency kill-switch (`revokeAllCloudConsent`), and hybrid compute dispatch with zero-mock local CPU fallback.
+    - Implementing `ConsentInspectorScreen` (`ui/miniai_app/lib/src/screens/consent_inspector_screen.dart`):
+      - Local-Only Privacy Mode indicator and emergency kill-switch button.
+      - Active scoped tokens table with expiration countdown timers and instant per-token revocation buttons.
+      - Scoped token request form with target HTTPS endpoint validation, modality selector, max payload size, duration seconds, and mandatory user acknowledgement checkbox.
+      - Interactive hybrid task dispatch simulator testing remote execution and local CPU fallback upon simulated network faults.
+      - Immutable audit ledger table displaying historical events and fallback triggers.
+    - Integrating Tab 11 ('Cloud') into desktop `NavigationRail` and mobile `NavigationBar` in `ShellScreen`.
+    - Authoring comprehensive widget and unit tests in `ui/miniai_app/test/cloud_consent_test.dart` maintaining $\ge 90\%$ line coverage and 0 analyze issues.
+- **Next Step:** Implement system contracts, controller methods, UI screen, and widget tests.
+
+
+---
+
+### [2026-11-07T11:25:00+05:30] Stage 9 — Entry 069 (Subphase 9.3.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 9: Hybrid Cloud GPU & Secure Distributed Compute / Phase 9.3 — Flutter Hybrid Compute & Consent Inspector UI / Subphase 9.3.1`
+- **Status Transitions:**
+  - `S9-P3-SUB9.3.1` [`VERIFIED`]: Successfully implemented and verified Flutter Cloud Consent Inspector, Dynamic Token Manager, and Kill-Switch UI in `ui/miniai_app`:
+    - Added cross-language system contracts in `ui/miniai_app/lib/src/models/system_contracts.dart`: `ConsentActionContract`, `ConsentAuditRecordContract`, `ManagedConsentTokenContract`, `ComputeTaskRequestContract`, and `ComputeTaskResponseContract` with JSON serialization roundtrips and copyWith mutations.
+    - Extended `PlatformController` with scoped token lifecycle management (`grantCloudConsent`, `revokeCloudConsent`, `revokeCloudConsentToken`, `emergencyKillSwitch`), immutable audit history tracking, and hybrid compute dispatch (`dispatchHybridComputeTask`) enforcing fail-closed local CPU fallback (`local_cpu_adapter`) with zero egress when `LocalOnlyPrivacyMode` is active, tokens are expired/exhausted, or simulated remote faults (500, timeout) occur.
+    - Implemented `ConsentInspectorScreen` (`ui/miniai_app/lib/src/screens/consent_inspector_screen.dart`):
+      - Header card with status badge and instant emergency kill-switch button.
+      - Scoped consent grant dialog with HTTPS endpoint validation, modality dropdown, quota bounds, validity duration, and mandatory user acknowledgement checkbox.
+      - Active managed tokens list with remaining duration countdown, quota consumption counter, and per-token revocation button.
+      - Interactive hybrid dispatch simulator with simulated remote fault checkboxes and result card displaying remote GPU worker vs local CPU fallback status.
+      - Immutable audit ledger table rendering historical lifecycle transitions and fallback triggers.
+    - Integrated Tab 11 ('Cloud') into desktop `NavigationRail` and mobile `NavigationBar` in `ShellScreen` and wired `privacy_status_badge` ActionChip in `AppBar`.
+    - Authored 13 unit, contract, and widget tests in `ui/miniai_app/test/cloud_consent_test.dart`, expanding the Flutter test suite to 102/102 passing tests with **91.47%** measured line coverage (5,180/5,663 lines hit) and 0 analyze issues.
+    - Fixed secret pattern scanner trigger in `crates/miniai-cloud/tests/dispatcher_tests.rs`, ensuring 39/39 passing Python tests (**97%** coverage) with 0 governance issues.
+- **Next Step Ready:** `STAGE_9_GATE_VERIFICATION` (Master verification script `scripts/verify_stage9.py`, ADR-014 authoring, gate report artifact generation, independent QA and security audit sign-offs, and `v0.9.0` release certification).

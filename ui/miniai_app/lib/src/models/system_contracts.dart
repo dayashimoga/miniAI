@@ -2326,3 +2326,216 @@ class WorkflowExecutionResultContract {
             const [],
       );
 }
+
+enum ConsentActionContract {
+  granted('granted'),
+  verified('verified'),
+  revoked('revoked'),
+  expired('expired'),
+  rejected('rejected'),
+  payloadDispatched('payload_dispatched');
+
+  const ConsentActionContract(this.wireValue);
+  final String wireValue;
+
+  static ConsentActionContract fromWire(String value) {
+    switch (value.toLowerCase()) {
+      case 'granted':
+        return ConsentActionContract.granted;
+      case 'verified':
+        return ConsentActionContract.verified;
+      case 'revoked':
+        return ConsentActionContract.revoked;
+      case 'expired':
+        return ConsentActionContract.expired;
+      case 'rejected':
+        return ConsentActionContract.rejected;
+      case 'payload_dispatched':
+      case 'payloaddispatched':
+        return ConsentActionContract.payloadDispatched;
+      default:
+        return ConsentActionContract.rejected;
+    }
+  }
+}
+
+class ConsentAuditRecordContract {
+  const ConsentAuditRecordContract({
+    this.id,
+    required this.tokenId,
+    required this.action,
+    required this.modality,
+    required this.targetEndpoint,
+    required this.payloadBytes,
+    required this.epochSecs,
+    this.detailsJson,
+  });
+
+  final int? id;
+  final String tokenId;
+  final ConsentActionContract action;
+  final Modality modality;
+  final String targetEndpoint;
+  final int payloadBytes;
+  final int epochSecs;
+  final String? detailsJson;
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'token_id': tokenId,
+        'action': action.wireValue,
+        'modality': modality.wireValue,
+        'target_endpoint': targetEndpoint,
+        'payload_bytes': payloadBytes,
+        'epoch_secs': epochSecs,
+        if (detailsJson != null) 'details_json': detailsJson,
+      };
+
+  factory ConsentAuditRecordContract.fromJson(Map<String, Object?> json) {
+    return ConsentAuditRecordContract(
+      id: json['id'] as int?,
+      tokenId: json['token_id'] as String? ?? '',
+      action: ConsentActionContract.fromWire(
+        json['action'] as String? ?? 'rejected',
+      ),
+      modality: Modality.fromWire(json['modality'] as String? ?? 'llm'),
+      targetEndpoint: json['target_endpoint'] as String? ?? '',
+      payloadBytes: json['payload_bytes'] as int? ?? 0,
+      epochSecs: json['epoch_secs'] as int? ?? 0,
+      detailsJson: json['details_json'] as String?,
+    );
+  }
+}
+
+class ManagedConsentTokenContract {
+  const ManagedConsentTokenContract({
+    required this.token,
+    required this.status,
+    required this.cumulativePayloadBytesUsed,
+    this.revocationReason,
+  });
+
+  final CloudConsentToken token;
+  final String status;
+  final int cumulativePayloadBytesUsed;
+  final String? revocationReason;
+
+  bool get isActive => status == 'active';
+  bool get isRevoked => status == 'revoked';
+  bool get isExpired => status == 'expired';
+  bool get isExhausted => status == 'exhausted';
+
+  ManagedConsentTokenContract copyWith({
+    CloudConsentToken? token,
+    String? status,
+    int? cumulativePayloadBytesUsed,
+    String? revocationReason,
+  }) {
+    return ManagedConsentTokenContract(
+      token: token ?? this.token,
+      status: status ?? this.status,
+      cumulativePayloadBytesUsed:
+          cumulativePayloadBytesUsed ?? this.cumulativePayloadBytesUsed,
+      revocationReason: revocationReason ?? this.revocationReason,
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        'token': token.toJson(),
+        'status': status,
+        'cumulative_payload_bytes_used': cumulativePayloadBytesUsed,
+        if (revocationReason != null) 'revocation_reason': revocationReason,
+      };
+
+  factory ManagedConsentTokenContract.fromJson(Map<String, Object?> json) {
+    return ManagedConsentTokenContract(
+      token: CloudConsentToken.fromJson(
+        json['token'] as Map<String, Object?>,
+      ),
+      status: json['status'] as String? ?? 'active',
+      cumulativePayloadBytesUsed:
+          json['cumulative_payload_bytes_used'] as int? ?? 0,
+      revocationReason: json['revocation_reason'] as String?,
+    );
+  }
+}
+
+class ComputeTaskRequestContract {
+  const ComputeTaskRequestContract({
+    required this.taskId,
+    required this.tokenId,
+    required this.modality,
+    required this.operation,
+    required this.payload,
+    required this.timeoutMs,
+  });
+
+  final String taskId;
+  final String tokenId;
+  final Modality modality;
+  final String operation;
+  final String payload;
+  final int timeoutMs;
+
+  Map<String, Object?> toJson() => {
+        'task_id': taskId,
+        'token_id': tokenId,
+        'modality': modality.wireValue,
+        'operation': operation,
+        'payload': payload,
+        'timeout_ms': timeoutMs,
+      };
+
+  factory ComputeTaskRequestContract.fromJson(Map<String, Object?> json) {
+    return ComputeTaskRequestContract(
+      taskId: json['task_id'] as String? ?? '',
+      tokenId: json['token_id'] as String? ?? '',
+      modality: Modality.fromWire(json['modality'] as String? ?? 'llm'),
+      operation: json['operation'] as String? ?? '',
+      payload: json['payload'] as String? ?? '',
+      timeoutMs: json['timeout_ms'] as int? ?? 5000,
+    );
+  }
+}
+
+class ComputeTaskResponseContract {
+  const ComputeTaskResponseContract({
+    required this.taskId,
+    required this.workerId,
+    required this.status,
+    required this.output,
+    required this.latencyMs,
+    required this.executedRemotely,
+    this.fallbackReason,
+  });
+
+  final String taskId;
+  final String workerId;
+  final String status;
+  final String output;
+  final int latencyMs;
+  final bool executedRemotely;
+  final String? fallbackReason;
+
+  Map<String, Object?> toJson() => {
+        'task_id': taskId,
+        'worker_id': workerId,
+        'status': status,
+        'output': output,
+        'latency_ms': latencyMs,
+        'executed_remotely': executedRemotely,
+        if (fallbackReason != null) 'fallback_reason': fallbackReason,
+      };
+
+  factory ComputeTaskResponseContract.fromJson(Map<String, Object?> json) {
+    return ComputeTaskResponseContract(
+      taskId: json['task_id'] as String? ?? '',
+      workerId: json['worker_id'] as String? ?? '',
+      status: json['status'] as String? ?? '',
+      output: json['output'] as String? ?? '',
+      latencyMs: json['latency_ms'] as int? ?? 0,
+      executedRemotely: json['executed_remotely'] as bool? ?? false,
+      fallbackReason: json['fallback_reason'] as String?,
+    );
+  }
+}

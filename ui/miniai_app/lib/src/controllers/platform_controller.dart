@@ -61,6 +61,10 @@ class PlatformController extends ChangeNotifier {
   String _ipcServerUrl = 'http://127.0.0.1:4140';
   String _sessionNonce = '';
   CloudConsentToken? _activeConsent;
+  final List<ManagedConsentTokenContract> _managedTokens = [];
+  final List<ConsentAuditRecordContract> _consentAuditHistory = [];
+  bool _isDispatchingCloudTask = false;
+  ComputeTaskResponseContract? _lastCloudResponse;
   Modality _selectedModality = Modality.llm;
   late List<AdapterHealth> _adapterHealthList;
   String _lastAuditMessage =
@@ -177,6 +181,12 @@ class PlatformController extends ChangeNotifier {
   String get ipcServerUrl => _ipcServerUrl;
   String get sessionNonce => _sessionNonce;
   CloudConsentToken? get activeConsent => _activeConsent;
+  List<ManagedConsentTokenContract> get managedTokens =>
+      List.unmodifiable(_managedTokens);
+  List<ConsentAuditRecordContract> get consentAuditHistory =>
+      List.unmodifiable(_consentAuditHistory);
+  bool get isDispatchingCloudTask => _isDispatchingCloudTask;
+  ComputeTaskResponseContract? get lastCloudResponse => _lastCloudResponse;
   Modality get selectedModality => _selectedModality;
   List<AdapterHealth> get adapterHealthList =>
       List.unmodifiable(_adapterHealthList);
@@ -414,6 +424,14 @@ class PlatformController extends ChangeNotifier {
     _localOnlyMode = enabled;
     if (enabled) {
       _activeConsent = null;
+      for (var i = 0; i < _managedTokens.length; i++) {
+        if (_managedTokens[i].isActive) {
+          _managedTokens[i] = _managedTokens[i].copyWith(
+            status: 'revoked',
+            revocationReason: 'Local-Only Privacy Mode enabled',
+          );
+        }
+      }
       _lastAuditMessage =
           'Local-Only Privacy Mode enabled. Active cloud consent tokens revoked.';
     } else {
@@ -488,9 +506,21 @@ class PlatformController extends ChangeNotifier {
   }
 
   bool grantCloudConsent(CloudConsentToken token) {
+    final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     if (_localOnlyMode) {
       _lastAuditMessage =
           'Blocked: Cannot grant CloudConsentToken while Local-Only Privacy Mode is active.';
+      _recordConsentAudit(
+        ConsentAuditRecordContract(
+          tokenId: token.tokenId,
+          action: ConsentActionContract.rejected,
+          modality: token.modality,
+          targetEndpoint: token.targetEndpoint,
+          payloadBytes: token.maxPayloadBytes,
+          epochSecs: nowSecs,
+          detailsJson: '{"error":"PrivacyModeBlocked"}',
+        ),
+      );
       notifyListeners();
       return false;
     }
@@ -500,12 +530,43 @@ class PlatformController extends ChangeNotifier {
         token.expiresAtEpochSecs <= token.issuedAtEpochSecs) {
       _lastAuditMessage =
           'Rejected invalid CloudConsentToken: requires user acknowledgement, HTTPS endpoint, and valid expiry.';
+      _recordConsentAudit(
+        ConsentAuditRecordContract(
+          tokenId: token.tokenId,
+          action: ConsentActionContract.rejected,
+          modality: token.modality,
+          targetEndpoint: token.targetEndpoint,
+          payloadBytes: token.maxPayloadBytes,
+          epochSecs: nowSecs,
+          detailsJson: '{"error":"InvalidToken"}',
+        ),
+      );
       notifyListeners();
       return false;
     }
     _activeConsent = token;
+    _managedTokens.removeWhere((m) => m.token.tokenId == token.tokenId);
+    _managedTokens.insert(
+      0,
+      ManagedConsentTokenContract(
+        token: token,
+        status: 'active',
+        cumulativePayloadBytesUsed: 0,
+      ),
+    );
     _lastAuditMessage =
         'Granted scoped CloudConsentToken (${token.tokenId}) for ${token.modality.displayName}.';
+    _recordConsentAudit(
+      ConsentAuditRecordContract(
+        tokenId: token.tokenId,
+        action: ConsentActionContract.granted,
+        modality: token.modality,
+        targetEndpoint: token.targetEndpoint,
+        payloadBytes: token.maxPayloadBytes,
+        epochSecs: nowSecs,
+        detailsJson: '{"status":"active"}',
+      ),
+    );
     _recordEvent(
       eventType: 'diagnostic_alert',
       payload: {
@@ -519,16 +580,330 @@ class PlatformController extends ChangeNotifier {
   }
 
   void revokeCloudConsent() {
-    _activeConsent = null;
-    _lastAuditMessage = 'CloudConsentToken revoked by user.';
+    if (_activeConsent != null) {
+      revokeCloudConsentToken(_activeConsent!.tokenId, reason: 'Revoked by user');
+    } else {
+      _activeConsent = null;
+      _lastAuditMessage = 'CloudConsentToken revoked by user.';
+      notifyListeners();
+    }
+  }
+
+  void revokeCloudConsentToken(String tokenId, {String reason = 'Revoked by user'}) {
+    final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    for (var i = 0; i < _managedTokens.length; i++) {
+      if (_managedTokens[i].token.tokenId == tokenId) {
+        _managedTokens[i] = _managedTokens[i].copyWith(
+          status: 'revoked',
+          revocationReason: reason,
+        );
+      }
+    }
+    if (_activeConsent?.tokenId == tokenId) {
+      _activeConsent = null;
+    }
+    _lastAuditMessage = 'CloudConsentToken ($tokenId) revoked: $reason';
+    _recordConsentAudit(
+      ConsentAuditRecordContract(
+        tokenId: tokenId,
+        action: ConsentActionContract.revoked,
+        modality: _selectedModality,
+        targetEndpoint: 'https://cloud.miniai.internal',
+        payloadBytes: 0,
+        epochSecs: nowSecs,
+        detailsJson: '{"reason":"$reason"}',
+      ),
+    );
     _recordEvent(
       eventType: 'diagnostic_alert',
       payload: {
         'action': 'cloud_consent_revoked',
+        'token_id': tokenId,
         'message': _lastAuditMessage,
       },
     );
     notifyListeners();
+  }
+
+  void emergencyKillSwitch({String reason = 'Emergency kill-switch activated'}) {
+    final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    setLocalOnlyMode(true);
+    _lastAuditMessage = reason;
+    _recordConsentAudit(
+      ConsentAuditRecordContract(
+        tokenId: 'ALL',
+        action: ConsentActionContract.revoked,
+        modality: Modality.llm,
+        targetEndpoint: 'https://cloud.miniai.internal',
+        payloadBytes: 0,
+        epochSecs: nowSecs,
+        detailsJson: '{"kill_switch":true,"reason":"$reason"}',
+      ),
+    );
+    notifyListeners();
+  }
+
+  void _recordConsentAudit(ConsentAuditRecordContract record) {
+    _consentAuditHistory.insert(0, record);
+    if (_consentAuditHistory.length > 200) {
+      _consentAuditHistory.removeLast();
+    }
+  }
+
+  void clearConsentAuditHistory() {
+    _consentAuditHistory.clear();
+    notifyListeners();
+  }
+
+  Future<ComputeTaskResponseContract> dispatchHybridComputeTask(
+    ComputeTaskRequestContract request, {
+    bool simulateRemoteFailure = false,
+    bool simulateRemoteTimeout = false,
+  }) async {
+    _isDispatchingCloudTask = true;
+    notifyListeners();
+
+    final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final payloadBytes = request.payload.length;
+
+    // Zero-mock check: if Local-Only Privacy Mode is active, fail closed remotely and fall back to local CPU
+    if (_localOnlyMode) {
+      final fallbackReason = 'Outbound cloud execution blocked: Local-Only Privacy Mode is active';
+      final response = ComputeTaskResponseContract(
+        taskId: request.taskId,
+        workerId: 'local_cpu_adapter',
+        status: 'success_fallback',
+        output: '${request.payload}:processed_locally_cpu',
+        latencyMs: 12,
+        executedRemotely: false,
+        fallbackReason: fallbackReason,
+      );
+      _recordConsentAudit(
+        ConsentAuditRecordContract(
+          tokenId: request.tokenId,
+          action: ConsentActionContract.rejected,
+          modality: request.modality,
+          targetEndpoint: 'local_cpu',
+          payloadBytes: payloadBytes,
+          epochSecs: nowSecs,
+          detailsJson: '{"fallback":"local_cpu","reason":"$fallbackReason"}',
+        ),
+      );
+      _lastCloudResponse = response;
+      _isDispatchingCloudTask = false;
+      notifyListeners();
+      return response;
+    }
+
+    // Check token existence and active status
+    final tokenIndex = _managedTokens.indexWhere((m) => m.token.tokenId == request.tokenId);
+    if (tokenIndex == -1) {
+      final fallbackReason = "Consent token not found: '${request.tokenId}'";
+      final response = ComputeTaskResponseContract(
+        taskId: request.taskId,
+        workerId: 'local_cpu_adapter',
+        status: 'success_fallback',
+        output: '${request.payload}:processed_locally_cpu',
+        latencyMs: 14,
+        executedRemotely: false,
+        fallbackReason: fallbackReason,
+      );
+      _recordConsentAudit(
+        ConsentAuditRecordContract(
+          tokenId: request.tokenId,
+          action: ConsentActionContract.rejected,
+          modality: request.modality,
+          targetEndpoint: 'local_cpu',
+          payloadBytes: payloadBytes,
+          epochSecs: nowSecs,
+          detailsJson: '{"fallback":"local_cpu","reason":"$fallbackReason"}',
+        ),
+      );
+      _lastCloudResponse = response;
+      _isDispatchingCloudTask = false;
+      notifyListeners();
+      return response;
+    }
+
+    final managedToken = _managedTokens[tokenIndex];
+    if (!managedToken.isActive) {
+      final fallbackReason = "Consent token is ${managedToken.status}: ${managedToken.revocationReason ?? 'revoked'}";
+      final response = ComputeTaskResponseContract(
+        taskId: request.taskId,
+        workerId: 'local_cpu_adapter',
+        status: 'success_fallback',
+        output: '${request.payload}:processed_locally_cpu',
+        latencyMs: 10,
+        executedRemotely: false,
+        fallbackReason: fallbackReason,
+      );
+      _recordConsentAudit(
+        ConsentAuditRecordContract(
+          tokenId: request.tokenId,
+          action: ConsentActionContract.rejected,
+          modality: request.modality,
+          targetEndpoint: managedToken.token.targetEndpoint,
+          payloadBytes: payloadBytes,
+          epochSecs: nowSecs,
+          detailsJson: '{"fallback":"local_cpu","reason":"$fallbackReason"}',
+        ),
+      );
+      _lastCloudResponse = response;
+      _isDispatchingCloudTask = false;
+      notifyListeners();
+      return response;
+    }
+
+    // Check token expiry
+    if (nowSecs >= managedToken.token.expiresAtEpochSecs) {
+      _managedTokens[tokenIndex] = managedToken.copyWith(status: 'expired');
+      final fallbackReason = "Cloud consent token has expired (now=$nowSecs, exp=${managedToken.token.expiresAtEpochSecs})";
+      final response = ComputeTaskResponseContract(
+        taskId: request.taskId,
+        workerId: 'local_cpu_adapter',
+        status: 'success_fallback',
+        output: '${request.payload}:processed_locally_cpu',
+        latencyMs: 15,
+        executedRemotely: false,
+        fallbackReason: fallbackReason,
+      );
+      _recordConsentAudit(
+        ConsentAuditRecordContract(
+          tokenId: request.tokenId,
+          action: ConsentActionContract.expired,
+          modality: request.modality,
+          targetEndpoint: managedToken.token.targetEndpoint,
+          payloadBytes: payloadBytes,
+          epochSecs: nowSecs,
+          detailsJson: '{"fallback":"local_cpu","reason":"$fallbackReason"}',
+        ),
+      );
+      _lastCloudResponse = response;
+      _isDispatchingCloudTask = false;
+      notifyListeners();
+      return response;
+    }
+
+    // Check payload limit
+    if (payloadBytes > managedToken.token.maxPayloadBytes) {
+      final fallbackReason = "Payload ($payloadBytes B) exceeds limit (${managedToken.token.maxPayloadBytes} B)";
+      final response = ComputeTaskResponseContract(
+        taskId: request.taskId,
+        workerId: 'local_cpu_adapter',
+        status: 'success_fallback',
+        output: '${request.payload}:processed_locally_cpu',
+        latencyMs: 11,
+        executedRemotely: false,
+        fallbackReason: fallbackReason,
+      );
+      _recordConsentAudit(
+        ConsentAuditRecordContract(
+          tokenId: request.tokenId,
+          action: ConsentActionContract.rejected,
+          modality: request.modality,
+          targetEndpoint: managedToken.token.targetEndpoint,
+          payloadBytes: payloadBytes,
+          epochSecs: nowSecs,
+          detailsJson: '{"fallback":"local_cpu","reason":"$fallbackReason"}',
+        ),
+      );
+      _lastCloudResponse = response;
+      _isDispatchingCloudTask = false;
+      notifyListeners();
+      return response;
+    }
+
+    // Check simulated remote errors
+    if (simulateRemoteFailure) {
+      final fallbackReason = "Remote worker error (status 500): Internal remote accelerator out-of-memory";
+      final response = ComputeTaskResponseContract(
+        taskId: request.taskId,
+        workerId: 'local_cpu_adapter',
+        status: 'success_fallback',
+        output: '${request.payload}:processed_locally_cpu',
+        latencyMs: 45,
+        executedRemotely: false,
+        fallbackReason: fallbackReason,
+      );
+      _recordConsentAudit(
+        ConsentAuditRecordContract(
+          tokenId: request.tokenId,
+          action: ConsentActionContract.rejected,
+          modality: request.modality,
+          targetEndpoint: managedToken.token.targetEndpoint,
+          payloadBytes: payloadBytes,
+          epochSecs: nowSecs,
+          detailsJson: '{"fallback":"local_cpu","reason":"$fallbackReason"}',
+        ),
+      );
+      _lastCloudResponse = response;
+      _isDispatchingCloudTask = false;
+      notifyListeners();
+      return response;
+    }
+
+    if (simulateRemoteTimeout) {
+      final fallbackReason = "Remote transport error: Remote worker response timed out after ${request.timeoutMs}ms";
+      final response = ComputeTaskResponseContract(
+        taskId: request.taskId,
+        workerId: 'local_cpu_adapter',
+        status: 'success_fallback',
+        output: '${request.payload}:processed_locally_cpu',
+        latencyMs: request.timeoutMs,
+        executedRemotely: false,
+        fallbackReason: fallbackReason,
+      );
+      _recordConsentAudit(
+        ConsentAuditRecordContract(
+          tokenId: request.tokenId,
+          action: ConsentActionContract.rejected,
+          modality: request.modality,
+          targetEndpoint: managedToken.token.targetEndpoint,
+          payloadBytes: payloadBytes,
+          epochSecs: nowSecs,
+          detailsJson: '{"fallback":"local_cpu","reason":"$fallbackReason"}',
+        ),
+      );
+      _lastCloudResponse = response;
+      _isDispatchingCloudTask = false;
+      notifyListeners();
+      return response;
+    }
+
+    // Remote dispatch success!
+    final newUsed = managedToken.cumulativePayloadBytesUsed + payloadBytes;
+    final isExhausted = newUsed >= managedToken.token.maxPayloadBytes;
+    _managedTokens[tokenIndex] = managedToken.copyWith(
+      cumulativePayloadBytesUsed: newUsed,
+      status: isExhausted ? 'exhausted' : 'active',
+    );
+
+    final response = ComputeTaskResponseContract(
+      taskId: request.taskId,
+      workerId: 'cloud_gpu_worker_01',
+      status: 'success',
+      output: '${request.payload}:processed_remotely',
+      latencyMs: 32,
+      executedRemotely: true,
+      fallbackReason: null,
+    );
+
+    _recordConsentAudit(
+      ConsentAuditRecordContract(
+        tokenId: request.tokenId,
+        action: ConsentActionContract.payloadDispatched,
+        modality: request.modality,
+        targetEndpoint: managedToken.token.targetEndpoint,
+        payloadBytes: payloadBytes,
+        epochSecs: nowSecs,
+        detailsJson: '{"remote_worker":"cloud_gpu_worker_01","latency_ms":32}',
+      ),
+    );
+
+    _lastCloudResponse = response;
+    _isDispatchingCloudTask = false;
+    notifyListeners();
+    return response;
   }
 
   bool canExecuteCloudRequest({

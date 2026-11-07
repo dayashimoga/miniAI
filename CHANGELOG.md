@@ -875,3 +875,30 @@
   - Authored 11 unit and integration tests across `dispatcher_tests.rs` and `fallback_tests.rs`.
   - Reached **95.00%** line coverage in `miniai-cloud` (27/27 tests passing) with 0 Clippy warnings and 0 formatting diffs.
   - Reached 329/329 passing Rust tests across all 14 workspace crates.
+
+
+---
+
+## [2026-11-07T11:10:00+05:30] — Stage 9 Subphase 9.3.1 In Progress (`v0.9.5-stage9.sub9.3.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 9 / Phase 9.3 / Subphase 9.3.1 — Flutter Hybrid Compute & Consent Inspector UI`
+- **Summary:**
+  - Initiated Stage 9 Subphase 9.3.1 in `ui/miniai_app`.
+  - Adding cross-language cloud consent contracts in `system_contracts.dart`.
+  - Extending `PlatformController` with multi-token management, immutable audit logging, and hybrid dispatch simulation with local CPU fallback.
+  - Building `ConsentInspectorScreen` as Tab 11 in `ShellScreen` with instant emergency kill-switch, token issuance form, active tokens list, and immutable audit table.
+
+
+---
+
+## [2026-11-07T11:25:00+05:30] — Stage 9 Subphase 9.3.1 Verified (`v0.9.6-stage9.sub9.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 9 / Phase 9.3 / Subphase 9.3.1 — Flutter Hybrid Compute & Consent Inspector UI`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, flutter 3.32.0-0.2.pre, rustc 1.99.1, python 3.14.0 uv)
+- **Summary:**
+  - Added cross-language system contracts in `system_contracts.dart`: `ConsentActionContract`, `ConsentAuditRecordContract`, `ManagedConsentTokenContract`, `ComputeTaskRequestContract`, and `ComputeTaskResponseContract`.
+  - Extended `PlatformController` with multi-token management, pre-flight verification, quota exhaustion, and hybrid task dispatch with zero-mock automatic local CPU execution fallback.
+  - Implemented `ConsentInspectorScreen` as Tab 11 ('Cloud') in `ShellScreen` featuring emergency kill-switch, scoped consent request dialog, active token manager, interactive hybrid dispatch simulator, and immutable audit ledger viewer.
+  - Authored 13 unit, contract, and widget tests in `ui/miniai_app/test/cloud_consent_test.dart`.
+  - Reached **91.47%** line coverage in Flutter UI (102/102 tests passing, 0 analyzer issues).
+  - Maintained 100% test pass rate across Rust (329/329 tests passing, **95.00%** coverage in `miniai-cloud`) and Python (39/39 tests passing, **97%** coverage).

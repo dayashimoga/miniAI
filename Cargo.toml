@@ -14,6 +14,7 @@ members = [
     "crates/miniai-speech-tts",
     "crates/miniai-music",
     "crates/miniai-video",
+    "crates/miniai-cloud",
 ]
 
 [workspace.package]

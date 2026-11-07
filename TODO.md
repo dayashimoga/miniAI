@@ -1194,3 +1194,36 @@
   - Received unconditional `PASS` verdicts from independent subagents `arch-security-reviewer` and `independent-qa-auditor`.
   - Released and tagged `v0.8.0`.
 - **Next Stage Ready:** `Stage 9: Performance Optimization, Hardware Acceleration, SIMD/GPU/NPU & Benchmarking` (`docs/stage_prompts/STAGE_09_PROMPT.md`).
+
+
+---
+
+### [2026-11-07T10:37:00+05:30] Stage 9 — Entry 064 (Subphase 9.1.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 9: Hybrid Cloud GPU & Secure Distributed Compute / Phase 9.1 — Consent Governance & Immutable Audit Ledger / Subphase 9.1.1`
+- **Status Transitions:**
+  - `S9-P1-SUB9.1.1` [`IN_PROGRESS`]: Initiating scoped `CloudConsentToken` lifecycle management and immutable SQLite audit ledger in `crates/miniai-cloud`:
+    - Registering `#![forbid(unsafe_code)]` crate `crates/miniai-cloud` into workspace root `Cargo.toml`.
+    - Designing domain error definitions in `error.rs` (`CloudError`).
+    - Implementing `token.rs`: `CloudConsentToken` scoped lifecycle state machine (`ConsentStatus::Active`, `ConsentStatus::Revoked`, `ConsentStatus::Expired`, `ConsentStatus::Exhausted`), validation rules (HTTPS requirement, positive time-window, explicit user acknowledgement, modality binding, max payload byte limits, token cryptographic fingerprinting).
+    - Implementing `ledger.rs`: `ConsentLedger` append-only audit logger backed by SQLite via `miniai-storage::StorageEngine`, recording immutable event transitions (`Granted`, `Verified`, `Revoked`, `Expired`, `Rejected`, `PayloadDispatched`), query filters (by token ID, modality, action, timestamp), and immutability guarantees.
+    - Implementing `manager.rs`: `ConsentManager` thread-safe coordinator orchestrating token issuance, verification, revocation, automatic expiration, payload quota tracking, and integration with `miniai_core::PrivacyPolicyEngine`.
+    - Authoring comprehensive unit and integration test suites in `crates/miniai-cloud/tests/` verifying all state transitions, boundary enforcement, and audit immutability.
+- **Next Step:** Implement crate architecture, modules, and tests.
+
+
+---
+
+### [2026-11-07T10:48:00+05:30] Stage 9 — Entry 065 (Subphase 9.1.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 9: Hybrid Cloud GPU & Secure Distributed Compute / Phase 9.1 — Consent Governance & Immutable Audit Ledger / Subphase 9.1.1`
+- **Status Transitions:**
+  - `S9-P1-SUB9.1.1` [`VERIFIED`]: Successfully implemented and verified scoped `CloudConsentToken` lifecycle and immutable SQLite audit ledger in `crates/miniai-cloud`:
+    - Registered `#![forbid(unsafe_code)]` crate `crates/miniai-cloud` into root `Cargo.toml`.
+    - Implemented domain error types in `error.rs` (`CloudError`) covering `PrivacyModeBlocked`, `ConsentRequired`, `ConsentExpired`, `ConsentRevoked`, `ScopeMismatch`, `PayloadLimitExceeded`, `QuotaExceeded`, `InsecureEndpoint`, and `InvalidToken`.
+    - Implemented `token.rs`: `TokenValidator` with defense-in-depth boundary checks (non-empty ID, mandatory user acknowledgement, HTTPS enforcement, loopback host rejection in production, positive time-window $\le 24\text{ hours}$, strictly positive payload limits $\le 100\text{ MB}$) and deterministic SHA-256 token fingerprint calculation/verification.
+    - Implemented `ledger.rs`: `ConsentLedger` append-only audit repository backed by transactional SQLite via `StorageEngine`, with zero deletion/modification queries, monotonic ID ordering, and rich query filters (`query_by_token`, `query_by_action`, `query_by_modality`, `query_by_time_range`).
+    - Implemented `manager.rs`: `ConsentManager` thread-safe coordinator orchestrating token issuance, verification, revocation, automatic expiration, payload quota tracking, emergency kill-switch (`revoke_all`), and seamless synchronization with `miniai_core::PrivacyPolicyEngine`.
+    - Authored 16 comprehensive unit and integration tests across 3 test suites (`token_tests.rs`: 8, `ledger_tests.rs`: 3, `manager_tests.rs`: 5), achieving **95.21%** line coverage in `miniai-cloud` (647/678 lines) and 100% test pass rate.
+    - Verified 302/302 passing Rust workspace tests across all 14 workspace crates with 0 Clippy warnings and 0 formatting diffs.
+- **Next Subphase Ready:** `S9-P2-SUB9.2.1` (Phase 9.2: Encrypted Remote Compute Dispatcher & Automatic Local Fallback / Subphase 9.2.1: mTLS remote worker client with automatic local CPU fallback in `crates/miniai-cloud`).

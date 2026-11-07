@@ -819,3 +819,32 @@
   - Generated master verification evidence in `docs/STAGE_8_VERIFICATION_REPORT.json` and artifact `stage_8_gate_report.md`.
   - Independent audits conducted by `arch-security-reviewer` and `independent-qa-auditor` resulting in unanimous unconditional **`PASS`** verdicts.
   - All test suites passing: 286/286 Rust tests (0 Clippy warnings, 0 fmt diffs), 39/39 Python tests (97.28% statement coverage), 89/89 Flutter tests (91.84% line coverage, 0 analyze issues).
+
+
+---
+
+## [2026-11-07T10:37:00+05:30] — Stage 9 Subphase 9.1.1 In Progress (`v0.9.1-stage9.sub9.1.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 9 / Phase 9.1 / Subphase 9.1.1 — Consent Governance & Immutable Audit Ledger`
+- **Summary:**
+  - Initiated Stage 9 Subphase 9.1.1 in `crates/miniai-cloud`.
+  - Creating `#![forbid(unsafe_code)]` crate `miniai-cloud`.
+  - Implementing scoped `CloudConsentToken` lifecycle, status transitions, and HTTPS/payload validations in `token.rs`.
+  - Implementing append-only immutable consent ledger in `ledger.rs` backed by SQLite.
+  - Implementing `ConsentManager` coordinating issuance, verification, quota tracking, revocation, and integration with `PrivacyPolicyEngine`.
+
+
+---
+
+## [2026-11-07T10:48:00+05:30] — Stage 9 Subphase 9.1.1 Verified (`v0.9.2-stage9.sub9.1.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 9 / Phase 9.1 / Subphase 9.1.1 — Consent Governance & Immutable Audit Ledger`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1)
+- **Summary:**
+  - Registered `#![forbid(unsafe_code)]` crate `crates/miniai-cloud` into root workspace.
+  - Implemented `CloudError` in `crates/miniai-cloud/src/error.rs` covering all consent, privacy mode, quota, and endpoint validation failure modes.
+  - Implemented `TokenValidator` in `crates/miniai-cloud/src/token.rs` enforcing HTTPS target endpoints, production loopback prohibition, positive validity window $\le 24\text{ hours}$, strictly positive payload limit $\le 100\text{ MB}$, explicit user acknowledgement, and deterministic SHA-256 fingerprinting.
+  - Implemented `ConsentLedger` in `crates/miniai-cloud/src/ledger.rs` providing strictly append-only SQLite audit logging via `StorageEngine` with zero update/delete operations, monotonic sequence IDs, and rich query filters (`query_by_token`, `query_by_action`, `query_by_modality`, `query_by_time_range`).
+  - Implemented `ConsentManager` in `crates/miniai-cloud/src/manager.rs` orchestrating token issuance, pre-flight authorization verification, dispatch byte accounting, quota exhaustion, manual/emergency revocation (`revoke_all`), and active synchronization with `PrivacyPolicyEngine`.
+  - Authored 16 unit and integration tests across `token_tests.rs`, `ledger_tests.rs`, and `manager_tests.rs`, achieving **95.21%** line coverage in `miniai-cloud` with 0 Clippy warnings and 0 formatting diffs.
+  - Expanded total Rust workspace tests to 302/302 passing across 14 crates.

@@ -46,6 +46,8 @@ WORKSPACE_CRATES: list[dict[str, str]] = [
     {"name": "miniai-music", "description": "Polyphonic music generator, modal scale harmonic progression, and 4-track stereo synthesizer.", "path": "crates/miniai-music"},
     {"name": "miniai-video", "description": "Bounded memory video processing, frame extraction, temporal VQA, and multimodal DAG workflow graph.", "path": "crates/miniai-video"},
     {"name": "miniai-cloud", "description": "Consent-gated hybrid cloud GPU acceleration, TLS 1.3 dispatcher, and automatic local CPU fallback.", "path": "crates/miniai-cloud"},
+    {"name": "miniai-bridge", "description": "Cross-platform FFI bridge and JSON dispatch engine for Flutter and IPC clients.", "path": "crates/miniai-bridge"},
+    {"name": "miniai-daemon", "description": "Localhost loopback HTTP daemon and WebSocket event server for web and IPC clients.", "path": "crates/miniai-daemon"},
 ]
 
 PLATFORM_TARGETS: list[dict[str, str]] = [

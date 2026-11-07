@@ -1,0 +1,25 @@
+[package]
+name = "miniai-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "miniai-daemon"
+path = "src/main.rs"
+
+[dependencies]
+miniai-core = { path = "../miniai-core" }
+miniai-storage = { path = "../miniai-storage" }
+miniai-server = { path = "../miniai-server" }
+miniai-bridge = { path = "../miniai-bridge" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+
+[dev-dependencies]
+tempfile = "3.12"
+

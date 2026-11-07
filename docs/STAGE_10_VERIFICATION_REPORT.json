@@ -1,7 +1,7 @@
 {
   "stage": 10,
   "title": "Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases (v1.0.0)",
-  "generated_at": "2026-11-07T10:10:01.361827+00:00",
+  "generated_at": "2026-11-07T10:33:56.869307+00:00",
   "overall_passed": true,
   "governance_audit": {
     "passed": true,
@@ -29,21 +29,21 @@
       "passed": true,
       "stdout_tail": [],
       "stderr_tail": [
-        "    Checking miniai-storage v0.1.0 (G:\\miniAI\\crates\\miniai-storage)",
         "    Checking miniai-speech-asr v0.1.0 (G:\\miniAI\\crates\\miniai-speech-asr)",
-        "    Checking miniai-vision v0.1.0 (G:\\miniAI\\crates\\miniai-vision)",
         "    Checking miniai-imagegen v0.1.0 (G:\\miniAI\\crates\\miniai-imagegen)",
-        "    Checking miniai-music v0.1.0 (G:\\miniAI\\crates\\miniai-music)",
-        "    Checking miniai-video v0.1.0 (G:\\miniAI\\crates\\miniai-video)",
+        "    Checking miniai-vision v0.1.0 (G:\\miniAI\\crates\\miniai-vision)",
         "    Checking miniai-rag v0.1.0 (G:\\miniAI\\crates\\miniai-rag)",
-        "    Checking miniai-server v0.1.0 (G:\\miniAI\\crates\\miniai-server)",
         "    Checking miniai-registry v0.1.0 (G:\\miniAI\\crates\\miniai-registry)",
+        "    Checking miniai-server v0.1.0 (G:\\miniAI\\crates\\miniai-server)",
         "    Checking miniai-cloud v0.1.0 (G:\\miniAI\\crates\\miniai-cloud)",
         "    Checking miniai-runtime v0.1.0 (G:\\miniAI\\crates\\miniai-runtime)",
         "    Checking miniai-llm v0.1.0 (G:\\miniAI\\crates\\miniai-llm)",
         "    Checking miniai-speech-tts v0.1.0 (G:\\miniAI\\crates\\miniai-speech-tts)",
+        "    Checking miniai-bridge v0.1.0 (G:\\miniAI\\crates\\miniai-bridge)",
+        "    Checking miniai-video v0.1.0 (G:\\miniAI\\crates\\miniai-video)",
         "    Checking miniai-stress-tests v0.1.0 (G:\\miniAI\\tests)",
-        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.37s"
+        "    Checking miniai-daemon v0.1.0 (G:\\miniAI\\crates\\miniai-daemon)",
+        "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 11.36s"
       ]
     },
     {
@@ -70,9 +70,9 @@
         "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
       ],
       "stderr_tail": [
-        "     Running tests\\tensor_tests.rs (target\\debug\\deps\\tensor_tests-98d5759242498d67.exe)",
         "   Doc-tests miniai_cloud",
         "   Doc-tests miniai_core",
+        "   Doc-tests miniai_daemon",
         "   Doc-tests miniai_imagegen",
         "   Doc-tests miniai_llm",
         "   Doc-tests miniai_music",
@@ -98,7 +98,7 @@
         "Fetching advisory database from `https://github.com/RustSec/advisory-db.git`",
         "      Loaded 1422 security advisories (from C:\\Users\\daya\\.cargo\\advisory-db)",
         "    Updating crates.io index",
-        "    Scanning Cargo.lock for vulnerabilities (89 crate dependencies)"
+        "    Scanning Cargo.lock for vulnerabilities (97 crate dependencies)"
       ]
     },
     {
@@ -122,7 +122,7 @@
         "--------------------------------------------------------------",
         "TOTAL                              918     25    97%",
         "Required test coverage of 90% reached. Total coverage: 97.28%",
-        "39 passed in 12.09s"
+        "39 passed in 11.43s"
       ],
       "stderr_tail": []
     },
@@ -134,7 +134,7 @@
       "passed": true,
       "stdout_tail": [
         "Analyzing miniai_app...                                         ",
-        "No issues found! (ran in 2.0s)"
+        "No issues found! (ran in 1.9s)"
       ],
       "stderr_tail": []
     },
@@ -145,21 +145,21 @@
       "exit_code": 0,
       "passed": true,
       "stdout_tail": [
-        "00:14 +88: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:13 +88: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
         "00:14 +89: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
-        "00:14 +90: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:14 +90: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:14 +91: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:15 +92: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:14 +92: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:15 +93: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:15 +94: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:15 +95: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:16 +96: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:16 +97: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:16 +98: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
-        "00:17 +99: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
-        "00:17 +100: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
-        "00:17 +101: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
-        "00:18 +102: All tests passed!"
+        "00:15 +96: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:15 +97: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:15 +98: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:16 +99: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:16 +100: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:16 +101: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:17 +102: All tests passed!"
       ],
       "stderr_tail": []
     },
@@ -186,15 +186,15 @@
       "stdout_tail": [
         "      \"filename\": \"bom.json\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"344e998c4d5e0abb260746c3f1ab15a6fbff7ebdfb42fb866891f359b77512ac\",",
-        "      \"actual_sha256\": \"344e998c4d5e0abb260746c3f1ab15a6fbff7ebdfb42fb866891f359b77512ac\",",
+        "      \"expected_sha256\": \"998e093b71cd1f36ba808b5813214de0b6504e92ddb45909106514f63f2b0424\",",
+        "      \"actual_sha256\": \"998e093b71cd1f36ba808b5813214de0b6504e92ddb45909106514f63f2b0424\",",
         "      \"passed\": true",
         "    },",
         "    {",
         "      \"filename\": \"bom.xml\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"77f430f6c2b573284288c296fa633dd296216c3b814de9164141f4874e51f52f\",",
-        "      \"actual_sha256\": \"77f430f6c2b573284288c296fa633dd296216c3b814de9164141f4874e51f52f\",",
+        "      \"expected_sha256\": \"208cbb90e632fdb852eeb2a57660c89af968a2209d27cf8876ff28de392125b3\",",
+        "      \"actual_sha256\": \"208cbb90e632fdb852eeb2a57660c89af968a2209d27cf8876ff28de392125b3\",",
         "      \"passed\": true",
         "    }",
         "  ]",

@@ -151,3 +151,35 @@ This document records binding architectural decisions for **MiniAI**, including 
     - Extended Flutter UI in `ui/miniai_app`: `KnowledgeBaseScreen` (Tab 7 'Knowledge' in `ShellScreen`) with index health stats, document inventory data table with SHA-256 digests, RAG grounding toggle, interactive query tester with RRF/Dense/BM25 score chips, and source modal inspection. Added clickable citation chips to `ChatWorkspaceScreen` assistant message bubbles.
 - **Consequences:**
   Guarantees 100% offline document and code grounding, eliminates hallucination risks through verifiable source line citations, prevents unauthorized file system traversal or network leakage, and maintains sub-millisecond local hybrid search throughput.
+
+
+---
+
+## ADR-011: Decoupled Multimodal Architecture: Vision Understanding, Iterative CPU Image Synthesis & Canvas Studio
+- **Date:** `2026-11-06`
+- **Status:** `ACCEPTED`
+- **Context:**
+  Stage 6 introduces visual modality capabilities (`Modality::Vision` and `Modality::ImageGeneration`) requiring independent pluggable architecture, strict local-first privacy, robust media safety defenses, and CPU-first execution:
+  1. Image sanitization against decompression bombs, truncated headers, corrupt payloads, and oversized inputs (limiting dimensions $\le 4096\times 4096$ and file sizes $\le 25\text{ MB}$).
+  2. CPU-first visual processing: bilinear tensor resampling to standard model resolutions ($224\times 224$), ImageNet mean/std normalization, localized OCR text and bounding-box detection, automated scene descriptions, and grounded visual question answering.
+  3. Decoupled image generation and editing: Text-to-Image synthesis, Image-to-Image refinement via forward diffusion noise scheduling, and localized binary mask inpainting preserving unmasked base pixels exactly.
+  4. Native lossless PNG encoding and decoding supporting standard Deflate uncompressed blocks and Adler32/CRC32 checksums, with cryptographic provenance chunk embedding (`tEXt` chunks preserving model ID, prompt, negative prompt, seed, steps, guidance scale, dimensions, timestamp, and SHA-256 fingerprint).
+  5. Cooperative generation cancellation via cancellation tokens and callback abort flags.
+  6. Interactive Flutter Canvas Studio with custom inpainting mask drawing, brush/eraser modes, real-time generation progress telemetry with per-step loss reporting, and a local gallery with provenance inspection modals.
+- **Decision:**
+  - Create `#![forbid(unsafe_code)]` crate `crates/miniai-vision` implementing `ModalityAdapter` (`Modality::Vision`):
+    - `sanitizer.rs`: `ImageSanitizer` enforcing magic-byte inspection (PNG, JPEG, WebP VP8/VP8L/VP8X), dimension bounds ($\le 4096\times 4096$), max file size ($\le 25\text{ MB}$), decompression bomb mitigation, and SHA-256 calculation.
+    - `tensor.rs`: `ImageTensor` implementing bilinear resampling, value scaling, ImageNet mean/std normalization, luminance, and spatial gradient edge energy computation.
+    - `engine.rs`: `VisionEngine` delivering CPU-first OCR detection with localized bounding boxes (`OcrResult`), automated scene description and captioning (`VisualDescription`), and grounded Visual Question Answering (`VisualQaAnswer`).
+    - `adapter.rs`: `VisionAdapter` implementing `ModalityAdapter` (`Modality::Vision`), CPU-first execution (`AcceleratorBackend::Cpu`), weight loading with SHA-256 digest validation, and live health check reporting.
+  - Create `#![forbid(unsafe_code)]` crate `crates/miniai-imagegen` implementing `ModalityAdapter` (`Modality::ImageGeneration`):
+    - `types.rs`: `ImageGenConfig` with multiple-of-64 dimension bounds, `GenerationMode` (`TextToImage`, `ImageToImage`, `Inpainting`), `StepProgress`, and `ImageProvenance`.
+    - `png.rs`: `PngEncoder` and `PngDecoder` implementing standard PNG headers, Deflate uncompressed block streams, Adler32 and CRC32 checksums, and `tEXt` cryptographic provenance chunk injection and retrieval.
+    - `engine.rs`: `ImageGenEngine` with deterministic Xorshift64 PRNG, text conditioning, iterative scheduled denoising loop with step progress callback telemetry, forward diffusion noise addition for Image-to-Image refinement, and binary mask blending for inpainting preserving unmasked base pixels exactly.
+    - `adapter.rs`: `ImageGenAdapter` implementing `ModalityAdapter` (`Modality::ImageGeneration`) on CPU.
+  - Extend Flutter UI under `ui/miniai_app`:
+    - `system_contracts.dart`: `OcrBoxContract`, `VisionAnalysisResultContract`, `GenerationModeContract`, `ImageGenTaskConfig`, and `GeneratedImageItem`.
+    - `platform_controller.dart`: Vision image upload and format sanitizer, SHA-256 fingerprinting, OCR detection, grounded Visual QA, inpainting mask brush/eraser controls, image generation parameters, cooperative cancellation, and local canvas gallery.
+    - `vision_canvas_screen.dart`: Registered as Tab 8 ('Canvas') in `ShellScreen` with dual tabs: Vision Understanding (viewer, format chips, OCR detections list, scene description tags, grounded VQA) and Canvas Studio & Gallery (parameter controls, custom inpainting mask canvas, step progress banner with loss badge and cancel button, and local gallery with cryptographic provenance modal).
+- **Consequences:**
+  Eliminates cross-modality failure cascades between text and visual pipelines, provides zero-mock visual inference and image generation on commodity CPUs without GPU requirements, strictly protects user privacy under Local-Only Privacy Mode, and ensures tamper-evident cryptographic provenance for all generated image assets.

@@ -1,0 +1,206 @@
+{
+  "stage": "Stage 6",
+  "stage_title": "Vision, Image Understanding, Generation & Canvas Studio",
+  "timestamp_utc": "2026-11-07T00:45:59.709407+00:00",
+  "verification_tier": "PROVEN_ON_HOST",
+  "overall_passed": true,
+  "governance_audit": {
+    "passed": true,
+    "governance_files_checked": 19,
+    "rules_checked": 6,
+    "skills_checked": 18,
+    "stage_prompts_checked": 11,
+    "errors": []
+  },
+  "flutter_coverage": {
+    "present": true,
+    "lines_found": 3556,
+    "lines_hit": 3254,
+    "percent": 91.51
+  },
+  "stage6_contracts": {
+    "phase_6_1_vision_understanding_runtime_adapter": {
+      "crate": "crates/miniai-vision",
+      "unsafe_code_forbidden": true,
+      "sanitizer_module": "crates/miniai-vision/src/sanitizer.rs",
+      "magic_byte_validation_png_jpeg_webp": true,
+      "dimension_bounds_max_4096": true,
+      "file_size_limit_25mb": true,
+      "decompression_bomb_mitigation": true,
+      "tensor_module": "crates/miniai-vision/src/tensor.rs",
+      "bilinear_resampling_224x224": true,
+      "imagenet_normalization": true,
+      "spatial_gradient_edge_energy": true,
+      "engine_module": "crates/miniai-vision/src/engine.rs",
+      "ocr_bounding_box_detection": true,
+      "automated_scene_description": true,
+      "grounded_visual_qa": true,
+      "adapter_module": "crates/miniai-vision/src/adapter.rs",
+      "modality_vision_cpu_baseline": true,
+      "weights_loading_sha256_verification": true
+    },
+    "phase_6_2_image_generation_inpainting_adapter": {
+      "crate": "crates/miniai-imagegen",
+      "unsafe_code_forbidden": true,
+      "types_module": "crates/miniai-imagegen/src/types.rs",
+      "dimension_validation_multiples_of_64": true,
+      "generation_modes_txt2img_img2img_inpaint": true,
+      "png_module": "crates/miniai-imagegen/src/png.rs",
+      "lossless_24bit_rgb_png_encoder": true,
+      "adler32_and_crc32_checksums": true,
+      "cryptographic_provenance_text_chunks": true,
+      "engine_module": "crates/miniai-imagegen/src/engine.rs",
+      "deterministic_xorshift64_prng": true,
+      "iterative_denoising_step_telemetry": true,
+      "forward_diffusion_noise_img2img": true,
+      "inpainting_unmasked_byte_preservation": true,
+      "cooperative_cancellation_token": true,
+      "adapter_module": "crates/miniai-imagegen/src/adapter.rs",
+      "modality_imagegen_cpu_baseline": true
+    },
+    "phase_6_3_flutter_vision_canvas_studio": {
+      "app_directory": "ui/miniai_app",
+      "models_file": "ui/miniai_app/lib/src/models/system_contracts.dart",
+      "controller_file": "ui/miniai_app/lib/src/controllers/platform_controller.dart",
+      "canvas_screen_file": "ui/miniai_app/lib/src/screens/vision_canvas_screen.dart",
+      "shell_screen_tab_8_integration": true,
+      "navigation_rail_canvas": true,
+      "navigation_bar_canvas": true,
+      "vision_inspection_viewer": true,
+      "ocr_bounding_box_overlay_list": true,
+      "scene_description_and_tags": true,
+      "grounded_visual_qa_field": true,
+      "generation_parameters_card": true,
+      "inpainting_mask_custom_painter": true,
+      "brush_and_eraser_modes": true,
+      "step_progress_banner_and_cancel_button": true,
+      "local_gallery_view": true,
+      "cryptographic_provenance_inspector_dialog": true
+    }
+  },
+  "steps": [
+    {
+      "name": "rust_fmt_check",
+      "command": "cargo fmt --all -- --check",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": []
+    },
+    {
+      "name": "rust_clippy",
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": [
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s"
+      ]
+    },
+    {
+      "name": "rust_tests",
+      "command": "cargo test --workspace",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "stderr_tail": [
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_storage-76b036769d943651.exe)",
+        "     Running unittests src\\lib.rs (target\\debug\\deps\\miniai_vision-c099c7cf316e84eb.exe)",
+        "     Running tests\\adapter_tests.rs (target\\debug\\deps\\adapter_tests-f80a4ac05f443459.exe)",
+        "     Running tests\\engine_tests.rs (target\\debug\\deps\\engine_tests-4ea15712f18f8d11.exe)",
+        "     Running tests\\sanitizer_tests.rs (target\\debug\\deps\\sanitizer_tests-8fdd765a1098ce84.exe)",
+        "     Running tests\\tensor_tests.rs (target\\debug\\deps\\tensor_tests-98d5759242498d67.exe)",
+        "   Doc-tests miniai_core",
+        "   Doc-tests miniai_imagegen",
+        "   Doc-tests miniai_llm",
+        "   Doc-tests miniai_rag",
+        "   Doc-tests miniai_registry",
+        "   Doc-tests miniai_runtime",
+        "   Doc-tests miniai_server",
+        "   Doc-tests miniai_storage",
+        "   Doc-tests miniai_vision"
+      ]
+    },
+    {
+      "name": "python_pytest_coverage",
+      "command": "uv run pytest --cov=miniai_ml --cov-report=term-missing --cov-fail-under=90",
+      "cwd": "ml",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "_______________ coverage: platform win32, python 3.14.0-final-0 _______________",
+        "",
+        "Name                             Stmts   Miss  Cover   Missing",
+        "--------------------------------------------------------------",
+        "src\\miniai_ml\\__init__.py            7      0   100%",
+        "src\\miniai_ml\\contracts.py         101      0   100%",
+        "src\\miniai_ml\\dataset.py           162      0   100%",
+        "src\\miniai_ml\\governance.py         95      4    96%   124, 149-150, 171",
+        "src\\miniai_ml\\provenance.py        150      1    99%   318",
+        "src\\miniai_ml\\runtime_probe.py      29      5    83%   23-24, 30-32",
+        "src\\miniai_ml\\training.py          374     15    96%   43-45, 60, 62, 68, 72, 560-561, 571, 638-639, 646, 650-651",
+        "--------------------------------------------------------------",
+        "TOTAL                              918     25    97%",
+        "Required test coverage of 90% reached. Total coverage: 97.28%",
+        "39 passed in 6.88s"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_analyze",
+      "command": "flutter analyze --no-pub",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "Analyzing miniai_app...                                         ",
+        "No issues found! (ran in 1.9s)"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_test_coverage",
+      "command": "flutter test --coverage",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "00:09 +43: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:09 +44: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:09 +45: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:09 +46: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:09 +47: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:09 +48: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:09 +49: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:09 +50: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:09 +51: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:10 +52: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:10 +53: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:10 +54: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:11 +55: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:11 +56: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:13 +57: All tests passed!"
+      ],
+      "stderr_tail": []
+    }
+  ]
+}

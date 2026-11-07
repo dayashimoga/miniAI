@@ -610,3 +610,19 @@
   - Added Canvas Studio inpainting mask management, generation controls, cooperative cancellation, and local gallery persistence to `PlatformController`.
   - Created `VisionCanvasScreen` as Tab 8 ('Canvas') in `ShellScreen` with dual-mode tabs: Vision Understanding and Canvas Studio & Gallery.
   - Reached 57/57 Flutter tests passing with **91.51%** line coverage and 0 analyzer issues.
+
+
+---
+
+## [2026-11-07T06:20:00+05:30] — Stage 6 Master Gate Release (`v0.6.0`)
+- **Action:** `STAGE_GATE_VERIFIED`
+- **Stage:** `Stage 6 — Vision, Image Understanding, Generation & Canvas Studio`
+- **Release Version:** `v0.6.0`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, python 3.14.0, flutter 3.32.0-0.2.pre)
+- **Summary:**
+  - Implemented `crates/miniai-vision` workspace crate with `#![forbid(unsafe_code)]`, `ImageSanitizer` (magic bytes for PNG, JPEG, WebP; dimensions $\le 4096\times 4096$; size $\le 25\text{ MB}$; decompression bomb defense; SHA-256 calculation), `ImageTensor` (bilinear resampling to $224\times 224$ and ImageNet normalization), and `VisionEngine` / `VisionAdapter` (`ModalityAdapter` with `Modality::Vision` on CPU, OCR bounding boxes, scene descriptions, grounded visual QA).
+  - Implemented `crates/miniai-imagegen` workspace crate with `#![forbid(unsafe_code)]`, `ImageGenConfig` (multiple-of-64 dimension bounds), lossless 24-bit RGB PNG encoder and decoder (`PngEncoder`, `PngDecoder`) with Adler32/CRC32 checksums and `tEXt` cryptographic provenance chunk injection/extraction, and `ImageGenEngine` (deterministic Xorshift64 PRNG, text conditioning, iterative scheduled denoising loop with step progress telemetry, forward diffusion img2img, localized canvas inpainting preserving unmasked bytes exactly, cooperative cancellation) and `ImageGenAdapter` (`ModalityAdapter` with `Modality::ImageGeneration` on CPU).
+  - Implemented Flutter Vision & Canvas Studio in `ui/miniai_app` featuring `VisionCanvasScreen` as Tab 8 ('Canvas') in `ShellScreen` with dual tabs: Vision Understanding (image viewer, format chips, OCR bounding box list with confidence chips, scene tags, grounded VQA query field and answer display) and Canvas Studio & Gallery (parameter controls, custom inpainting mask canvas with brush/eraser toolbar, step progress banner with loss badge and cancel button, and local gallery with cryptographic provenance inspection modal).
+  - Formally recorded and accepted `ADR-011` in `ADR.md`.
+  - Verified 141/141 Rust tests passing (0 Clippy warnings, 0 format diffs), 39/39 Python ML tests passing (97.28% statement coverage, 0 governance errors), 57/57 Flutter UI tests passing (91.51% line coverage, 0 analyzer issues), and unanimous `PASS` audit sign-off from both `independent-qa-auditor` and `arch-security-reviewer`.
+  - Deterministic verification evidence persisted in `docs/STAGE_6_VERIFICATION_REPORT.json`.

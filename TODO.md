@@ -1316,3 +1316,56 @@
     - Independent Audits: Completed independent reviews by `arch-security-reviewer` and `independent-qa-auditor`, both resulting in unconditional **`PASS`** verdicts.
     - Test Suite Metrics: 100% pass rate across all tiers: 329/329 Rust tests (**95.00%** line coverage in `miniai-cloud`, 0 Clippy warnings, 0 fmt diffs), 39/39 Python ML tests (**97.00%** statement coverage, 0 secret pattern violations), 102/102 Flutter UI tests (**91.47%** line coverage, 0 analyzer issues).
 - **Next Stage Ready:** `STAGE_10` (Stage 10: System Hardening, Cross-Platform Packaging, Reproducible CI/CD & Production Release `v1.0.0`).
+
+
+---
+
+### [2026-11-07T11:48:00+05:30] Stage 10 — Entry 071 (Subphase 10.1.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases / Phase 10.1 — System-Wide Stress, Fuzzing & Security Audit / Subphase 10.1.1`
+- **Status Transitions:**
+  - `S10-P1-SUB10.1.1` [`IN_PROGRESS`]: Initiating property-based and malformed-input fuzz testing across all 7 modality adapters, SQLite crash/corruption recovery testing, and zero-vulnerability dependency audit:
+    - Designing property-based stress and fuzzing harnesses in `tests/fuzz_and_stress_tests.rs`:
+      * Modality::Llm: Prompt fuzzing, zero-length tokens, UTF-8 boundary slicing, prompt injection payloads, runaway decoding depth caps.
+      * Modality::Vision: Malformed JPEG/PNG/WebM headers, zero-dimension tensors, corrupted palette chunks, decompression bomb rejection.
+      * Modality::ImageGen: Out-of-bounds guidance scales, zero diffusion steps, negative dimensions, corrupted mask tensors.
+      * Modality::SpeechAsr: Truncated WAV/FLAC/Ogg headers, audio channel overflow, DC bias spikes, silence-only audio streams.
+      * Modality::SpeechTts: SSML injection fuzzing, phoneme escape sequences, non-ASCII text inputs, rapid concurrent synthesis requests.
+      * Modality::Music: Modal scale out-of-range chords, zero-duration notes, stereo pan clamping, maximum track saturation.
+      * Modality::Video: Malformed atom boxes, non-monotonic timestamps, frame buffer pool exhaustion resistance under concurrent streams.
+    - Designing SQLite crash and recovery tests in `crates/miniai-storage` and `crates/miniai-cloud`: Corrupt journal recovery, zero-byte database handling, unclosed transactions, foreign key invariant preservation.
+    - Running zero-vulnerability security audits (`cargo audit`, `uv audit` or dependency vulnerability checks).
+- **Next Step:** Implement fuzz tests, stress harnesses, and execute recovery suites.
+
+
+---
+
+### [2026-11-07T12:05:00+05:30] Stage 10 — Entry 072 (Subphase 10.1.1 Verified & Subphase 10.2.1 In Progress)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases / Phase 10.1 — System-Wide Stress, Fuzzing & Security Audit / Subphase 10.1.1 -> Phase 10.2 / Subphase 10.2.1`
+- **Status Transitions:**
+  - `S10-P1-SUB10.1.1` [`VERIFIED`]: Property-based fuzz testing, crash recovery, and security audits fully verified:
+    * Implemented and passed all 8 fuzz and stress suites in `tests/fuzz_and_stress_tests.rs`:
+      - `Modality::Llm`: Parameter fuzzing, runaway token limits, UTF-8 boundaries, injection delimiters, and tokenizer decoding.
+      - `Modality::Vision`: Zero-byte inputs, truncated headers, corrupt chunks, zero-dimension rejection, and `MAX_IMAGE_DIMENSION` bomb guards.
+      - `Modality::ImageGen`: Out-of-bounds guidance scales, step counts, non-multiples of 8, and malformed PNG chunk/CRC error handling in `PngDecoder`.
+      - `Modality::SpeechAsr`: Truncated WAV/FLAC/Ogg headers, corrupt payloads, resampler bounds, and VAD silence discrimination.
+      - `Modality::SpeechTts`: Empty text, SSML/XML injection resilience, phonetic chunking, and 22.05 kHz acoustic synthesis.
+      - `Modality::Music`: Tempo BPM and duration limits, harmonic scale validation, and polyphonic 4-track synthesis.
+      - `Modality::Video`: Malformed container headers, 1 MB buffer pool memory exhaustion fail-closed enforcement, and Kahn's algorithm cycle rejection in `MediaWorkflowGraph`.
+      - Cross-modality concurrent multi-threaded execution stress across 6 parallel worker threads.
+    * Implemented and passed all 5 SQLite crash recovery tests in `crates/miniai-storage/tests/recovery_tests.rs`:
+      - Zero-byte file initialization and schema migration.
+      - Unclosed transaction rollback and atomic isolation.
+      - Foreign key invariant preservation and orphan rejection.
+      - Corrupt database page quarantine and backup recovery (`StorageEngine::quarantine_and_recover`).
+      - Concurrent multi-threaded read/write stress under WAL mode.
+    * Executed `cargo audit`: 89 crate dependencies scanned, 0 vulnerabilities detected.
+    * Executed Python ML governance verifier: 0 secret patterns, 100% compliant.
+    * Test Suite Metrics: 342/342 Rust tests passing, 0 Clippy warnings, 0 fmt diffs.
+  - `S10-P2-SUB10.2.1` [`IN_PROGRESS`]: Initiating cross-platform packaging, reproducible release bundles, and SHA-256 release checksum automation:
+    - Designing `scripts/package_release.py`:
+      * Artifact packaging for Windows (`x86_64`), Linux (`x86_64`), macOS (`arm64`/`x86_64`), Android (`APK`/`AAB`), and iOS (`IPA --no-codesign`).
+      * Generating CycloneDX Software Bill of Materials (SBOM) manifests.
+      * Generating SHA-256 checksum manifests (`.sha256`) for all binary deliverables.
+- **Next Step:** Implement cross-platform packaging automation in `scripts/package_release.py`.

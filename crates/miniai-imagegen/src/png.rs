@@ -256,6 +256,12 @@ impl PngDecoder {
             offset += chunk_len + 4; // skip data and CRC
         }
 
+        if width == 0 || height == 0 {
+            return Err(ImageGenError::PngError(
+                "Missing or invalid IHDR chunk in PNG (zero dimensions)".to_string(),
+            ));
+        }
+
         Ok((width, height, text_metadata))
     }
 

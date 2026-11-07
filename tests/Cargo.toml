@@ -1,0 +1,33 @@
+[package]
+name = "miniai-stress-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+miniai-core = { path = "../crates/miniai-core" }
+miniai-storage = { path = "../crates/miniai-storage" }
+miniai-server = { path = "../crates/miniai-server" }
+miniai-registry = { path = "../crates/miniai-registry" }
+miniai-runtime = { path = "../crates/miniai-runtime" }
+miniai-llm = { path = "../crates/miniai-llm" }
+miniai-rag = { path = "../crates/miniai-rag" }
+miniai-vision = { path = "../crates/miniai-vision" }
+miniai-imagegen = { path = "../crates/miniai-imagegen" }
+miniai-speech-asr = { path = "../crates/miniai-speech-asr" }
+miniai-speech-tts = { path = "../crates/miniai-speech-tts" }
+miniai-music = { path = "../crates/miniai-music" }
+miniai-video = { path = "../crates/miniai-video" }
+miniai-cloud = { path = "../crates/miniai-cloud" }
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tempfile = "3.12"
+sha2 = "0.10"
+
+[[test]]
+name = "fuzz_and_stress_tests"
+path = "fuzz_and_stress_tests.rs"
+

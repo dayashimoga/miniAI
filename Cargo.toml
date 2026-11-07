@@ -15,6 +15,7 @@ members = [
     "crates/miniai-music",
     "crates/miniai-video",
     "crates/miniai-cloud",
+    "tests",
 ]
 
 [workspace.package]

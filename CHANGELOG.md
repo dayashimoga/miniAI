@@ -1199,3 +1199,14 @@
   - Upgraded `scripts/package_release.py` with dynamic version directory routing (`dist/v{version}`), tracking all 17 workspace crates including `miniai-memory` in CycloneDX v1.5 SBOM manifests (`bom.json` and `bom.xml`), and multi-platform packaging for Windows, Linux, macOS, Android (APK and AAB), and iOS.
   - Verified GitHub Actions CI/CD workflows (`.github/workflows/ci.yml` and `release.yml`) configured for automated multi-OS binary compilation, quality gate validation, and direct artifact uploads via `actions/upload-artifact@v4`.
   - Verified 100% test pass rate across Rust workspace (326/326), Python ML (39/39), and Flutter UI (107/107).
+
+
+---
+
+## [2026-11-07T17:45:00+05:30] — Stage 13 Sign-Off: Beta Readiness & Troubleshooting Runbook
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 13 / Phase 13.1 / Subphases 13.1.1 & 13.1.2`
+- **Summary:**
+  - Published comprehensive cross-platform operational runbook in `docs/TROUBLESHOOTING.md` covering platform setup, model caching, memory admission guards, SQLite quarantine recovery, and CLI diagnostics.
+  - Validated offline resilience and zero-socket local-only startup across all supported environments.
+  - Verified 100% test pass rate across all suites.

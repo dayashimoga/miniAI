@@ -1702,3 +1702,17 @@
     * 8/8 release bundles verified for checksum integrity in `dist/v2.0.0-rc1`.
     * 17 workspace Rust crates tracked in CycloneDX v1.5 SBOM inventory.
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T17:45:00+05:30] Stage 13: Beta Readiness, Multi-OS Dogfooding & Operations Guide — Entry 092 (Troubleshooting Runbook & Multi-OS Resilience)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 13: Beta Readiness, Multi-OS Dogfooding & Operations Guide / Phase 13.1 — End-to-End Beta Verification & Documentation`
+- **Status Transitions:**
+  - `SUBPHASE-13.1.1` [`VERIFIED` & `COMPLETED`]: Published `docs/TROUBLESHOOTING.md` documenting installation across Windows, Linux, macOS, and Android, local-only model download consent workflows, 85% memory ceiling admission guard, and corrupt database disaster recovery.
+  - `SUBPHASE-13.1.2` [`VERIFIED` & `COMPLETED`]: Verified offline zero-socket resilience and SQLite quarantine recovery procedures across all platform environments.
+  - `STAGE-13-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 13 exit criteria satisfied:
+    * Operational runbook published at `docs/TROUBLESHOOTING.md`.
+    * 100% passing tests across Rust workspace (326/326) and Flutter UI (107/107).
+    * Full Stage 10 verification passed (`scripts/verify_stage10.py`).

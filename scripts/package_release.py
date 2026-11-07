@@ -46,6 +46,7 @@ WORKSPACE_CRATES: list[dict[str, str]] = [
     {"name": "miniai-music", "description": "Polyphonic music generator, modal scale harmonic progression, and 4-track stereo synthesizer.", "path": "crates/miniai-music"},
     {"name": "miniai-video", "description": "Bounded memory video processing, frame extraction, temporal VQA, and multimodal DAG workflow graph.", "path": "crates/miniai-video"},
     {"name": "miniai-cloud", "description": "Consent-gated hybrid cloud GPU acceleration, TLS 1.3 dispatcher, and automatic local CPU fallback.", "path": "crates/miniai-cloud"},
+    {"name": "miniai-memory", "description": "Three-tier memory architecture with token-budgeted working context, episodic session recall, and durable semantic facts.", "path": "crates/miniai-memory"},
     {"name": "miniai-bridge", "description": "Cross-platform FFI bridge and JSON dispatch engine for Flutter and IPC clients.", "path": "crates/miniai-bridge"},
     {"name": "miniai-daemon", "description": "Localhost loopback HTTP daemon and WebSocket event server for web and IPC clients.", "path": "crates/miniai-daemon"},
 ]
@@ -470,23 +471,25 @@ def verify_release(output_dir: Path) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Package MiniAI cross-platform release artifacts")
-    parser.add_argument("--output-dir", type=Path, default=REPO_ROOT / "dist" / "v1.0.0", help="Destination directory for release bundles")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Destination directory for release bundles")
     parser.add_argument("--version", type=str, default="1.0.0", help="Release version string")
     parser.add_argument("--verify", action="store_true", help="Verify release artifacts against SHA256SUMS.txt")
     args = parser.parse_args()
 
+    output_dir = args.output_dir or (REPO_ROOT / "dist" / f"v{args.version}")
+
     if args.verify:
-        print(f"[*] Verifying release bundle checksums in {args.output_dir}...")
-        res = verify_release(args.output_dir)
+        print(f"[*] Verifying release bundle checksums in {output_dir}...")
+        res = verify_release(output_dir)
         print(json.dumps(res, indent=2))
         sys.exit(0 if res["passed"] else 1)
 
-    print(f"[*] Packaging MiniAI release artifacts for v{args.version} into {args.output_dir}...")
-    manifest = package_release(args.output_dir, args.version)
+    print(f"[*] Packaging MiniAI release artifacts for v{args.version} into {output_dir}...")
+    manifest = package_release(output_dir, args.version)
     print(f"[+] Packaged {len(manifest['artifacts'])} release artifacts successfully.")
 
     print("[*] Running post-packaging cryptographic checksum verification...")
-    v_res = verify_release(args.output_dir)
+    v_res = verify_release(output_dir)
     if not v_res["passed"]:
         print("[-] Verification failed!")
         sys.exit(1)

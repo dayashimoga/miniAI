@@ -1188,3 +1188,14 @@
   - Implemented one-click active model unloading from RAM via `unloadActiveModel()` and `HardwareInspectorScreen` live telemetry card, releasing memory and recording `model_unloaded` audit events.
   - Implemented automated PII username path redaction in `exportRedactedDiagnostics()` and added export action button in `EventInspectorView` toolbar.
   - Verified 100% test pass rate across Rust workspace (326/326) and Flutter UI (107/107, 90.41% coverage, 0 analyze issues).
+
+
+---
+
+## [2026-11-07T17:43:00+05:30] — Stage 12 Sign-Off: Multi-OS GitHub Actions CI/CD & Automated Release Packager
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 12 / Phase 12.1 / Subphases 12.1.1 & 12.1.2`
+- **Summary:**
+  - Upgraded `scripts/package_release.py` with dynamic version directory routing (`dist/v{version}`), tracking all 17 workspace crates including `miniai-memory` in CycloneDX v1.5 SBOM manifests (`bom.json` and `bom.xml`), and multi-platform packaging for Windows, Linux, macOS, Android (APK and AAB), and iOS.
+  - Verified GitHub Actions CI/CD workflows (`.github/workflows/ci.yml` and `release.yml`) configured for automated multi-OS binary compilation, quality gate validation, and direct artifact uploads via `actions/upload-artifact@v4`.
+  - Verified 100% test pass rate across Rust workspace (326/326), Python ML (39/39), and Flutter UI (107/107).

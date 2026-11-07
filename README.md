@@ -31,6 +31,7 @@
 | [`CODEBASE_GUIDE.md`](./CODEBASE_GUIDE.md) | Repository layout and subsystem guide |
 | [`DEVELOPMENT_SETUP.md`](./DEVELOPMENT_SETUP.md) | Host & container setup and verification commands |
 | [`USER_GUIDE.md`](./USER_GUIDE.md) | End-user operational and privacy guide |
+| [`WALKTHROUGH.md`](./WALKTHROUGH.md) | Comprehensive project walkthrough, architecture, studios & features |
 | [`TESTING.md`](./TESTING.md) | Multi-tier testing strategy and coverage measurement |
 | [`SECURITY.md`](./SECURITY.md) | Threat model, SHA-256 verification, and consent security policy |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Contributor workflow and append-only log rules |

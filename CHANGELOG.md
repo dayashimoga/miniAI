@@ -1009,3 +1009,15 @@
   - Replaced `SelectableText` with `Text` in `ChatWorkspaceScreen._showCitationDialog`.
   - Replaced `tester.scrollUntilVisible` with `tester.ensureVisible(citationChip)` in `knowledge_base_test.dart` to automatically locate the enclosing `Scrollable` without type cast errors.
   - Verified 100% test pass rate across all suites: 102/102 Flutter tests (91.48% coverage, 0 analyzer issues), 300/300 Rust tests, and 39/39 Python ML tests (97.28% coverage).
+
+
+---
+
+## [2026-11-07T14:40:00+05:30] — Documentation Walkthrough: Authored WALKTHROUGH.md
+- **Action:** `DOCUMENTATION`
+- **Stage / Phase / Subphase:** `Stage 10 / Phase 10.3 / Documentation Index Synchronization`
+- **Summary:**
+  - Published comprehensive system walkthrough in `WALKTHROUGH.md` detailing the tri-layer architecture (Rust Core, Flutter UI, Python ML), core philosophical tenets, all 7 pluggable modality adapters, and 8 specialized creative studios.
+  - Documented security safeguards, scoped `CloudConsentToken` lifecycle, fail-closed CPU execution fallback, and memory admission guard ceiling (85% available RAM).
+  - Included complete ADR history summary (`ADR-001` through `ADR-015`), multi-tier test metrics (441 passing tests, $\ge 90\%$ coverage), packaging deliverables, and full repository directory index.
+  - Added `WALKTHROUGH.md` to `README.md` documentation index.

@@ -995,3 +995,17 @@
   - Hardened `knowledge_base_test.dart` with `tester.scrollUntilVisible` for reliable citation inspector modal interaction.
   - Added symmetric teardown of `tester.view.resetDevicePixelRatio()` alongside `resetPhysicalSize()` across all widget tests.
   - Verified 100% test pass rate across 102/102 Flutter tests, 300/300 Rust workspace tests, and 39/39 Python ML tests (97.28% statement coverage).
+
+
+---
+
+## [2026-11-07T14:35:00+05:30] — Post-Release Hardening: Flutter Version Pinning & SelectionArea Alignment
+- **Action:** `BUG_FIX` & `CI_HARDENING`
+- **Stage / Phase / Subphase:** `Stage 10 / Phase 10.3 / Multi-OS CI Alignment`
+- **Summary:**
+  - Pinned `flutter-version: '3.38.4'` across `flutter-desktop-and-tests`, `flutter-android`, and `flutter-ios` jobs in `.github/workflows/ci.yml` to prevent unpinned `channel: stable` runner drift and unintended dependency overrides (`Changed 6 dependencies!`).
+  - Added `--reporter=expanded` to all CI `flutter test` invocations to surface full test failure diagnostics and stack traces.
+  - Refactored `ChatWorkspaceScreen` to wrap the timeline `ListView.builder` inside `SelectionArea` and use standard `Text` widgets instead of per-message `SelectableText`, resolving headless IME channel conflicts and test widget matching issues.
+  - Replaced `SelectableText` with `Text` in `ChatWorkspaceScreen._showCitationDialog`.
+  - Replaced `tester.scrollUntilVisible` with `tester.ensureVisible(citationChip)` in `knowledge_base_test.dart` to automatically locate the enclosing `Scrollable` without type cast errors.
+  - Verified 100% test pass rate across all suites: 102/102 Flutter tests (91.48% coverage, 0 analyzer issues), 300/300 Rust tests, and 39/39 Python ML tests (97.28% coverage).

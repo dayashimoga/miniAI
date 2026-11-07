@@ -1432,3 +1432,18 @@
     * Hardened citation inspection in `knowledge_base_test.dart` using `tester.scrollUntilVisible` before tapping.
     * Added symmetric `tester.view.resetDevicePixelRatio()` along with `resetPhysicalSize()` across all widget test teardowns.
     * Re-verified 100% test pass rate across all suites: 102/102 Flutter tests, 300/300 Rust tests, 39/39 Python ML tests (97.28% coverage), 0 analyzer warnings.
+
+
+---
+
+### [2026-11-07T14:35:00+05:30] Post-Release CI Hardening — Entry 076 (CI Flutter SDK Version Pinning & Chat SelectionArea Alignment)
+- **Entry Type:** `BUG_FIX` & `CI_HARDENING`
+- **Stage / Phase:** `Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases / Phase 10.3 — Final Independent Release Certification Gate / Multi-OS CI Alignment`
+- **Status Transitions:**
+  - `POST-REL-002` [`VERIFIED` & `COMPLETED`]: Resolved multi-platform CI test runner failures across Linux, Windows, and macOS GitHub Actions workflows:
+    * Pinned `flutter-version: '3.38.4'` across `flutter-desktop-and-tests`, `flutter-android`, and `flutter-ios` jobs in `.github/workflows/ci.yml`, preventing bleeding-edge SDK drift, dependency overrides (`Changed 6 dependencies!`), and lockfile divergence.
+    * Added `--reporter=expanded` to all `flutter test` invocations in `.github/workflows/ci.yml` for comprehensive error reporting and stack trace visibility on CI.
+    * Replaced per-bubble `SelectableText` in `ChatWorkspaceScreen._buildMessageBubble` with native `SelectionArea` wrapping the message `ListView.builder` and standard `Text` widgets, eliminating headless test platform IME channel conflicts and ensuring clean `find.text()` matching.
+    * Replaced `SelectableText` with `Text` in `_showCitationDialog` inside `ChatWorkspaceScreen`.
+    * Fixed `tester.scrollUntilVisible` type cast error in `knowledge_base_test.dart` by using `tester.ensureVisible(citationChip)`, which resolves the target's enclosing `Scrollable` without hardcoded index assumptions.
+    * Verified 100% test pass rate locally: 102/102 Flutter tests passing (`flutter test --coverage`), 91.48% line coverage, 0 analyzer issues, 300/300 Rust tests, 39/39 Python ML tests.

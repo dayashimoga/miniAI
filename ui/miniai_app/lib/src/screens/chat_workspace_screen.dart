@@ -199,7 +199,7 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: SingleChildScrollView(
-            child: SelectableText(
+            child: Text(
               snippet,
               style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
             ),
@@ -555,15 +555,17 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
       );
     }
 
-    return ListView.builder(
-      key: const Key('chat_message_list'),
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: messages.length,
-      itemBuilder: (ctx, index) {
-        final message = messages[index];
-        return _buildMessageBubble(context, message);
-      },
+    return SelectionArea(
+      child: ListView.builder(
+        key: const Key('chat_message_list'),
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        itemCount: messages.length,
+        itemBuilder: (ctx, index) {
+          final message = messages[index];
+          return _buildMessageBubble(context, message);
+        },
+      ),
     );
   }
 
@@ -653,7 +655,7 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  SelectableText(
+                  Text(
                     message.content,
                     style: theme.textTheme.bodyMedium,
                   ),

@@ -88,6 +88,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.38.4'
           channel: stable
           cache: true
 
@@ -101,7 +102,7 @@ jobs:
 
       - name: Run Flutter widget & unit tests with coverage
         working-directory: ui/miniai_app
-        run: flutter test --coverage
+        run: flutter test --coverage --reporter=expanded
 
   flutter-android:
     name: Flutter Android Target (ubuntu-latest)
@@ -119,6 +120,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.38.4'
           channel: stable
           cache: true
 
@@ -127,7 +129,7 @@ jobs:
         run: |
           flutter pub get
           flutter analyze --no-pub
-          flutter test
+          flutter test --reporter=expanded
 
   flutter-ios:
     name: Flutter iOS Target (macos-latest)
@@ -139,6 +141,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.38.4'
           channel: stable
           cache: true
 
@@ -147,5 +150,5 @@ jobs:
         run: |
           flutter pub get
           flutter analyze --no-pub
-          flutter test
+          flutter test --reporter=expanded
 

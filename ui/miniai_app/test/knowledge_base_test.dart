@@ -198,11 +198,7 @@ void main() {
       expect(citationChip, findsOneWidget);
 
       // Tap citation chip to inspect source modal
-      await tester.scrollUntilVisible(
-        citationChip,
-        50.0,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.ensureVisible(citationChip);
       await tester.pumpAndSettle();
       await tester.tap(citationChip);
       await tester.pumpAndSettle();

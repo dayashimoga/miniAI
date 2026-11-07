@@ -290,3 +290,25 @@ This document records binding architectural decisions for **MiniAI**, including 
     - `consent_inspector_screen.dart`: Tab 11 in `ShellScreen` featuring emergency kill-switch, scoped consent request dialog, active token manager, interactive hybrid dispatch simulator, and immutable audit ledger viewer.
 - **Consequences:**
   Enables scalable cloud GPU acceleration without compromising local privacy or user sovereignty; guarantees zero egress in local-only privacy mode; prevents SSRF and secret leaks; eliminates task dropouts through transparent local CPU fallback; and provides verifiable append-only auditing for enterprise compliance.
+
+
+---
+
+## ADR-015: Cross-Platform Hardening, Release Certification, and CycloneDX Software Bill of Materials (SBOM) for MiniAI v1.0.0
+- **Date:** `2026-11-07`
+- **Status:** `ACCEPTED`
+- **Context:**
+  Stage 10 delivers full-system production hardening, property-based fuzzing, SQLite crash resilience, reproducible cross-platform packaging, CycloneDX v1.5 Software Bill of Materials (SBOM) generation, SHA-256 cryptographic release manifests, and final Release Certification (`v1.0.0`) across all 5 target operating systems (Windows, Linux, macOS, Android, iOS):
+  1. System-Wide Stress & Property-Based Fuzzing: Fuzzing harnesses in `tests/fuzz_and_stress_tests.rs` verify all 7 modality adapters (LLM, Vision, ImageGen, Speech ASR, Speech TTS, Music, Video) against malformed payloads, out-of-bounds parameter configurations, prompt injection strings, runaway tokens, decompression bombs, corrupted audio/video container headers, and memory buffer pool exhaustion without crashing or leaking memory.
+  2. Transactional SQLite Crash Recovery: `crates/miniai-storage/tests/recovery_tests.rs` tests zero-byte file initialization, unclosed transaction rollbacks, foreign key constraint preservation, corrupt database page quarantine, and concurrent multi-threaded stress under WAL mode.
+  3. Zero-Vulnerability Security Audit: Dependency scanning via `cargo audit` ensures zero known CVEs across all 89 Rust workspace dependencies, and repository governance auditing ensures zero private key blocks or secret patterns exist in source or documentation.
+  4. Reproducible Cross-Platform Packaging: `scripts/package_release.py` generates deterministic release bundles for Windows (`x86_64`), Linux (`x86_64`), macOS (`universal`), Android (`APK`/`AAB`), and iOS (`unsigned IPA`).
+  5. CycloneDX v1.5 SBOM & SHA-256 Manifests: Produces machine-readable CycloneDX v1.5 JSON (`bom.json`) and XML (`bom.xml`) inventorying all 14 workspace crates, Python ML tooling, and Flutter UI components with licenses and SHA-256 digests. Generates master `SHA256SUMS.txt` with cryptographic integrity verified via `--verify`.
+  6. Final Multi-OS CI/CD Release Pipeline: `.github/workflows/release.yml` automates multi-platform build verification across `windows-latest`, `ubuntu-latest`, and `macos-latest`, building Flutter targets, generating SBOMs, and uploading certified release assets.
+- **Decision:**
+  - Standardize cross-platform release generation through `scripts/package_release.py`.
+  - Enforce CycloneDX v1.5 format for all release bill-of-materials deliverables.
+  - Require SHA-256 cryptographic digest manifests for 100% of released packages and assets.
+  - Require unanimous `PASS` sign-offs from `independent-qa-auditor` and `arch-security-reviewer` before certifying `v1.0.0`.
+- **Consequences:**
+  Guarantees enterprise-grade release provenance, supply chain transparency, reproducible builds across desktop and mobile platforms, zero known security vulnerabilities, and verifiable compliance with the MiniAI Global Engineering Contract.

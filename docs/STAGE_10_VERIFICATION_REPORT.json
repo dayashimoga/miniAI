@@ -1,0 +1,263 @@
+{
+  "stage": 10,
+  "title": "Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases (v1.0.0)",
+  "generated_at": "2026-11-07T06:55:59.323968+00:00",
+  "overall_passed": true,
+  "governance_audit": {
+    "passed": true,
+    "governance_files_checked": 19,
+    "rules_checked": 6,
+    "skills_checked": 18,
+    "stage_prompts_checked": 11,
+    "errors": []
+  },
+  "steps": [
+    {
+      "name": "rust_fmt_check",
+      "command": "cargo fmt --all -- --check",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": []
+    },
+    {
+      "name": "rust_clippy",
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": [
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s"
+      ]
+    },
+    {
+      "name": "rust_tests",
+      "command": "cargo test --workspace",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "",
+        "",
+        "running 0 tests",
+        "",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "stderr_tail": [
+        "     Running tests\\tensor_tests.rs (target\\debug\\deps\\tensor_tests-98d5759242498d67.exe)",
+        "   Doc-tests miniai_cloud",
+        "   Doc-tests miniai_core",
+        "   Doc-tests miniai_imagegen",
+        "   Doc-tests miniai_llm",
+        "   Doc-tests miniai_music",
+        "   Doc-tests miniai_rag",
+        "   Doc-tests miniai_registry",
+        "   Doc-tests miniai_runtime",
+        "   Doc-tests miniai_server",
+        "   Doc-tests miniai_speech_asr",
+        "   Doc-tests miniai_speech_tts",
+        "   Doc-tests miniai_storage",
+        "   Doc-tests miniai_video",
+        "   Doc-tests miniai_vision"
+      ]
+    },
+    {
+      "name": "cargo_security_audit",
+      "command": "cargo audit",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [],
+      "stderr_tail": [
+        "Fetching advisory database from `https://github.com/RustSec/advisory-db.git`",
+        "      Loaded 1422 security advisories (from C:\\Users\\daya\\.cargo\\advisory-db)",
+        "    Updating crates.io index",
+        "    Scanning Cargo.lock for vulnerabilities (89 crate dependencies)"
+      ]
+    },
+    {
+      "name": "python_pytest_coverage",
+      "command": "uv run --group dev pytest --cov=miniai_ml --cov-report=term-missing --cov-fail-under=90",
+      "cwd": "ml",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "_______________ coverage: platform win32, python 3.14.0-final-0 _______________",
+        "",
+        "Name                             Stmts   Miss  Cover   Missing",
+        "--------------------------------------------------------------",
+        "src\\miniai_ml\\__init__.py            7      0   100%",
+        "src\\miniai_ml\\contracts.py         101      0   100%",
+        "src\\miniai_ml\\dataset.py           162      0   100%",
+        "src\\miniai_ml\\governance.py         95      4    96%   124, 149-150, 171",
+        "src\\miniai_ml\\provenance.py        150      1    99%   318",
+        "src\\miniai_ml\\runtime_probe.py      29      5    83%   23-24, 30-32",
+        "src\\miniai_ml\\training.py          374     15    96%   43-45, 60, 62, 68, 72, 560-561, 571, 638-639, 646, 650-651",
+        "--------------------------------------------------------------",
+        "TOTAL                              918     25    97%",
+        "Required test coverage of 90% reached. Total coverage: 97.28%",
+        "39 passed in 9.04s"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_analyze",
+      "command": "flutter analyze --no-pub",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "Analyzing miniai_app...                                         ",
+        "No issues found! (ran in 2.1s)"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "flutter_test_coverage",
+      "command": "flutter test --coverage",
+      "cwd": "ui\\miniai_app",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "00:15 +88: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:15 +89: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests ShellScreen navigates to Tab 8 Canvas across Desktop layout",
+        "00:15 +90: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:15 +91: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:16 +92: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:16 +93: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:17 +94: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:17 +95: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:17 +96: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:17 +97: G:/miniAI/ui/miniai_app/test/video_studio_test.dart: Subphase 8.3.1 Video Studio Widget Tests interacts with video synthesis and DAG workflow execution",
+        "00:18 +98: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:18 +99: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:19 +100: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:19 +101: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:20 +102: All tests passed!"
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "package_release_artifacts",
+      "command": "G:\\miniAI\\ml\\.venv\\Scripts\\python.exe G:\\miniAI\\scripts\\package_release.py --version 1.0.0",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "[*] Packaging MiniAI release artifacts for v1.0.0 into G:\\miniAI\\dist\\v1.0.0...",
+        "[+] Packaged 8 release artifacts successfully.",
+        "[*] Running post-packaging cryptographic checksum verification...",
+        "[+] All 8 artifact checksums verified successfully."
+      ],
+      "stderr_tail": []
+    },
+    {
+      "name": "verify_release_artifacts",
+      "command": "G:\\miniAI\\ml\\.venv\\Scripts\\python.exe G:\\miniAI\\scripts\\package_release.py --version 1.0.0 --verify",
+      "cwd": ".",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_tail": [
+        "      \"filename\": \"bom.json\",",
+        "      \"exists\": true,",
+        "      \"expected_sha256\": \"113504c7c75642b9b795dec4cb96f607aae66a2e4b9d8144340e1cde7328fa2d\",",
+        "      \"actual_sha256\": \"113504c7c75642b9b795dec4cb96f607aae66a2e4b9d8144340e1cde7328fa2d\",",
+        "      \"passed\": true",
+        "    },",
+        "    {",
+        "      \"filename\": \"bom.xml\",",
+        "      \"exists\": true,",
+        "      \"expected_sha256\": \"b1827441aefbdac0959af4731f257c732e12e0fbcdac79cb2e8a7e2bf3813f08\",",
+        "      \"actual_sha256\": \"b1827441aefbdac0959af4731f257c732e12e0fbcdac79cb2e8a7e2bf3813f08\",",
+        "      \"passed\": true",
+        "    }",
+        "  ]",
+        "}"
+      ],
+      "stderr_tail": []
+    }
+  ],
+  "metrics": {
+    "rust_workspace_tests": "342 passed (100% pass rate)",
+    "rust_clippy_warnings": 0,
+    "rust_fmt_diffs": 0,
+    "cargo_audit_vulnerabilities": 0,
+    "python_ml_tests": "39 passed (100% pass rate)",
+    "python_ml_statement_coverage": "97.28%",
+    "flutter_ui_tests": "102 passed (100% pass rate)",
+    "flutter_ui_line_coverage": "91.47%",
+    "flutter_analyze_issues": 0,
+    "release_bundles_verified": "8/8 verified"
+  },
+  "stage10_contracts": {
+    "phase_10_1_system_wide_stress_fuzzing_and_security_audit": {
+      "fuzz_test_suite": "tests/fuzz_and_stress_tests.rs",
+      "sqlite_recovery_test_suite": "crates/miniai-storage/tests/recovery_tests.rs",
+      "security_audit": "cargo audit (89 crate dependencies scanned, 0 vulnerabilities)",
+      "modalities_fuzzed": [
+        "Modality::Llm",
+        "Modality::Vision",
+        "Modality::ImageGeneration",
+        "Modality::SpeechAsr",
+        "Modality::SpeechTts",
+        "Modality::Music",
+        "Modality::Video"
+      ],
+      "resilience_properties_verified": [
+        "Prompt injection delimiters and runaway decoding depth capping",
+        "Zero-dimension and decompression bomb rejection in image sanitization",
+        "Malformed PNG chunk/CRC error handling in PngDecoder",
+        "Corrupt audio header rejection and VAD silence discrimination",
+        "SSML/XML injection resilience and phonetic chunking",
+        "Harmonic scale validation and polyphonic 4-track saturation",
+        "Buffer pool memory exhaustion fail-closed enforcement (1 MB budget)",
+        "Kahn's algorithm cycle rejection in MediaWorkflowGraph",
+        "SQLite zero-byte initialization and schema migration",
+        "SQLite unclosed transaction rollback and atomic isolation",
+        "SQLite foreign key invariant preservation and orphan rejection",
+        "SQLite corrupt database page quarantine and backup recovery"
+      ]
+    },
+    "phase_10_2_cross_platform_packaging_and_checksum_automation": {
+      "packager_script": "scripts/package_release.py",
+      "release_workflow": ".github/workflows/release.yml",
+      "release_version": "1.0.0",
+      "platform_bundles": [
+        "miniai-1.0.0-windows-x86_64.zip",
+        "miniai-1.0.0-linux-x86_64.tar.gz",
+        "miniai-1.0.0-macos-universal.tar.gz",
+        "miniai-1.0.0-android.apk",
+        "miniai-1.0.0-android.aab",
+        "miniai-1.0.0-ios-unsigned.ipa"
+      ],
+      "cyclonedx_sbom": {
+        "spec_version": "1.5",
+        "json_manifest": "bom.json",
+        "xml_manifest": "bom.xml",
+        "tracked_components": 16
+      },
+      "checksum_manifests": {
+        "master_sums": "SHA256SUMS.txt",
+        "individual_digests": true
+      }
+    },
+    "phase_10_3_final_release_certification_gate": {
+      "specification": "RELEASE_CERTIFICATION.md",
+      "architectural_record": "ADR-015 in ADR.md",
+      "status": "READY_FOR_INDEPENDENT_AUDIT",
+      "target_tag": "v1.0.0"
+    }
+  }
+}

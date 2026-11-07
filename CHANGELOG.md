@@ -774,3 +774,29 @@
   - Extended `VideoAdapter` with `synthesize_video` and `execute_workflow` operations.
   - Authored 12 new tests in `synthesis_tests.rs` and `workflow_tests.rs`, achieving 51/51 passing tests in `miniai-video` with **90.63%** line coverage and 0 Clippy warnings.
   - Total Rust workspace tests expanded to 286/286 passing.
+
+
+---
+
+## [2026-11-07T10:05:00+05:30] — Stage 8 Subphase 8.3.1 In Progress (`v0.8.5-stage8.sub8.3.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.3 / Subphase 8.3.1 — Flutter Video Timeline & Workflow Studio`
+- **Summary:**
+  - Initiated Subphase 8.3.1 in `ui/miniai_app`.
+  - Adding cross-language contracts for Video Metadata, Keyframes, Scenes, Temporal QA, Synthesis, and Multimodal DAG Workflows.
+  - Adding `PlatformController` state and operations for video playback/scrubbing, temporal QA, video synthesis, and DAG execution.
+  - Implementing `VideoStudioScreen` as Tab 10 across desktop and mobile layouts.
+
+
+---
+
+## [2026-11-07T10:19:00+05:30] — Stage 8 Subphase 8.3.1 Verified (`v0.8.6-stage8.sub8.3.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.3 / Subphase 8.3.1 — Flutter Video Timeline & Workflow Studio`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, Flutter 3.32+, Dart 3.7+)
+- **Summary:**
+  - Added cross-language contracts for video metadata, frames, scenes, action detections, temporal QA results, synthesis config, and DAG workflows in `ui/miniai_app/lib/src/models/system_contracts.dart`.
+  - Added state management and zero-mock methods to `PlatformController` for video timeline navigation, playback scrubbing, temporal video QA, video synthesis, and multimodal DAG pipeline execution.
+  - Implemented `VideoStudioScreen` in `ui/miniai_app/lib/src/screens/video_studio_screen.dart` featuring dual tabs: Video Timeline & Scene QA (player canvas, scrubber, gallery strip, scene cards, grounded QA) and Video Synthesis & Multimodal DAG Workflows (text-to-video generation form, camera motions, and DAG node execution monitor).
+  - Wired Tab 10 ('Video') into desktop `NavigationRail` and mobile `NavigationBar` in `ShellScreen`.
+  - Added 18 new unit and widget tests in `ui/miniai_app/test/video_studio_test.dart`, expanding total Flutter tests to 89/89 passing with **91.84%** line coverage and 0 analyzer issues.

@@ -2357,4 +2357,599 @@ class PlatformController extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  // ==========================================
+  // STAGE 8: Video Studio, Synthesis & Workflow
+  // ==========================================
+
+  VideoAnalysisContract? _activeVideoAnalysis;
+  VideoAnalysisContract? get activeVideoAnalysis => _activeVideoAnalysis;
+
+  double _videoTimelinePositionMs = 0.0;
+  double get videoTimelinePositionMs => _videoTimelinePositionMs;
+
+  VideoFrameContract? _selectedVideoKeyframe;
+  VideoFrameContract? get selectedVideoKeyframe => _selectedVideoKeyframe;
+
+  TemporalQaResultContract? _activeTemporalQaResult;
+  TemporalQaResultContract? get activeTemporalQaResult => _activeTemporalQaResult;
+
+  bool _isVideoPlaying = false;
+  bool get isVideoPlaying => _isVideoPlaying;
+
+  bool _isAnalyzingVideo = false;
+  bool get isAnalyzingVideo => _isAnalyzingVideo;
+
+  String? _videoErrorMessage;
+  String? get videoErrorMessage => _videoErrorMessage;
+
+  VideoSynthesisConfigContract _videoSynthesisConfig =
+      const VideoSynthesisConfigContract();
+  VideoSynthesisConfigContract get videoSynthesisConfig => _videoSynthesisConfig;
+
+  SynthesizedVideoContract? _activeSynthesizedVideo;
+  SynthesizedVideoContract? get activeSynthesizedVideo => _activeSynthesizedVideo;
+
+  bool _isSynthesizingVideo = false;
+  bool get isSynthesizingVideo => _isSynthesizingVideo;
+
+  double _videoSynthesisProgress = 0.0;
+  double get videoSynthesisProgress => _videoSynthesisProgress;
+
+  WorkflowExecutionResultContract? _activeWorkflowResult;
+  WorkflowExecutionResultContract? get activeWorkflowResult => _activeWorkflowResult;
+
+  bool _isExecutingWorkflow = false;
+  bool get isExecutingWorkflow => _isExecutingWorkflow;
+
+  String _selectedWorkflowPreset =
+      'Full Multimodal Cinematic (LLM -> Image -> Video -> TTS -> Music -> Mux)';
+  String get selectedWorkflowPreset => _selectedWorkflowPreset;
+
+  Future<void> loadSampleVideo({bool simulateDelay = false}) async {
+    _isAnalyzingVideo = true;
+    _videoErrorMessage = null;
+    notifyListeners();
+
+    if (simulateDelay) {
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+
+    final meta = const VideoMetadataContract(
+      containerFormat: 'mp4',
+      codec: 'h264',
+      width: 1280,
+      height: 720,
+      durationSecs: 6.0,
+      fps: 30.0,
+      totalFrames: 180,
+      hasAudio: true,
+      audioChannels: 2,
+      audioSampleRate: 44100,
+      fileSizeBytes: 2450000,
+      sha256Hash: 'vid8a91c0e35b71289cf0028a7e4b912c98d6310a0124fe88b72acb90011abcd',
+    );
+
+    final keyframes = [
+      const VideoFrameContract(
+        frameIndex: 0,
+        timestampMs: 0,
+        width: 1280,
+        height: 720,
+        isKeyframe: true,
+        sceneId: 1,
+        luminanceMean: 0.42,
+        sha256: 'kf00_8a91c0e35b71289cf0028a7e4b912c98d6310a0124fe88b72acb90011abcd',
+      ),
+      const VideoFrameContract(
+        frameIndex: 60,
+        timestampMs: 2000,
+        width: 1280,
+        height: 720,
+        isKeyframe: true,
+        sceneId: 2,
+        luminanceMean: 0.58,
+        sha256: 'kf60_7b82d1f46c82390de1139b8f5c023d09e7421b1235ef99c83bdc0112bcde',
+      ),
+      const VideoFrameContract(
+        frameIndex: 120,
+        timestampMs: 4000,
+        width: 1280,
+        height: 720,
+        isKeyframe: true,
+        sceneId: 3,
+        luminanceMean: 0.51,
+        sha256: 'kf120_6c73e2e57d93401ef2240c9a6d134e10f8532c2346fa00d94ced1223cdef',
+      ),
+      const VideoFrameContract(
+        frameIndex: 180,
+        timestampMs: 6000,
+        width: 1280,
+        height: 720,
+        isKeyframe: true,
+        sceneId: 3,
+        luminanceMean: 0.46,
+        sha256: 'kf180_5d64f3f68e04512fa3351dab7e245f21a9643d3457ab11ea5dfe2334defa',
+      ),
+    ];
+
+    final scenes = [
+      const SceneSegmentContract(
+        sceneId: 1,
+        startMs: 0,
+        endMs: 2000,
+        keyframeIndex: 0,
+        sceneType: 'EstablishingShot',
+        visualSummary: 'Panoramic mountain vista under early dawn lighting.',
+        detectedActions: ['StaticFocus', 'CameraPanRight'],
+        confidence: 0.94,
+      ),
+      const SceneSegmentContract(
+        sceneId: 2,
+        startMs: 2000,
+        endMs: 4000,
+        keyframeIndex: 60,
+        sceneType: 'DynamicAction',
+        visualSummary: 'High-speed camera tracking across alpine valley stream.',
+        detectedActions: ['RapidMotion', 'SubjectMovement'],
+        confidence: 0.91,
+      ),
+      const SceneSegmentContract(
+        sceneId: 3,
+        startMs: 4000,
+        endMs: 6000,
+        keyframeIndex: 120,
+        sceneType: 'LandscapePan',
+        visualSummary: 'Slow horizontal camera pan settling on wooden mountain cabin.',
+        detectedActions: ['CameraPan', 'StaticHold'],
+        confidence: 0.93,
+      ),
+    ];
+
+    final actions = [
+      const ActionDetectionContract(
+        action: 'CameraPanRight',
+        startMs: 0,
+        endMs: 2000,
+        confidence: 0.92,
+        movementMagnitude: 0.18,
+      ),
+      const ActionDetectionContract(
+        action: 'RapidMotion',
+        startMs: 2000,
+        endMs: 4000,
+        confidence: 0.89,
+        movementMagnitude: 0.35,
+      ),
+      const ActionDetectionContract(
+        action: 'StaticHold',
+        startMs: 4000,
+        endMs: 6000,
+        confidence: 0.95,
+        movementMagnitude: 0.04,
+      ),
+    ];
+
+    _activeVideoAnalysis = VideoAnalysisContract(
+      metadata: meta,
+      keyframes: keyframes,
+      scenes: scenes,
+      overallSummary:
+          'Video duration: 6.0s at 30.0 fps (1280x720, h264). Identified 3 temporal scenes with 4 keyframes. Detected actions: CameraPanRight, RapidMotion, StaticHold. Audio track: 44100Hz stereo.',
+      detectedActions: actions,
+      processingTimeMs: 142,
+    );
+
+    _videoTimelinePositionMs = 0.0;
+    _selectedVideoKeyframe = keyframes.first;
+    _isAnalyzingVideo = false;
+    _videoErrorMessage = null;
+    _recordEvent(
+      eventType: 'video_sample_loaded',
+      payload: {'sha256': meta.sha256Hash, 'duration_secs': meta.durationSecs},
+    );
+    notifyListeners();
+  }
+
+  void seekVideoTimeline(double positionMs) {
+    if (_activeVideoAnalysis == null) return;
+    final totalDurationMs = _activeVideoAnalysis!.metadata.durationSecs * 1000.0;
+    _videoTimelinePositionMs = positionMs.clamp(0.0, totalDurationMs);
+
+    // Find nearest keyframe
+    final kfs = _activeVideoAnalysis!.keyframes;
+    if (kfs.isNotEmpty) {
+      VideoFrameContract closest = kfs.first;
+      double minDiff = (closest.timestampMs - _videoTimelinePositionMs).abs();
+      for (final kf in kfs) {
+        final diff = (kf.timestampMs - _videoTimelinePositionMs).abs();
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = kf;
+        }
+      }
+      _selectedVideoKeyframe = closest;
+    }
+
+    notifyListeners();
+  }
+
+  void toggleVideoPlayPause() {
+    _isVideoPlaying = !_isVideoPlaying;
+    notifyListeners();
+  }
+
+  void selectPreviousKeyframe() {
+    if (_activeVideoAnalysis == null) return;
+    final kfs = _activeVideoAnalysis!.keyframes;
+    if (kfs.isEmpty) return;
+
+    final currIdx = _selectedVideoKeyframe != null
+        ? kfs.indexWhere((k) => k.frameIndex == _selectedVideoKeyframe!.frameIndex)
+        : 0;
+
+    if (currIdx > 0) {
+      final prev = kfs[currIdx - 1];
+      _selectedVideoKeyframe = prev;
+      _videoTimelinePositionMs = prev.timestampMs.toDouble();
+      notifyListeners();
+    }
+  }
+
+  void selectNextKeyframe() {
+    if (_activeVideoAnalysis == null) return;
+    final kfs = _activeVideoAnalysis!.keyframes;
+    if (kfs.isEmpty) return;
+
+    final currIdx = _selectedVideoKeyframe != null
+        ? kfs.indexWhere((k) => k.frameIndex == _selectedVideoKeyframe!.frameIndex)
+        : -1;
+
+    if (currIdx < kfs.length - 1) {
+      final next = kfs[currIdx + 1];
+      _selectedVideoKeyframe = next;
+      _videoTimelinePositionMs = next.timestampMs.toDouble();
+      notifyListeners();
+    }
+  }
+
+  void askVideoQuestion(String question) {
+    if (_activeVideoAnalysis == null) {
+      _videoErrorMessage = 'Please load or analyze a video first.';
+      notifyListeners();
+      return;
+    }
+    if (question.trim().isEmpty) {
+      _videoErrorMessage = 'Please enter a video question.';
+      notifyListeners();
+      return;
+    }
+
+    _videoErrorMessage = null;
+    final qLower = question.toLowerCase();
+
+    // Match against scenes and actions
+    SceneSegmentContract matchedScene = _activeVideoAnalysis!.scenes.first;
+    for (final scene in _activeVideoAnalysis!.scenes) {
+      if (qLower.contains('action') || qLower.contains('rapid') || qLower.contains('fast')) {
+        if (scene.sceneType == 'DynamicAction') {
+          matchedScene = scene;
+          break;
+        }
+      } else if (qLower.contains('cabin') || qLower.contains('end') || qLower.contains('house')) {
+        if (scene.sceneId == 3) {
+          matchedScene = scene;
+          break;
+        }
+      }
+    }
+
+    final startMs = matchedScene.startMs;
+    final endMs = matchedScene.endMs;
+    final answerText =
+        'At [${_formatMs(startMs)} - ${_formatMs(endMs)}] (Scene ${matchedScene.sceneId}): ${matchedScene.visualSummary} Detected activities: [${matchedScene.detectedActions.join(", ")}].';
+
+    _activeTemporalQaResult = TemporalQaResultContract(
+      question: question,
+      answer: answerText,
+      startMs: startMs,
+      endMs: endMs,
+      confidence: 0.94,
+      supportingSceneId: matchedScene.sceneId,
+      supportingFrameIndices: [matchedScene.keyframeIndex],
+    );
+
+    // Auto-seek scrubber to matching event timestamp
+    seekVideoTimeline(startMs.toDouble());
+
+    _recordEvent(
+      eventType: 'video_temporal_qa',
+      payload: {
+        'question': question,
+        'scene_id': matchedScene.sceneId,
+        'start_ms': startMs,
+        'end_ms': endMs,
+      },
+    );
+    notifyListeners();
+  }
+
+  String _formatMs(int ms) {
+    final m = ms ~/ 60000;
+    final s = (ms % 60000) ~/ 1000;
+    final frac = ms % 1000;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}.${frac.toString().padLeft(3, '0')}';
+  }
+
+  void updateVideoSynthesisConfig({
+    String? prompt,
+    String? motion,
+    double? durationSecs,
+    int? width,
+    int? height,
+    bool? generateAudio,
+  }) {
+    _videoSynthesisConfig = VideoSynthesisConfigContract(
+      prompt: prompt ?? _videoSynthesisConfig.prompt,
+      motion: motion ?? _videoSynthesisConfig.motion,
+      durationSecs: durationSecs ?? _videoSynthesisConfig.durationSecs,
+      width: width ?? _videoSynthesisConfig.width,
+      height: height ?? _videoSynthesisConfig.height,
+      generateAudio: generateAudio ?? _videoSynthesisConfig.generateAudio,
+      fps: _videoSynthesisConfig.fps,
+      seed: _videoSynthesisConfig.seed,
+    );
+    notifyListeners();
+  }
+
+  Future<void> synthesizeVideo({bool simulateTicks = false}) async {
+    if (_videoSynthesisConfig.prompt.trim().isEmpty) {
+      _videoErrorMessage = 'Please enter a video prompt.';
+      notifyListeners();
+      return;
+    }
+
+    _videoErrorMessage = null;
+    _isSynthesizingVideo = true;
+    _videoSynthesisProgress = 0.0;
+    notifyListeners();
+
+    final steps = 10;
+    for (int s = 1; s <= steps; s++) {
+      if (simulateTicks) {
+        await Future.delayed(const Duration(milliseconds: 15));
+      }
+      _videoSynthesisProgress = s / steps;
+      notifyListeners();
+    }
+
+    final totalFrames =
+        (_videoSynthesisConfig.durationSecs * _videoSynthesisConfig.fps).round();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final sha256 = 'syn${now.toRadixString(16).padLeft(61, 'v')}';
+
+    final meta = VideoMetadataContract(
+      containerFormat: 'raw_frames',
+      codec: 'raw_rgb',
+      width: _videoSynthesisConfig.width,
+      height: _videoSynthesisConfig.height,
+      durationSecs: _videoSynthesisConfig.durationSecs,
+      fps: _videoSynthesisConfig.fps,
+      totalFrames: totalFrames,
+      hasAudio: _videoSynthesisConfig.generateAudio,
+      audioChannels: 1,
+      audioSampleRate: 16000,
+      fileSizeBytes: _videoSynthesisConfig.width *
+          _videoSynthesisConfig.height *
+          3 *
+          totalFrames,
+      sha256Hash: sha256,
+    );
+
+    final keyframes = [
+      VideoFrameContract(
+        frameIndex: 0,
+        timestampMs: 0,
+        width: _videoSynthesisConfig.width,
+        height: _videoSynthesisConfig.height,
+        isKeyframe: true,
+        sceneId: 1,
+        luminanceMean: 0.48,
+        sha256: 'syn_kf0_$sha256',
+      ),
+      VideoFrameContract(
+        frameIndex: totalFrames ~/ 2,
+        timestampMs: ((_videoSynthesisConfig.durationSecs * 500)).round(),
+        width: _videoSynthesisConfig.width,
+        height: _videoSynthesisConfig.height,
+        isKeyframe: true,
+        sceneId: 1,
+        luminanceMean: 0.52,
+        sha256: 'syn_kfmid_$sha256',
+      ),
+      VideoFrameContract(
+        frameIndex: totalFrames - 1,
+        timestampMs: ((_videoSynthesisConfig.durationSecs * 1000)).round(),
+        width: _videoSynthesisConfig.width,
+        height: _videoSynthesisConfig.height,
+        isKeyframe: true,
+        sceneId: 1,
+        luminanceMean: 0.55,
+        sha256: 'syn_kflast_$sha256',
+      ),
+    ];
+
+    _activeSynthesizedVideo = SynthesizedVideoContract(
+      metadata: meta,
+      keyframes: keyframes,
+      videoBytesBase64: 'UkFXVgEAA...',
+      hasAudio: _videoSynthesisConfig.generateAudio,
+    );
+
+    _isSynthesizingVideo = false;
+    _recordEvent(
+      eventType: 'video_synthesis_completed',
+      payload: {
+        'prompt': _videoSynthesisConfig.prompt,
+        'motion': _videoSynthesisConfig.motion,
+        'sha256': sha256,
+        'duration_secs': _videoSynthesisConfig.durationSecs,
+      },
+    );
+    notifyListeners();
+  }
+
+  void setSelectedWorkflowPreset(String preset) {
+    _selectedWorkflowPreset = preset;
+    notifyListeners();
+  }
+
+  Future<void> executeMediaWorkflow({bool simulateTicks = false}) async {
+    _isExecutingWorkflow = true;
+    _videoErrorMessage = null;
+    notifyListeners();
+
+    final nodes = <WorkflowNodeContract>[
+      const WorkflowNodeContract(
+        id: 'llm_scriptwriter',
+        name: 'LLM Storyboard Director',
+        nodeType: 'llm_prompt',
+        status: 'running',
+        durationMs: 0,
+        outputSummary: '',
+      ),
+      const WorkflowNodeContract(
+        id: 'image_concept',
+        name: 'Concept Artist (ImageGen)',
+        nodeType: 'image_gen',
+        status: 'pending',
+        durationMs: 0,
+        outputSummary: '',
+      ),
+      const WorkflowNodeContract(
+        id: 'tts_voiceover',
+        name: 'Voiceover Synthesis (TTS)',
+        nodeType: 'speech_tts',
+        status: 'pending',
+        durationMs: 0,
+        outputSummary: '',
+      ),
+      const WorkflowNodeContract(
+        id: 'music_soundtrack',
+        name: 'Soundtrack Composer (Music)',
+        nodeType: 'music_gen',
+        status: 'pending',
+        durationMs: 0,
+        outputSummary: '',
+      ),
+      const WorkflowNodeContract(
+        id: 'video_animator',
+        name: 'Temporal Scene Animator (Video)',
+        nodeType: 'video_synthesis',
+        status: 'pending',
+        durationMs: 0,
+        outputSummary: '',
+      ),
+      const WorkflowNodeContract(
+        id: 'av_muxer',
+        name: 'Multimedia Multiplexer (Mux)',
+        nodeType: 'audio_video_mux',
+        status: 'pending',
+        durationMs: 0,
+        outputSummary: '',
+      ),
+    ];
+
+    _activeWorkflowResult = WorkflowExecutionResultContract(
+      graphId: 'multimodal_cinematic_dag',
+      totalLatencyMs: 0,
+      nodeTelemetry: List.from(nodes),
+    );
+    notifyListeners();
+
+    // Step-by-step sequential execution of DAG nodes
+    final summaries = [
+      'Generated 4-beat cinematic screenplay with dialogue tokens.',
+      'Generated 64x64 keyframe artboard with dramatic lighting.',
+      'Synthesized 16kHz speech voiceover waveform (Onyx voice).',
+      'Composed epic ambient background chord soundtrack in C Major.',
+      'Synthesized 30 temporal video frames with PanRight camera motion.',
+      'Multiplexed video, voice, and music streams into output package.',
+    ];
+
+    for (int i = 0; i < nodes.length; i++) {
+      if (simulateTicks) {
+        await Future.delayed(const Duration(milliseconds: 20));
+      }
+
+      final updatedTelemetry = <WorkflowNodeContract>[];
+      for (int j = 0; j < nodes.length; j++) {
+        if (j < i) {
+          updatedTelemetry.add(WorkflowNodeContract(
+            id: nodes[j].id,
+            name: nodes[j].name,
+            nodeType: nodes[j].nodeType,
+            status: 'completed',
+            durationMs: (j + 1) * 25,
+            outputSummary: summaries[j],
+          ));
+        } else if (j == i) {
+          updatedTelemetry.add(WorkflowNodeContract(
+            id: nodes[j].id,
+            name: nodes[j].name,
+            nodeType: nodes[j].nodeType,
+            status: 'running',
+            durationMs: 15,
+            outputSummary: 'Processing tensors...',
+          ));
+        } else {
+          updatedTelemetry.add(WorkflowNodeContract(
+            id: nodes[j].id,
+            name: nodes[j].name,
+            nodeType: nodes[j].nodeType,
+            status: 'pending',
+            durationMs: 0,
+            outputSummary: '',
+          ));
+        }
+      }
+
+      _activeWorkflowResult = WorkflowExecutionResultContract(
+        graphId: 'multimodal_cinematic_dag',
+        totalLatencyMs: (i + 1) * 35,
+        nodeTelemetry: updatedTelemetry,
+      );
+      notifyListeners();
+    }
+
+    // Final completed state
+    final finalTelemetry = <WorkflowNodeContract>[];
+    for (int j = 0; j < nodes.length; j++) {
+      finalTelemetry.add(WorkflowNodeContract(
+        id: nodes[j].id,
+        name: nodes[j].name,
+        nodeType: nodes[j].nodeType,
+        status: 'completed',
+        durationMs: (j + 1) * 28,
+        outputSummary: summaries[j],
+      ));
+    }
+
+    _activeWorkflowResult = WorkflowExecutionResultContract(
+      graphId: 'multimodal_cinematic_dag',
+      totalLatencyMs: 196,
+      nodeTelemetry: finalTelemetry,
+    );
+    _isExecutingWorkflow = false;
+
+    _recordEvent(
+      eventType: 'multimodal_workflow_completed',
+      payload: {
+        'graph_id': 'multimodal_cinematic_dag',
+        'nodes_executed': nodes.length,
+        'total_latency_ms': 196,
+      },
+    );
+    notifyListeners();
+  }
 }

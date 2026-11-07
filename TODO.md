@@ -1621,3 +1621,19 @@
     * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
     * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T17:03:00+05:30] Stage 8: Cross-Platform Apps & Studio UX Polish — Entry 087 (Markdown Code Highlighting & Adaptive Studio Layouts)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 8: Cross-Platform Apps & Studio UX Polish / Phase 8.1 — Chat Workspace Polish & Studio Accessibility`
+- **Status Transitions:**
+  - `SUBPHASE-8.1.1` [`VERIFIED` & `COMPLETED`]: Enhanced `ChatWorkspaceScreen` with `_buildFormattedMessageContent` supporting Markdown code fence parsing, language header labels, monospace styling, horizontal scrolling, and a one-click "Copy Code" action for code blocks.
+  - `SUBPHASE-8.1.2` [`VERIFIED` & `COMPLETED`]: Verified adaptive responsive layouts across all 5 studio surfaces (collapsible navigation drawer on mobile `<760px` with `toggle_sessions_button`, split-pane master-detail view on desktop/tablet `≥760px`) with zero layout overflow errors.
+  - `STAGE-8-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 8 exit criteria satisfied:
+    * 321/321 Rust tests passing across all 17 workspace crates (`cargo test --workspace`).
+    * 0 Clippy lints (`cargo clippy --workspace --all-targets -- -D warnings`).
+    * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
+    * 105/105 Flutter tests passing with 91.23% line coverage and 0 static analysis issues.
+    * Full Stage 10 verification passed (`scripts/verify_stage10.py`).

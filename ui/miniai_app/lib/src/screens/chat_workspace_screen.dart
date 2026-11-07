@@ -228,6 +228,114 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
     );
   }
 
+  Widget _buildFormattedMessageContent(BuildContext context, ChatMessage message) {
+    final theme = Theme.of(context);
+    final content = message.content;
+
+    if (!content.contains('```')) {
+      return Text(
+        content,
+        style: theme.textTheme.bodyMedium,
+      );
+    }
+
+    final parts = content.split('```');
+    final widgets = <Widget>[];
+
+    for (var i = 0; i < parts.length; i++) {
+      final part = parts[i];
+      if (part.isEmpty) continue;
+
+      if (i % 2 == 1) {
+        // Code block
+        var language = '';
+        var code = part;
+        final firstNewline = part.indexOf('\n');
+        if (firstNewline != -1) {
+          language = part.substring(0, firstNewline).trim();
+          code = part.substring(firstNewline + 1);
+        }
+
+        widgets.add(
+          Container(
+            key: Key('code_block_${message.id}_$i'),
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainer,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        language.isNotEmpty ? language : 'code',
+                        style: theme.textTheme.labelSmall?.copyWith(fontFamily: 'monospace'),
+                      ),
+                      InkWell(
+                        key: Key('copy_code_${message.id}_$i'),
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: code));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Code copied to clipboard!')),
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            const Icon(Icons.copy, size: 12),
+                            const SizedBox(width: 4),
+                            Text('Copy', style: theme.textTheme.labelSmall),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Text(
+                      code.trimRight(),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else {
+        // Prose block
+        widgets.add(
+          Text(
+            part,
+            style: theme.textTheme.bodyMedium,
+          ),
+        );
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
+  }
+
   void _showExportDialog(BuildContext context) {
     final activeId = widget.controller.activeSessionId;
     if (activeId == null) return;
@@ -655,10 +763,7 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    message.content,
-                    style: theme.textTheme.bodyMedium,
-                  ),
+                  _buildFormattedMessageContent(context, message),
                   if (message.citations.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Wrap(

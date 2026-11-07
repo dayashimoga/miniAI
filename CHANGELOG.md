@@ -1140,3 +1140,14 @@
   - Added lightweight 95 MB `SmolLM2 135M Instruct (GGUF Q4)` starter model manifest for rapid local evaluation.
   - Decoupled public open-weight downloads from outbound privacy barriers with explicit user confirmation.
   - Verified 100% test pass rate across Rust workspace (321/321) and Flutter (105/105).
+
+
+---
+
+## [2026-11-07T17:03:00+05:30] — Stage 8 Sign-Off: Markdown Code Highlighting & Adaptive Studio Layouts
+- **Action:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase / Subphase:** `Stage 8 / Phase 8.1 / Subphases 8.1.1 & 8.1.2`
+- **Summary:**
+  - Implemented `_buildFormattedMessageContent` in `ChatWorkspaceScreen` rendering Markdown code blocks with syntax styling, language tag headers, and one-click "Copy Code" buttons.
+  - Verified cross-platform adaptive layouts (collapsible mobile navigation drawer vs desktop split-pane layout) across mobile, tablet, and desktop viewports.
+  - Verified 100% test pass rate across Rust workspace (321/321) and Flutter (105/105, 0 analyzer issues).

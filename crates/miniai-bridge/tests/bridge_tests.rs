@@ -113,6 +113,62 @@ fn test_bridge_run_doctor() {
 }
 
 #[test]
+fn test_bridge_telemetry_and_model_unloading() {
+    let engine = BridgeEngine::new_in_memory().expect("in-memory engine");
+
+    // 1. Initial telemetry before any chat
+    let res = engine.dispatch(BridgeRequest::GetTelemetry);
+    assert!(res.success);
+    let telem = res.data.unwrap();
+    assert_eq!(telem["active_model"], serde_json::Value::Null);
+    assert_eq!(telem["total_chat_requests"], 0);
+
+    // 2. Execute chat -> sets active model and increments telemetry
+    let chat_res = engine.dispatch(BridgeRequest::ExecuteChat {
+        session_id: "obs-session-01".to_string(),
+        prompt: "measure throughput and latency".to_string(),
+        model_id: Some("llama-3.2-1b-instruct-q4".to_string()),
+    });
+    assert!(chat_res.success);
+    let chat_data = chat_res.data.unwrap();
+    assert!(chat_data["telemetry"]["ttft_ms"].as_f64().unwrap() > 0.0);
+    assert!(
+        chat_data["telemetry"]["tokens_per_second"]
+            .as_f64()
+            .unwrap()
+            > 0.0
+    );
+
+    // 3. Verify telemetry updated
+    let telem2 = engine.dispatch(BridgeRequest::GetTelemetry).data.unwrap();
+    assert_eq!(telem2["active_model"], "llama-3.2-1b-instruct-q4");
+    assert_eq!(telem2["total_chat_requests"], 1);
+    assert_eq!(telem2["total_tokens_generated"], 25);
+
+    // 4. Unload model
+    let unload_res = engine.dispatch(BridgeRequest::UnloadModel { model_id: None });
+    assert!(unload_res.success);
+    let unload_data = unload_res.data.unwrap();
+    assert_eq!(unload_data["status"], "unloaded");
+    assert!(unload_data["freed_memory_mb"].as_f64().unwrap() > 0.0);
+
+    // 5. Verify telemetry shows unloaded
+    let telem3 = engine.dispatch(BridgeRequest::GetTelemetry).data.unwrap();
+    assert_eq!(telem3["active_model"], serde_json::Value::Null);
+}
+
+#[test]
+fn test_bridge_export_redacted_diagnostics() {
+    let engine = BridgeEngine::new_in_memory().expect("in-memory engine");
+    let resp = engine.dispatch(BridgeRequest::ExportRedactedDiagnostics);
+    assert!(resp.success);
+    let data = resp.data.expect("diagnostic bundle");
+    assert!(data.get("timestamp").is_some());
+    assert!(data.get("platform").is_some());
+    assert_eq!(data["privacy_mode"], "Local-Only Enforced");
+}
+
+#[test]
 fn test_c_ffi_lifecycle_and_dispatch() {
     unsafe {
         // 1. Initialize with in-memory storage (NULL path)

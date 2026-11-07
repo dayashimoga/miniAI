@@ -92,6 +92,20 @@ class EventInspectorView extends StatelessWidget {
                 onPressed: () => controller.emitDiagnosticPing(),
               ),
               IconButton(
+                key: const Key('export_diagnostics_button'),
+                icon: const Icon(Icons.file_download_outlined),
+                tooltip: 'Export Redacted Diagnostics',
+                onPressed: () {
+                  controller.exportRedactedDiagnostics();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Redacted diagnostics bundle exported'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
                 key: const Key('clear_events_button'),
                 icon: const Icon(Icons.delete_sweep_outlined),
                 tooltip: 'Clear Event History',

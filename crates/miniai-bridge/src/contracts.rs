@@ -37,6 +37,18 @@ pub enum BridgeRequest {
 
     #[serde(rename = "run_doctor")]
     RunDoctor,
+
+    #[serde(rename = "get_telemetry")]
+    GetTelemetry,
+
+    #[serde(rename = "unload_model")]
+    UnloadModel {
+        #[serde(default)]
+        model_id: Option<String>,
+    },
+
+    #[serde(rename = "export_redacted_diagnostics")]
+    ExportRedactedDiagnostics,
 }
 
 fn default_audit_limit() -> usize {

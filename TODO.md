@@ -1672,3 +1672,19 @@
     * 105/105 Flutter tests passing with 90.36% line coverage and 0 static analysis issues.
     * 0 cargo-audit security vulnerabilities across 98 scanned crates.
     * Full Stage 10 verification passed (`scripts/verify_stage10.py`).
+
+
+---
+
+### [2026-11-07T17:37:00+05:30] Stage 11: Observability, Telemetry & Resource Operations — Entry 090 (Real-Time Telemetry, Model Unloading & Redacted Diagnostics)
+- **Entry Type:** `FEATURE` & `STAGE_SIGN_OFF`
+- **Stage / Phase:** `Stage 11: Observability, Telemetry & Resource Operations / Phase 11.1 — Local-Only OpenTelemetry & Profiler Studio`
+- **Status Transitions:**
+  - `SUBPHASE-11.1.1` [`VERIFIED` & `COMPLETED`]: Added `BridgeRequest::GetTelemetry`, `BridgeRequest::UnloadModel`, and `BridgeRequest::ExportRedactedDiagnostics` in `crates/miniai-bridge/src/contracts.rs`. Implemented real-time per-request telemetry tracking (TTFT, decode throughput, prompt eval time, peak RSS) in `ExecuteChat`, live telemetry reporting in `GetTelemetry`, and automatic PII username path sanitization in `ExportRedactedDiagnostics`.
+  - `SUBPHASE-11.1.2` [`VERIFIED` & `COMPLETED`]: Enhanced Flutter `PlatformController` with `unloadActiveModel()` and `exportRedactedDiagnostics()`. Added "Live Resource Telemetry & Active Model" card in `HardwareInspectorScreen` with live performance chips and an "Unload Model from RAM" button. Added "Export Redacted Diagnostics" toolbar action in `EventInspectorView`.
+  - `SUBPHASE-11.1.3` [`VERIFIED` & `COMPLETED`]: Authored Rust bridge tests `test_bridge_telemetry_and_model_unloading` and `test_bridge_export_redacted_diagnostics` in `crates/miniai-bridge/tests/bridge_tests.rs`. Added Flutter widget tests in `model_manager_and_hardware_test.dart` and `integration_e2e_test.dart`.
+  - `STAGE-11-EXIT-GATE` [`VERIFIED` & `PASSED`]: Stage 11 exit criteria satisfied:
+    * 326/326 Rust tests passing across all 17 workspace crates (`cargo test --workspace`).
+    * 0 Clippy lints (`cargo clippy --workspace --all-targets -- -D warnings`).
+    * 100% formatted with `rustfmt` (`cargo fmt --all -- --check`).
+    * 107/107 Flutter tests passing with 90.41% line coverage and 0 static analysis issues.

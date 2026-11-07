@@ -217,6 +217,37 @@ void main() {
       expect(find.textContaining('REJECTED'), findsOneWidget);
     });
 
+    testWidgets('HardwareInspectorScreen renders live telemetry and unloads active model from RAM',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HardwareInspectorScreen(controller: controller),
+        ),
+      );
+
+      // Verify live telemetry card
+      expect(find.byKey(const Key('live_telemetry_card')), findsOneWidget);
+      expect(find.text('Live Resource Telemetry & Active Model'), findsOneWidget);
+      expect(find.text('llama-3.2-1b-instruct-q4'), findsOneWidget);
+      expect(find.byKey(const Key('unload_model_button')), findsOneWidget);
+      expect(find.textContaining('Peak Memory:'), findsOneWidget);
+      expect(find.textContaining('Avg TTFT:'), findsOneWidget);
+      expect(find.textContaining('Throughput:'), findsOneWidget);
+
+      // Unload active model from RAM
+      await tester.tap(find.byKey(const Key('unload_model_button')));
+      await tester.pumpAndSettle();
+
+      // Verify model unloaded and memory freed
+      expect(find.text('None (Memory Unloaded)'), findsOneWidget);
+      expect(find.byKey(const Key('unload_model_button')), findsNothing);
+      expect(find.textContaining('38.0 MB'), findsOneWidget);
+    });
+
     testWidgets('ShellScreen navigates to Models (tab 3) and Hardware (tab 4)',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1024, 768);

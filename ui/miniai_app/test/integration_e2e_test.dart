@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:miniai_app/main.dart';
 import 'package:miniai_app/src/controllers/platform_controller.dart';
 import 'package:miniai_app/src/models/system_contracts.dart';
+import 'package:miniai_app/src/screens/event_inspector_view.dart';
 import 'package:miniai_app/src/services/ipc_client.dart';
 import 'package:miniai_app/src/services/settings_store.dart';
 
@@ -180,6 +181,42 @@ void main() {
       // Close drawer by tapping outside
       await tester.tapAt(const Offset(20, 20));
       await tester.pumpAndSettle();
+    });
+
+    testWidgets('EventInspectorView exports redacted diagnostics bundle',
+        (WidgetTester tester) async {
+      final store = InMemorySettingsStore();
+      final controller = PlatformController(settingsStore: store);
+
+      controller.addEvent(
+        const EventEnvelope(
+          sequence: 1,
+          timestampUtc: '2026-11-05T13:00:00Z',
+          eventType: 'diagnostic_alert',
+          payload: {
+            'message': 'Telemetry memory probe nominal',
+          },
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EventInspectorView(controller: controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('export_diagnostics_button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('export_diagnostics_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Redacted diagnostics bundle exported'), findsOneWidget);
+      expect(
+        controller.events.any((e) => e.eventType == 'diagnostic_bundle_exported'),
+        isTrue,
+      );
     });
 
     test('Offline resilience: functions completely disconnected from network',

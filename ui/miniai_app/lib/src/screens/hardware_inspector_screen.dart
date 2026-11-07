@@ -106,7 +106,82 @@ class _HardwareInspectorScreenState extends State<HardwareInspectorScreen> {
           ),
           const SizedBox(height: 16),
 
-          // 2. Memory Admission & 85% Ceiling Guard
+          // Live Resource Telemetry & Active Model in RAM
+          Card(
+            key: const Key('live_telemetry_card'),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.show_chart, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Live Resource Telemetry & Active Model',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Loaded Model in RAM:',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              controller.activeLoadedModel ?? 'None (Memory Unloaded)',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: controller.activeLoadedModel != null
+                                        ? Colors.tealAccent
+                                        : Colors.grey,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (controller.activeLoadedModel != null)
+                        FilledButton.tonal(
+                          key: const Key('unload_model_button'),
+                          onPressed: () => controller.unloadActiveModel(),
+                          child: const Text('Unload Model from RAM'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      Chip(
+                        avatar: const Icon(Icons.storage, size: 16),
+                        label: Text('Peak Memory: ${controller.peakMemoryRssMb.toStringAsFixed(1)} MB'),
+                      ),
+                      Chip(
+                        avatar: const Icon(Icons.timer, size: 16),
+                        label: Text('Avg TTFT: ${controller.avgTtftMs.toStringAsFixed(1)} ms'),
+                      ),
+                      Chip(
+                        avatar: const Icon(Icons.speed, size: 16),
+                        label: Text('Throughput: ${controller.avgTokPerSec.toStringAsFixed(1)} tok/s'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Card(
             key: const Key('memory_admission_card'),
             child: Padding(

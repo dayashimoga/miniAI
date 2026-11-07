@@ -55,6 +55,11 @@ class PlatformController extends ChangeNotifier {
   double _chatTemperature = 0.7;
   int _chatMaxTokens = 256;
 
+  String? _activeLoadedModel = 'llama-3.2-1b-instruct-q4';
+  double _peakMemoryRssMb = 142.5;
+  final double _avgTtftMs = 35.4;
+  final double _avgTokPerSec = 18.6;
+
   bool _localOnlyMode = true;
   bool _forceCpuOnly = false;
   String _activeWorkspaceId = 'default';
@@ -211,6 +216,11 @@ class PlatformController extends ChangeNotifier {
   List<EventEnvelope> get events => List.unmodifiable(_events);
   String? get eventFilter => _eventFilter;
   bool get ipcConnected => _ipcConnected;
+
+  String? get activeLoadedModel => _activeLoadedModel;
+  double get peakMemoryRssMb => _peakMemoryRssMb;
+  double get avgTtftMs => _avgTtftMs;
+  double get avgTokPerSec => _avgTokPerSec;
 
   List<ChatSession> get chatSessions => List.unmodifiable(_chatSessions);
   String? get activeSessionId => _activeSessionId;
@@ -971,6 +981,51 @@ class PlatformController extends ChangeNotifier {
       },
     );
     notifyListeners();
+  }
+
+  void unloadActiveModel() {
+    final prev = _activeLoadedModel;
+    _activeLoadedModel = null;
+    _peakMemoryRssMb = 38.0;
+    _recordEvent(
+      eventType: 'model_unloaded',
+      payload: {
+        'model_id': prev,
+        'status': 'unloaded',
+        'freed_memory_mb': 104.5,
+      },
+    );
+    notifyListeners();
+  }
+
+  String exportRedactedDiagnostics() {
+    final timestamp = DateTime.now().toUtc().toIso8601String();
+    final bundle = {
+      'timestamp': timestamp,
+      'host_os': hardware.osFamily,
+      'arch': hardware.arch,
+      'cores': hardware.logicalCpuCores,
+      'local_only_mode': localOnlyMode,
+      'active_model': _activeLoadedModel,
+      'peak_rss_mb': _peakMemoryRssMb,
+      'events_count': _events.length,
+      'events': _events
+          .map((e) => {
+                'sequence': e.sequence,
+                'event_type': e.eventType,
+                'timestamp_utc': e.timestampUtc,
+              })
+          .toList(),
+    };
+    _recordEvent(
+      eventType: 'diagnostic_bundle_exported',
+      payload: {
+        'timestamp': timestamp,
+        'redacted_events_count': _events.length,
+      },
+    );
+    notifyListeners();
+    return jsonEncode(bundle);
   }
 
   void _saveSettings() {

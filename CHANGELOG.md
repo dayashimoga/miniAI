@@ -651,3 +651,28 @@
   - Implemented `SpeechAsrEngine` with deterministic acoustic energy mapping to phonetic tokens, timestamped speech segments (`start_secs`, `end_secs`, `text`, `confidence`), and token alignment.
   - Implemented `SpeechAsrAdapter` implementing `ModalityAdapter` with `Modality::SpeechAsr` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 validation, and health checks.
   - Added 5 test suites (26 unit and integration tests) all passing, 0 clippy warnings, and clean formatting.
+
+
+---
+
+## [2026-11-07T06:52:00+05:30] — Stage 7 Subphase 7.2.1 In Progress (`v0.7.2-stage7.sub7.2.1.init`)
+- **Action:** `SUBPHASE_INITIATED`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.2 / Subphase 7.2.1 — Neural TTS & Offline Voice Loop`
+- **Summary:**
+  - Initiated Subphase 7.2.1 in `crates/miniai-speech-tts`.
+  - Creating lossless RIFF/WAVE encoder (16-bit PCM / 32-bit float, 22.05 kHz / 24 kHz), text normalizer and phoneme chunker ($\le 4096$ chars), acoustic formant synthesizer with voice profiles (`Alloy`, `Echo`, `Fable`, `Onyx`, `Nova`, `Shimmer`), `SpeechTtsAdapter` implementing `ModalityAdapter` with `Modality::SpeechTts` on CPU, and the unified offline voice conversation loop (`ASR -> LLM -> TTS`).
+
+
+---
+
+## [2026-11-07T07:00:00+05:30] — Stage 7 Subphase 7.2.1 Verified (`v0.7.2-stage7.sub7.2.1`)
+- **Action:** `SUBPHASE_VERIFIED`
+- **Stage / Phase / Subphase:** `Stage 7 / Phase 7.2 / Subphase 7.2.1 — Neural TTS & Offline Voice Loop`
+- **Summary:**
+  - Implemented `crates/miniai-speech-tts` workspace crate with `#![forbid(unsafe_code)]`.
+  - Implemented `WavEncoder` producing compliant standard RIFF/WAVE 16-bit signed PCM audio at 22.05 kHz and 24 kHz mono with sample clamping, verified via `AudioSanitizer` in `miniai-speech-asr`.
+  - Implemented `TextNormalizer` providing text bounds enforcement ($\le 4096$ chars per segment), word expansion for numbers (up to 999,999) and symbols (`$`, `%`, `&`, `+`, `@`), sentence chunking, and acoustic phonetic tokenization.
+  - Implemented `SpeechTtsEngine` featuring 6 distinct voice profiles (`Alloy`, `Echo`, `Fable`, `Onyx`, `Nova`, `Shimmer`) plus custom configurations, formant resonance filters ($F_1, F_2, F_3$), harmonic overtones, filtered noise for unvoiced consonants, plosive transient bursts, continuous phase accumulator, ADSR envelope shaping, and soft-saturation limiter.
+  - Implemented `SpeechTtsAdapter` conforming to `ModalityAdapter` with `Modality::SpeechTts` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 verification, and health reporting.
+  - Implemented `VoiceConversationLoop` linking `SpeechAsrAdapter`, `LlmEngine`, and `SpeechTtsAdapter` into an end-to-end offline voice interaction loop with full turnaround latency profiling and cooperative cancellation.
+  - Authored 5 test suites (27 tests) in `tests/`, achieving 100% pass rate, 0 clippy warnings, and clean formatting.

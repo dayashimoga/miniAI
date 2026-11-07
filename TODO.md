@@ -969,3 +969,51 @@
     - Implemented `SpeechAsrAdapter`: implements `ModalityAdapter` with `Modality::SpeechAsr` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 verification, and live health reporting.
     - Authored 5 comprehensive test suites in `tests/`: `sanitizer_tests.rs`, `resampler_tests.rs`, `vad_tests.rs`, `engine_tests.rs`, `adapter_tests.rs` (26/26 tests passing, 0 clippy warnings, 0 fmt diffs).
 - **Next Step:** Initiate Subphase 7.2.1: Offline Neural TTS & Voice Conversation Loop (`crates/miniai-speech-tts`).
+
+
+---
+
+### [2026-11-07T06:52:00+05:30] Stage 7 — Entry 053 (Subphase 7.2.1 Initiated)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 7: Speech, Audio, TTS, ASR, Voice & Music / Phase 7.2 — Neural Text-to-Speech & Offline Voice Loop / Subphase 7.2.1`
+- **Status Transitions:**
+  - `S7-P2-SUB7.2.1` [`IN_PROGRESS`]: Initiated implementation of Neural Text-to-Speech (TTS) runtime adapter and offline voice conversation loop in `crates/miniai-speech-tts`:
+    - Create new workspace crate `crates/miniai-speech-tts` with `#![forbid(unsafe_code)]`.
+    - Implement lossless standard RIFF/WAVE encoder (`WavEncoder`):
+      - 22.05 kHz and 24 kHz mono/stereo 16-bit signed PCM and 32-bit float encoding.
+      - RIFF header, `fmt ` subchunk, `data` chunk bounds and sample clamping.
+    - Implement text normalizer, phonetic expander, and chunker (`TextNormalizer`):
+      - Bound enforcement: max 4096 chars per segment.
+      - Number expansion, symbol expansion, and sentential clause boundary preservation.
+      - Acoustic tokenization and vowel/consonant phonetic classification.
+    - Implement neural acoustic formant synthesizer (`SpeechTtsEngine`):
+      - Preset voice profiles (`Alloy`, `Echo`, `Fable`, `Onyx`, `Nova`, `Shimmer`) with distinct pitch $f_0$, formant resonances ($F_1, F_2, F_3$), and harmonic overtone structures.
+      - Unvoiced noise synthesis for fricatives and plosive burst envelopes.
+      - Parameter control: speed (0.5..=2.0), pitch semitones (-12.0..=12.0), volume gain (0.0..=2.0).
+      - ADSR envelope shaping, soft saturation limiter, deterministic PRNG seed, and cooperative cancellation.
+    - Implement `SpeechTtsAdapter`:
+      - Conforms to `ModalityAdapter` with `Modality::SpeechTts` on CPU (`AcceleratorBackend::Cpu`).
+      - Cryptographic SHA-256 weights loading verification and live health reporting.
+    - Implement Offline Voice Conversation Loop (`VoiceConversationLoop` / `VoiceSession`):
+      - Full offline roundtrip: `ASR (User Speech) -> LLM (Text Generation) -> TTS (Audio Synthesis)`.
+      - Detailed turnaround latency metrics (ASR, LLM TTFT, LLM total, TTS, total roundtrip).
+      - Interruptibility and cancellation support.
+    - Author comprehensive unit, boundary, and contract test suites.
+- **Next Step:** Implement crate files and test suites in `crates/miniai-speech-tts`.
+
+
+---
+
+### [2026-11-07T07:00:00+05:30] Stage 7 — Entry 054 (Subphase 7.2.1 Verified)
+- **Entry Type:** `STATUS_TRANSITION`
+- **Stage / Phase:** `Stage 7: Speech, Audio, TTS, ASR, Voice & Music / Phase 7.2 — Neural Text-to-Speech & Offline Voice Loop / Subphase 7.2.1`
+- **Status Transitions:**
+  - `S7-P2-SUB7.2.1` [`VERIFIED`]: Successfully implemented and verified Neural Text-to-Speech (TTS) runtime adapter and offline voice conversation loop in `crates/miniai-speech-tts`:
+    - Created `crates/miniai-speech-tts` workspace crate with `#![forbid(unsafe_code)]`.
+    - Implemented `WavEncoder`: lossless RIFF/WAVE encoding for 16-bit signed PCM at 22.05 kHz and 24 kHz mono with sample clamping, verified against `AudioSanitizer` from `miniai-speech-asr`.
+    - Implemented `TextNormalizer`: text chunking adhering strictly to $\le 4096$ chars per segment, number expansion (0 to 999,999 into English words), currency (`$`), percentage (`%`), and symbol expansion, plus phonetic tokenization with vowel formant classifications, unvoiced fricatives, plosives, and sentence pauses.
+    - Implemented `SpeechTtsEngine`: acoustic formant synthesis with 6 preset voice profiles (`Alloy`, `Echo`, `Fable`, `Onyx`, `Nova`, `Shimmer`) plus custom voices, 6-harmonic voiced overtones with $F_1, F_2, F_3$ formant resonance filtering, filtered noise for unvoiced consonants, plosive transient bursts, ADSR envelope shaping, soft-saturation limiter, deterministic PRNG reproducibility, and cooperative cancellation.
+    - Implemented `SpeechTtsAdapter`: conforms to `ModalityAdapter` with `Modality::SpeechTts` on CPU (`AcceleratorBackend::Cpu`), weights loading with SHA-256 verification, and live health reporting.
+    - Implemented `VoiceConversationLoop`: unified offline voice pipeline orchestrating `ASR (User Speech) -> LLM (Text Generation) -> TTS (Audio Synthesis)` with detailed latency profiling (`asr_latency_ms`, `llm_ttft_ms`, `llm_total_latency_ms`, `tts_latency_ms`, `total_turnaround_ms`) and interruptibility.
+    - Authored 5 test suites (27 tests) in `tests/`: `wav_tests.rs`, `normalizer_tests.rs`, `synthesizer_tests.rs`, `adapter_tests.rs`, and `voice_loop_tests.rs` (27/27 tests passing, 0 clippy warnings, 0 fmt diffs).
+- **Next Step:** Initiate Subphase 7.3.1: Music Generation & Flutter Sound Studio (`crates/miniai-music` and `ui/miniai_app`).

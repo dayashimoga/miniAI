@@ -11,6 +11,7 @@ members = [
     "crates/miniai-vision",
     "crates/miniai-imagegen",
     "crates/miniai-speech-asr",
+    "crates/miniai-speech-tts",
 ]
 
 [workspace.package]

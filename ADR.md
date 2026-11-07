@@ -225,3 +225,39 @@ This document records binding architectural decisions for **MiniAI**, including 
     - `sound_studio_screen.dart`: Tab 9 in `ShellScreen` with dual tabs for Speech & Voice Loop and Music Studio & Soundstage.
 - **Consequences:**
   Establishes complete local-first speech and audio capability on CPU without external cloud dependencies, eliminates cloud audio latency and eavesdropping risks, achieves sub-second turnarounds for voice interactions on standard hardware, and ensures zero mock policy across all audio modalities.
+
+
+---
+
+## ADR-013: Video Understanding, Generative Motion Synthesis, and Composable Multimodal DAG Orchestration Architecture
+- **Date:** `2026-11-07`
+- **Status:** `ACCEPTED`
+- **Context:**
+  Stage 8 delivers Video Understanding, Generative Video Motion Synthesis, and Composable Multimodal DAG Pipeline Orchestration (`Modality::Video`), completing all 7 primary modalities of MiniAI under universal CPU-first baseline execution (`AcceleratorBackend::Cpu`) and Local-Only Privacy Mode:
+  1. Video Container Sanitization & Security Defenses: Inspection of binary box headers for MP4 (`ftyp` atoms: `isom`, `avc1`, `hvc1`, `av01`, `vp09`), WebM (EBML master element `0x1A45DFA3` with `VP8`, `VP9`, `AV1`, `Vorbis`, `Opus`), and `RAWV` frame streams; validation of strict file size bounds ($\le 100\text{ MB}$), duration bounds ($\le 300\text{s}$), spatial dimensions ($\le 1920\times 1080$), and frame rate bounds ($1..=60\text{ fps}$); calculation of deterministic streaming SHA-256 digest to mitigate zip bombs, malformed atoms, and resource exhaustion.
+  2. Bounded Frame Memory Management: CPU-based video sampling can easily exhaust system RAM (e.g., 24 frames of 1080p RGBA requires >190 MB). To ensure stability on constrained host environments, a shared bounded frame buffer pool (`FrameBufferPool`) strictly caps resident frame memory (default 64 MB), enforces zero-leak buffer recycling on frame drop, and provides automatic memory shrinkage.
+  3. RAII Temporary Frame Workspaces: Atomic creation of isolated temporary frame cache directories (`AtomicWorkspaceManager`) ensuring automatic filesystem cleanup on drop or cancellation without leaking orphan temporary files.
+  4. Frame Extraction & Adaptive Keyframe Sampling: Multiple sampling strategies including uniform interval sampling, uniform duration sampling, scene boundary delta detection via downsampled 1024-byte frame signatures and normalized L1 pixel difference, and adaptive dynamic keyframe extraction recycling candidate frame buffers back to the memory pool.
+  5. Audio Demuxing: Demuxing embedded video audio streams into standard 16-bit PCM WAV containers directly verified against `AudioSanitizer`.
+  6. Temporal Scene Segmentation & Grounded Video QA: Classification of temporal scenes into 5 archetypes (`EstablishingShot`, `DynamicAction`, `DialogueCloseUp`, `LandscapePan`, `InteriorDetail`), camera and subject motion detection (`CameraPan`, `RapidMotion`, `SceneTransition`, `StaticHold`), narrative video summary synthesis, and millisecond-exact grounded temporal VQA (`start_ms`, `end_ms`, supporting scene and keyframes).
+  7. Local Video Synthesis: Text-to-video generative keyframe animation, 8 camera motion profiles (`Static`, `PanLeft`, `PanRight`, `ZoomIn`, `ZoomOut`, `TiltUp`, `TiltDown`, `Orbit`), image-to-video motion interpolation, two-keyframe morph interpolation, synchronized audio track generation (verified via `AudioSanitizer`), and `RAWV` video packaging.
+  8. Composable Multimodal DAG Workflows: A directed acyclic graph (`MediaWorkflowGraph`) chaining heterogeneous modality nodes (`LlmPrompt`, `VisionAnalyze`, `ImageGen`, `SpeechTts`, `SpeechAsr`, `MusicGen`, `VideoSynthesis`, `VideoAnalysis`, `AudioVideoMux`, `Custom`); topological sorting via Kahn's algorithm with cycle detection (`VideoError::WorkflowCycleDetected`); and an asynchronous execution engine (`WorkflowExecutor`) with typed data passing (`WorkflowData`), per-node execution status and duration telemetry, and cooperative cancellation.
+  9. Flutter Video Studio & Workflow Monitor: Dual-tab interface in `VideoStudioScreen` (Tab 10 in `ShellScreen` across desktop `NavigationRail` and mobile `NavigationBar`):
+     - Tab 1: Video Timeline & Scene QA (video player card, millisecond scrubber, play/pause controls, prev/next keyframe buttons, keyframe gallery strip, temporal scene segments card with action chips, and grounded temporal video QA).
+     - Tab 2: Video Synthesis & Multimodal DAG Workflows (generative video synthesis form with prompt, camera motion profile, duration slider, resolution selector, and DAG workflow orchestrator monitor showing real-time multi-modality node execution).
+- **Decision:**
+  - Create `#![forbid(unsafe_code)]` crate `crates/miniai-video` implementing `ModalityAdapter` (`Modality::Video`):
+    - `sanitizer.rs`: `VideoSanitizer` inspecting MP4, WebM, and RAWV headers, validating bounds, and computing SHA-256 digests.
+    - `buffer_pool.rs`: `FrameBufferPool` and `SharedFrameBufferPool` providing memory-bounded buffer recycling with zero pool leakage.
+    - `extractor.rs`: `AtomicWorkspaceManager` and `FrameExtractor` supporting uniform interval/duration, scene boundary change detection, and adaptive dynamic keyframes.
+    - `demuxer.rs`: `AudioDemuxer` extracting standard WAV PCM audio streams from multimedia containers.
+    - `engine.rs`: `VideoEngine` performing scene classification, motion classification, narrative summary, and grounded temporal VQA.
+    - `synthesis.rs`: `VideoSynthesisEngine` providing local generative text-to-video animation, camera motion profiles, image-to-video motion interpolation, and synchronized audio generation.
+    - `workflow.rs`: `MediaWorkflowGraph` and `WorkflowExecutor` providing composable multimodal DAG execution with topological sorting, cycle detection, typed data passing, and duration telemetry.
+    - `adapter.rs`: `VideoAdapter` implementing `ModalityAdapter` (`Modality::Video`) on CPU, model weights loading with SHA-256 digest validation, and extended operations for `synthesize_video` and `execute_workflow`.
+  - Extend Flutter UI under `ui/miniai_app`:
+    - `system_contracts.dart`: Contracts for `VideoMetadataContract`, `VideoFrameContract`, `SceneSegmentContract`, `ActionDetectionContract`, `VideoAnalysisContract`, `TemporalQaResultContract`, `VideoSynthesisConfigContract`, `SynthesizedVideoContract`, `WorkflowNodeContract`, and `WorkflowExecutionResultContract`.
+    - `platform_controller.dart`: State and zero-mock methods for video analysis, timeline scrubbing, temporal video QA, prompt/image video synthesis, and multimodal media DAG workflow execution.
+    - `video_studio_screen.dart`: Tab 10 in `ShellScreen` with dual tabs for Video Timeline & Scene QA and Video Synthesis & Multimodal DAG Workflows.
+- **Consequences:**
+  Completes the 7-modality architecture of MiniAI without external cloud dependencies or GPU hardware lock-in, eliminates host out-of-memory risks during high-resolution frame extraction via bounded frame memory pooling, provides mathematically verified topological DAG execution across text, vision, audio, music, and video pipelines, and guarantees local-first privacy protection with zero mock implementations across desktop and mobile platforms.

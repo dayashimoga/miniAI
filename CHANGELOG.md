@@ -800,3 +800,22 @@
   - Implemented `VideoStudioScreen` in `ui/miniai_app/lib/src/screens/video_studio_screen.dart` featuring dual tabs: Video Timeline & Scene QA (player canvas, scrubber, gallery strip, scene cards, grounded QA) and Video Synthesis & Multimodal DAG Workflows (text-to-video generation form, camera motions, and DAG node execution monitor).
   - Wired Tab 10 ('Video') into desktop `NavigationRail` and mobile `NavigationBar` in `ShellScreen`.
   - Added 18 new unit and widget tests in `ui/miniai_app/test/video_studio_test.dart`, expanding total Flutter tests to 89/89 passing with **91.84%** line coverage and 0 analyzer issues.
+
+
+---
+
+## [2026-11-07T10:32:00+05:30] — MiniAI v0.8.0 Release (`v0.8.0`)
+- **Action:** `STAGE_RELEASE_CERTIFIED`
+- **Stage:** `Stage 8: Video Understanding, Generation, Multimodal Fusion & Streaming Pipelines`
+- **Verification Tier:** `PROVEN_ON_HOST` (Windows x86_64, rustc 1.99.1, cargo 1.99.1, python 3.14.0 uv, flutter 3.32.0-0.2.pre)
+- **Summary:**
+  - **Stage 8 Officially Certified & Released as `v0.8.0`**.
+  - MiniAI now supports all 7 core modalities: LLM, Vision, Image Generation, Speech ASR, Neural TTS, Polyphonic Music, and Video Understanding/Synthesis under local-first CPU-first execution (`AcceleratorBackend::Cpu`) and default `LocalOnlyPrivacyMode = true`.
+  - Added `#![forbid(unsafe_code)]` crate `crates/miniai-video` with MP4/WebM/RAWV container sanitization, bounded memory pool (`FrameBufferPool`, 64 MB budget), RAII temporary workspace manager, frame extraction, 16-bit PCM WAV audio demuxing, temporal scene classification, camera/motion classification, and grounded temporal VQA.
+  - Implemented generative video synthesis with 8 camera motion profiles, image-to-video motion interpolation, two-keyframe morph interpolation, and synchronized audio track generation.
+  - Implemented `MediaWorkflowGraph` and `WorkflowExecutor` providing composable multimodal DAG execution with Kahn's algorithm topological sorting, cycle detection, typed data passing (`WorkflowData`), and per-node duration telemetry.
+  - Implemented `VideoStudioScreen` as Tab 10 ('Video') in `ShellScreen` with dual tabs for Video Timeline & Scene QA and Video Synthesis & Multimodal DAG Workflows.
+  - Recorded and accepted `ADR-013` in `ADR.md`.
+  - Generated master verification evidence in `docs/STAGE_8_VERIFICATION_REPORT.json` and artifact `stage_8_gate_report.md`.
+  - Independent audits conducted by `arch-security-reviewer` and `independent-qa-auditor` resulting in unanimous unconditional **`PASS`** verdicts.
+  - All test suites passing: 286/286 Rust tests (0 Clippy warnings, 0 fmt diffs), 39/39 Python tests (97.28% statement coverage), 89/89 Flutter tests (91.84% line coverage, 0 analyze issues).

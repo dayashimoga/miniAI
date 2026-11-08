@@ -1397,3 +1397,14 @@
     * Rust workspace: 347 tests passing across all 17 crates (`cargo test --workspace`), 0 clippy warnings (`-D warnings`), 0 fmt diffs.
     * Python ML: 43 tests passing with 97% statement coverage (`uv run --group dev pytest`).
     * Flutter cross-platform UI: 121 tests passing (`flutter test --coverage`) with 90.72% line coverage and 0 analyze issues.
+
+
+---
+
+## [2026-11-08T12:35:00+05:30] — Documentation: MiniAI v3.0 Comprehensive Platform Walkthrough & User Manual (v3.0.0-GA)
+- **Action:** `DOCUMENTATION` & `VERIFIED`
+- **Summary:**
+  - Published comprehensive living operational manual and architectural walkthrough in [`docs/MINIAI_V3_COMPREHENSIVE_WALKTHROUGH.md`](./docs/MINIAI_V3_COMPREHENSIVE_WALKTHROUGH.md).
+  - Outlines core pillars, C-FFI / loopback daemon IPC architecture, 7 multimodal runtimes, real neural inference, and Model Manager operation.
+  - Documents device power & thermal governor, cognitive 3-tier memory inspector, and frontier reasoning distillation pipeline.
+  - Includes CLI diagnostics guide via `miniai-daemon.exe doctor` and automated verification summary.

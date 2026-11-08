@@ -2,11 +2,83 @@ use sha2::{Digest, Sha256};
 use std::fs::OpenOptions;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use std::sync::Arc;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 use crate::error::RegistryError;
 use crate::models::{DownloadProgress, DownloadStatus, ModelManifest};
+
+/// Maximum number of HTTP redirects followed for a single artifact download.
+const MAX_REDIRECTS: usize = 8;
+
+/// Object-safe duplex stream alias covering both plain TCP and rustls TLS streams.
+trait AsyncStream: AsyncRead + AsyncWrite + Unpin + Send {}
+impl<T: AsyncRead + AsyncWrite + Unpin + Send> AsyncStream for T {}
+
+/// Minimal parsed `http(s)://host[:port]/path` target.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ParsedUrl {
+    https: bool,
+    host: String,
+    port: u16,
+    host_header: String,
+    path: String,
+}
+
+impl ParsedUrl {
+    fn parse(model_id: &str, url: &str) -> Result<Self, RegistryError> {
+        let bad = |msg: &str| RegistryError::DownloadError {
+            model_id: model_id.to_string(),
+            message: format!("{msg}: '{url}'"),
+        };
+        let (https, rest) = if let Some(r) = url.strip_prefix("https://") {
+            (true, r)
+        } else if let Some(r) = url.strip_prefix("http://") {
+            (false, r)
+        } else {
+            return Err(bad("Unsupported URL scheme"));
+        };
+        let (host_port, path) = match rest.split_once('/') {
+            Some((hp, p)) => (hp, format!("/{p}")),
+            None => (rest, "/".to_string()),
+        };
+        if host_port.is_empty() {
+            return Err(bad("Missing host in URL"));
+        }
+        let default_port = if https { 443 } else { 80 };
+        let (host, port) = match host_port.rsplit_once(':') {
+            Some((h, p)) => (
+                h.to_string(),
+                p.parse::<u16>().map_err(|_| bad("Invalid port in URL"))?,
+            ),
+            None => (host_port.to_string(), default_port),
+        };
+        Ok(Self {
+            https,
+            host,
+            port,
+            host_header: host_port.to_string(),
+            path,
+        })
+    }
+
+    /// Resolves an absolute or origin-relative `Location` header against this URL.
+    fn resolve_redirect(&self, model_id: &str, location: &str) -> Result<Self, RegistryError> {
+        if location.starts_with("http://") || location.starts_with("https://") {
+            Self::parse(model_id, location)
+        } else if location.starts_with('/') {
+            let mut next = self.clone();
+            next.path = location.to_string();
+            Ok(next)
+        } else {
+            Err(RegistryError::DownloadError {
+                model_id: model_id.to_string(),
+                message: format!("Unsupported redirect Location '{location}'"),
+            })
+        }
+    }
+}
 
 /// Resumable HTTP and file downloader with mandatory cryptographic SHA-256 verification.
 pub struct ResumableDownloader;
@@ -125,7 +197,9 @@ impl ResumableDownloader {
         Ok(final_file)
     }
 
-    /// Resumable HTTP download supporting `Range: bytes={offset}-`.
+    /// Resumable HTTP(S) download supporting `Range: bytes={offset}-`, TLS 1.2/1.3 (rustls,
+    /// Mozilla root store) and up to `MAX_REDIRECTS` HTTP 301/302/303/307/308 redirects
+    /// (HuggingFace `resolve/main/...` URLs always redirect to a signed CDN URL).
     async fn download_http<F>(
         manifest: &ModelManifest,
         staging_file: &Path,
@@ -134,26 +208,7 @@ impl ResumableDownloader {
     where
         F: FnMut(DownloadProgress) + Send,
     {
-        let url = &manifest.source_url;
-        let is_https = url.starts_with("https://");
-        let stripped = url
-            .strip_prefix("https://")
-            .or_else(|| url.strip_prefix("http://"))
-            .unwrap_or(url);
-        let (host_port, path) = match stripped.split_once('/') {
-            Some((hp, p)) => (hp, format!("/{p}")),
-            None => (stripped, "/".to_string()),
-        };
-
-        let target_addr = if host_port.contains(':') {
-            host_port.to_string()
-        } else if is_https {
-            format!("{host_port}:443")
-        } else {
-            format!("{host_port}:80")
-        };
-
-        // Determine existing bytes for HTTP Range request
+        let model_id = manifest.model_id.as_str();
         let mut existing_bytes = if staging_file.is_file() {
             std::fs::metadata(staging_file)?.len()
         } else {
@@ -166,51 +221,80 @@ impl ResumableDownloader {
             existing_bytes = 0;
         }
 
-        let mut stream =
-            TcpStream::connect(&target_addr)
-                .await
-                .map_err(|e| RegistryError::DownloadError {
-                    model_id: manifest.model_id.clone(),
-                    message: format!("Failed to connect to HTTP host '{target_addr}': {e}"),
-                })?;
+        let mut target = ParsedUrl::parse(model_id, &manifest.source_url)?;
+        let mut redirects = 0usize;
 
-        let mut request = format!(
-            "GET {path} HTTP/1.1\r\n\
-             Host: {host_port}\r\n\
-             User-Agent: MiniAI-Registry/0.1\r\n\
-             Connection: close\r\n"
-        );
+        let (mut stream, status_code, header_str) = loop {
+            let mut stream = Self::connect(model_id, &target).await?;
 
-        if existing_bytes > 0 {
-            request.push_str(&format!("Range: bytes={existing_bytes}-\r\n"));
-        }
-        request.push_str("\r\n");
+            let mut request = format!(
+                "GET {} HTTP/1.1\r\n\
+                 Host: {}\r\n\
+                 User-Agent: MiniAI-Registry/0.1\r\n\
+                 Accept: */*\r\n\
+                 Accept-Encoding: identity\r\n\
+                 Connection: close\r\n",
+                target.path, target.host_header
+            );
+            if existing_bytes > 0 {
+                request.push_str(&format!("Range: bytes={existing_bytes}-\r\n"));
+            }
+            request.push_str("\r\n");
 
-        stream
-            .write_all(request.as_bytes())
-            .await
-            .map_err(|e| RegistryError::DownloadError {
-                model_id: manifest.model_id.clone(),
-                message: format!("Failed to send HTTP request: {e}"),
+            stream.write_all(request.as_bytes()).await.map_err(|e| {
+                RegistryError::DownloadError {
+                    model_id: model_id.to_string(),
+                    message: format!("Failed to send HTTP request: {e}"),
+                }
             })?;
 
-        // Read response header and body
-        let mut header_buf = Vec::new();
-        let mut byte = [0u8; 1];
+            // Read response header (byte-wise so the body stays unread in the stream)
+            let mut header_buf = Vec::new();
+            let mut byte = [0u8; 1];
+            while header_buf.len() < 16384 {
+                let n = stream.read(&mut byte).await?;
+                if n == 0 {
+                    break;
+                }
+                header_buf.push(byte[0]);
+                if header_buf.ends_with(b"\r\n\r\n") {
+                    break;
+                }
+            }
 
-        while header_buf.len() < 8192 {
-            let n = stream.read(&mut byte).await?;
-            if n == 0 {
-                break;
+            let header_str = String::from_utf8_lossy(&header_buf).to_string();
+            let status_code = Self::parse_http_status(&header_str)?;
+
+            if matches!(status_code, 301 | 302 | 303 | 307 | 308) {
+                redirects += 1;
+                if redirects > MAX_REDIRECTS {
+                    return Err(RegistryError::HttpError {
+                        status: status_code,
+                        message: format!("Too many redirects (>{MAX_REDIRECTS})"),
+                    });
+                }
+                let location = Self::header_value(&header_str, "location").ok_or_else(|| {
+                    RegistryError::HttpError {
+                        status: status_code,
+                        message: "Redirect response missing Location header".to_string(),
+                    }
+                })?;
+                target = target.resolve_redirect(model_id, &location)?;
+                continue;
             }
-            header_buf.push(byte[0]);
-            if header_buf.ends_with(b"\r\n\r\n") {
-                break;
-            }
+            break (stream, status_code, header_str);
+        };
+
+        if Self::header_value(&header_str, "transfer-encoding")
+            .map(|v| v.to_ascii_lowercase().contains("chunked"))
+            .unwrap_or(false)
+        {
+            return Err(RegistryError::DownloadError {
+                model_id: model_id.to_string(),
+                message: "Chunked transfer encoding is not supported for model artifacts"
+                    .to_string(),
+            });
         }
-
-        let header_str = String::from_utf8_lossy(&header_buf);
-        let status_code = Self::parse_http_status(&header_str)?;
 
         let mut file = if status_code == 206 {
             // Append to existing staging file
@@ -234,7 +318,7 @@ impl ResumableDownloader {
         };
 
         let mut current_bytes = existing_bytes;
-        let mut chunk_buf = [0u8; 65536];
+        let mut chunk_buf = vec![0u8; 65536];
 
         on_progress(DownloadProgress::new(
             &manifest.model_id,
@@ -247,7 +331,12 @@ impl ResumableDownloader {
         ));
 
         loop {
-            let n = stream.read(&mut chunk_buf).await?;
+            let n = match stream.read(&mut chunk_buf).await {
+                Ok(n) => n,
+                // Some CDNs close TLS without close_notify after the final byte.
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => 0,
+                Err(e) => return Err(e.into()),
+            };
             if n == 0 {
                 break;
             }
@@ -267,6 +356,66 @@ impl ResumableDownloader {
 
         file.flush()?;
         Ok(())
+    }
+
+    /// Opens a plain TCP or rustls-encrypted connection to the target.
+    async fn connect(
+        model_id: &str,
+        target: &ParsedUrl,
+    ) -> Result<Box<dyn AsyncStream>, RegistryError> {
+        let addr = format!("{}:{}", target.host, target.port);
+        let tcp = TcpStream::connect(&addr)
+            .await
+            .map_err(|e| RegistryError::DownloadError {
+                model_id: model_id.to_string(),
+                message: format!("Failed to connect to HTTP host '{addr}': {e}"),
+            })?;
+
+        if !target.https {
+            return Ok(Box::new(tcp));
+        }
+
+        let mut roots = rustls::RootCertStore::empty();
+        roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+        let config = rustls::ClientConfig::builder_with_provider(Arc::new(
+            rustls::crypto::ring::default_provider(),
+        ))
+        .with_safe_default_protocol_versions()
+        .map_err(|e| RegistryError::DownloadError {
+            model_id: model_id.to_string(),
+            message: format!("TLS configuration error: {e}"),
+        })?
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+
+        let server_name =
+            rustls::pki_types::ServerName::try_from(target.host.clone()).map_err(|e| {
+                RegistryError::DownloadError {
+                    model_id: model_id.to_string(),
+                    message: format!("Invalid TLS server name '{}': {e}", target.host),
+                }
+            })?;
+
+        let tls = tokio_rustls::TlsConnector::from(Arc::new(config))
+            .connect(server_name, tcp)
+            .await
+            .map_err(|e| RegistryError::DownloadError {
+                model_id: model_id.to_string(),
+                message: format!("TLS handshake with '{}' failed: {e}", target.host),
+            })?;
+        Ok(Box::new(tls))
+    }
+
+    /// Case-insensitive lookup of a response header value.
+    fn header_value(header: &str, name: &str) -> Option<String> {
+        header.lines().skip(1).find_map(|line| {
+            let (k, v) = line.split_once(':')?;
+            if k.trim().eq_ignore_ascii_case(name) {
+                Some(v.trim().to_string())
+            } else {
+                None
+            }
+        })
     }
 
     /// Local file copy simulating chunked range downloads for offline validation.

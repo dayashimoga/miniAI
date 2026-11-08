@@ -284,10 +284,13 @@ def package_release(output_dir: Path, version: str) -> dict[str, Any]:
                     win_runner_dir = REPO_ROOT / "ui" / "miniai_app" / "build" / "windows" / "x64" / "runner" / "Release"
                     win_rust_server = REPO_ROOT / "target" / "release" / "miniai-server.exe"
                     win_rust_daemon = REPO_ROOT / "target" / "release" / "miniai-daemon.exe"
+                    artifacts_win = REPO_ROOT / "build-artifacts" / "miniai-server-release-windows-latest" / "miniai-server.exe"
                     if win_runner_dir.is_dir():
                         for item in win_runner_dir.rglob("*"):
                             if item.is_file():
                                 zf.write(item, item.relative_to(win_runner_dir))
+                    elif artifacts_win.is_file():
+                        zf.write(artifacts_win, target["binary"])
                     elif win_rust_daemon.is_file():
                         zf.write(win_rust_daemon, "miniai-daemon.exe")
                     elif win_rust_server.is_file():
@@ -297,10 +300,15 @@ def package_release(output_dir: Path, version: str) -> dict[str, Any]:
                 elif target["os"] == "ios":
                     ios_ipa = REPO_ROOT / "ui" / "miniai_app" / "miniai-ios-unsigned.ipa"
                     ios_app = REPO_ROOT / "ui" / "miniai_app" / "build" / "ios" / "iphoneos" / "Runner.app"
+                    artifacts_ipa = REPO_ROOT / "build-artifacts" / "miniai-mobile-release-binaries" / "miniai-ios-unsigned.ipa"
                     if ios_app.is_dir():
                         for item in ios_app.rglob("*"):
                             if item.is_file():
                                 zf.write(item, Path("Payload") / "Runner.app" / item.relative_to(ios_app))
+                    elif artifacts_ipa.is_file():
+                        with zipfile.ZipFile(artifacts_ipa, "r") as src_zf:
+                            for item in src_zf.infolist():
+                                zf.writestr(item, src_zf.read(item.filename))
                     else:
                         zf.writestr(target["binary"], b"MINIAI_EXECUTABLE_BINARY_PLACEHOLDER\n")
                 else:
@@ -315,10 +323,13 @@ def package_release(output_dir: Path, version: str) -> dict[str, Any]:
                 if target["os"] == "linux":
                     linux_bundle = REPO_ROOT / "ui" / "miniai_app" / "build" / "linux" / "x64" / "release" / "bundle"
                     linux_rust_server = REPO_ROOT / "target" / "release" / "miniai-server"
+                    artifacts_linux = REPO_ROOT / "build-artifacts" / "miniai-server-release-ubuntu-latest" / "miniai-server"
                     if linux_bundle.is_dir():
                         for item in linux_bundle.rglob("*"):
                             if item.is_file():
                                 tf.add(str(item), arcname=str(item.relative_to(linux_bundle)))
+                    elif artifacts_linux.is_file():
+                        tf.add(str(artifacts_linux), arcname=target["binary"])
                     elif linux_rust_server.is_file():
                         tf.add(str(linux_rust_server), arcname=target["binary"])
                     else:
@@ -328,10 +339,16 @@ def package_release(output_dir: Path, version: str) -> dict[str, Any]:
                         tf.addfile(ti_bin, io.BytesIO(bin_data))
                 elif target["os"] == "macos":
                     macos_app = REPO_ROOT / "ui" / "miniai_app" / "build" / "macos" / "Build" / "Products" / "Release" / "miniai_app.app"
+                    macos_rust_server = REPO_ROOT / "target" / "release" / "miniai-server"
+                    artifacts_mac = REPO_ROOT / "build-artifacts" / "miniai-server-release-macos-latest" / "miniai-server"
                     if macos_app.is_dir():
                         for item in macos_app.rglob("*"):
                             if item.is_file():
                                 tf.add(str(item), arcname=str(Path("miniai_app.app") / item.relative_to(macos_app)))
+                    elif artifacts_mac.is_file():
+                        tf.add(str(artifacts_mac), arcname=target["binary"])
+                    elif macos_rust_server.is_file():
+                        tf.add(str(macos_rust_server), arcname=target["binary"])
                     else:
                         bin_data = b"MINIAI_EXECUTABLE_BINARY_PLACEHOLDER\n"
                         ti_bin = tarfile.TarInfo(name=target["binary"])
@@ -347,13 +364,21 @@ def package_release(output_dir: Path, version: str) -> dict[str, Any]:
             real_binary_found = False
             if target["id"] == "android-arm64":
                 real_apk = REPO_ROOT / "ui" / "miniai_app" / "build" / "app" / "outputs" / "flutter-apk" / "app-release.apk"
+                artifacts_apk = REPO_ROOT / "build-artifacts" / "miniai-mobile-release-binaries" / "app-release.apk"
                 if real_apk.is_file():
                     shutil.copyfile(real_apk, target_path)
                     real_binary_found = True
+                elif artifacts_apk.is_file():
+                    shutil.copyfile(artifacts_apk, target_path)
+                    real_binary_found = True
             elif target["id"] == "android-bundle":
                 real_aab = REPO_ROOT / "ui" / "miniai_app" / "build" / "app" / "outputs" / "bundle" / "release" / "app-release.aab"
+                artifacts_aab = REPO_ROOT / "build-artifacts" / "miniai-mobile-release-binaries" / "app-release.aab"
                 if real_aab.is_file():
                     shutil.copyfile(real_aab, target_path)
+                    real_binary_found = True
+                elif artifacts_aab.is_file():
+                    shutil.copyfile(artifacts_aab, target_path)
                     real_binary_found = True
 
             if not real_binary_found:

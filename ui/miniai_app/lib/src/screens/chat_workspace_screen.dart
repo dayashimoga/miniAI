@@ -232,15 +232,65 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
     final theme = Theme.of(context);
     final content = message.content;
 
-    if (!content.contains('```')) {
-      return Text(
-        content,
-        style: theme.textTheme.bodyMedium,
+    String? thinkContent;
+    String mainContent = content;
+
+    final thinkStart = content.indexOf('<think>');
+    final thinkEnd = content.indexOf('</think>');
+    if (thinkStart != -1 && thinkEnd != -1 && thinkEnd > thinkStart) {
+      thinkContent = content.substring(thinkStart + 7, thinkEnd).trim();
+      mainContent = (content.substring(0, thinkStart) + content.substring(thinkEnd + 8)).trim();
+    }
+
+    final children = <Widget>[];
+
+    if (thinkContent != null && thinkContent.isNotEmpty) {
+      children.add(
+        Container(
+          key: Key('think_block_${message.id}'),
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+          child: ExpansionTile(
+            key: Key('think_tile_${message.id}'),
+            dense: true,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+            childrenPadding: const EdgeInsets.all(10),
+            leading: const Icon(Icons.psychology_outlined, size: 16),
+            title: const Text(
+              'Reasoning Process',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+            ),
+            children: [
+              Text(
+                thinkContent,
+                style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', fontSize: 11),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
-    final parts = content.split('```');
-    final widgets = <Widget>[];
+    if (!mainContent.contains('```')) {
+      children.add(
+        Text(
+          mainContent,
+          style: theme.textTheme.bodyMedium,
+        ),
+      );
+      return children.length == 1
+          ? children.first
+          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
+    }
+
+    final parts = mainContent.split('```');
+    final widgets = <Widget>[...children];
 
     for (var i = 0; i < parts.length; i++) {
       final part = parts[i];
@@ -505,6 +555,39 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
     );
   }
 
+  void _showModelSwitcher(BuildContext context) {
+    final availableModels = widget.controller.models
+        .where((m) => m.modality == Modality.llm)
+        .toList();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Neural Model'),
+        content: SizedBox(
+          width: 320,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: availableModels.length,
+            itemBuilder: (c, idx) {
+              final m = availableModels[idx];
+              final isSelected = m.modelId == widget.controller.selectedChatModelId;
+              return ListTile(
+                selected: isSelected,
+                leading: Icon(isSelected ? Icons.check_circle : Icons.circle_outlined),
+                title: Text(m.name),
+                subtitle: Text('${m.quantization} • ${m.parameterCount}'),
+                onTap: () {
+                  widget.controller.setSelectedChatModel(m.modelId);
+                  Navigator.of(ctx).pop();
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -514,32 +597,51 @@ class _ChatWorkspaceScreenState extends State<ChatWorkspaceScreen> {
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 760;
 
-            return Scaffold(
-              drawer: isWide ? null : Drawer(child: _buildSessionSidebar(context)),
-              body: Row(
-                children: [
-                  if (isWide) ...[
-                    SizedBox(
-                      width: 280,
-                      child: _buildSessionSidebar(context),
-                    ),
-                    const VerticalDivider(width: 1, thickness: 1),
-                  ],
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _buildTopToolbar(context, isWide),
-                        const Divider(height: 1, thickness: 1),
-                        if (_isModelUnverified(widget.controller.selectedChatModelId))
-                          _buildModelReadinessBanner(context),
-                        Expanded(child: _buildMessageTimeline(context)),
-                        if (widget.controller.isGenerating)
-                          _buildStreamingStatusBar(context),
-                        _buildInputComposer(context),
+            return CallbackShortcuts(
+              bindings: {
+                const SingleActivator(LogicalKeyboardKey.keyN, control: true): () {
+                  widget.controller.createChatSession();
+                },
+                const SingleActivator(LogicalKeyboardKey.keyN, meta: true): () {
+                  widget.controller.createChatSession();
+                },
+                const SingleActivator(LogicalKeyboardKey.keyK, control: true): () {
+                  _showModelSwitcher(context);
+                },
+                const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () {
+                  _showModelSwitcher(context);
+                },
+              },
+              child: Focus(
+                autofocus: true,
+                child: Scaffold(
+                  drawer: isWide ? null : Drawer(child: _buildSessionSidebar(context)),
+                  body: Row(
+                    children: [
+                      if (isWide) ...[
+                        SizedBox(
+                          width: 280,
+                          child: _buildSessionSidebar(context),
+                        ),
+                        const VerticalDivider(width: 1, thickness: 1),
                       ],
-                    ),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            _buildTopToolbar(context, isWide),
+                            const Divider(height: 1, thickness: 1),
+                            if (_isModelUnverified(widget.controller.selectedChatModelId))
+                              _buildModelReadinessBanner(context),
+                            Expanded(child: _buildMessageTimeline(context)),
+                            if (widget.controller.isGenerating)
+                              _buildStreamingStatusBar(context),
+                            _buildInputComposer(context),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             );
           },

@@ -7,6 +7,7 @@ pub mod config;
 pub mod engine;
 pub mod error;
 pub mod model;
+pub mod neural;
 pub mod prompt;
 pub mod sampler;
 pub mod tokenizer;
@@ -20,6 +21,7 @@ pub use config::{FinishReason, GenerationConfig, GenerationOutput, StreamToken, 
 pub use engine::LlmEngine;
 pub use error::LlmError;
 pub use model::{ModelMetadata, ModelWeights, GGUF_MAGIC};
+pub use neural::{sidecar_tokenizer_path, template_for_model, NeuralEngine, NeuralGeneration};
 pub use prompt::{ChatMessage, ChatTemplate, MessageRole, PromptCompiler};
 pub use sampler::{Prng, Sampler};
 pub use tokenizer::{Tokenizer, BOS_TOKEN_ID, EOS_TOKEN_ID, PAD_TOKEN_ID, UNK_TOKEN_ID};

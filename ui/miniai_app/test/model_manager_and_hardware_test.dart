@@ -35,6 +35,15 @@ void main() {
           ],
         ),
         settingsStore: InMemorySettingsStore(),
+        initialDownloadProgress: const {
+          'whisper-tiny-en': DownloadProgressItem(
+            modelId: 'whisper-tiny-en',
+            bytesDownloaded: 77704715,
+            totalBytes: 77704715,
+            percentage: 100.0,
+            status: DownloadStatus.verified,
+          ),
+        },
       );
     });
 

@@ -9,11 +9,14 @@ repository.workspace = true
 [dependencies]
 miniai-core = { path = "../miniai-core" }
 miniai-storage = { path = "../miniai-storage" }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+webpki-roots = "1"
 
 [dev-dependencies]
 tempfile = "3.12"

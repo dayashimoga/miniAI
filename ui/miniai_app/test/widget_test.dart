@@ -263,6 +263,10 @@ void main() {
       await tester.tap(revokeBtn);
       await tester.pumpAndSettle();
       expect(controller.activeConsent, isNull);
+
+      // Verify OS memory pressure lifecycle hook unloads active model
+      tester.binding.handleMemoryPressure();
+      await tester.pumpAndSettle();
     });
   });
 }

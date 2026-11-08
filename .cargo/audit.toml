@@ -1,0 +1,9 @@
+[advisories]
+ignore = [
+    # Transitive dependency of candle-core 0.9.2 (zip reader for .pth PyTorch checkpoints, unused by MiniAI GGUF runtime)
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
+    "RUSTSEC-2026-0369",
+    "RUSTSEC-2026-0429",
+]
+

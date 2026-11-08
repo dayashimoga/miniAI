@@ -14,6 +14,7 @@ class PlatformController extends ChangeNotifier {
     HardwareProfile? initialHardware,
     SettingsStore? settingsStore,
     IpcClient? ipcClient,
+    Map<String, DownloadProgressItem>? initialDownloadProgress,
   })  : _hardware = initialHardware ??
             const HardwareProfile(
               osFamily: 'windows',
@@ -24,7 +25,10 @@ class PlatformController extends ChangeNotifier {
               detectedBackends: [AcceleratorBackend.cpu],
             ),
         _settingsStore = settingsStore ?? InMemorySettingsStore(),
-        _ipcClient = ipcClient {
+        _ipcClient = ipcClient,
+        _downloadProgress = initialDownloadProgress != null
+            ? Map<String, DownloadProgressItem>.from(initialDownloadProgress)
+            : {} {
     _rebuildAdapterHealth();
     _initChatWorkspace();
     _initKnowledgeBase();
@@ -159,14 +163,14 @@ class PlatformController extends ChangeNotifier {
       modality: Modality.llm,
       version: '1.0.0',
       description: 'Ultra-lightweight starter LLM for instant download and mobile testing',
-      sourceUrl: 'https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct-GGUF/resolve/main/smollm2-135m-instruct-q4_k_m.gguf',
+      sourceUrl: 'https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct-GGUF/resolve/main/smollm2-135m-instruct-q4.gguf',
       expectedSha256:
-          'a1b2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef',
-      expectedSizeBytes: 99614720,
+          '2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d',
+      expectedSizeBytes: 105454432,
       format: 'gguf',
       parameterCount: '135M',
       quantization: 'Q4_K_M',
-      minRamBytes: 536870912,
+      minRamBytes: 268435456,
       recommendedBackend: AcceleratorBackend.cpu,
     ),
     const ModelManifest(
@@ -177,8 +181,8 @@ class PlatformController extends ChangeNotifier {
       description: 'Compact general text generation and reasoning model',
       sourceUrl: 'https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf',
       expectedSha256:
-          '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
-      expectedSizeBytes: 1288490188,
+          '6f85a640a97cf2bf5b8e764087b1e83da0fdb51d7c9fab7d0fece9385611df83',
+      expectedSizeBytes: 807694464,
       format: 'gguf',
       parameterCount: '1.23B',
       quantization: 'Q4_K_M',
@@ -194,8 +198,8 @@ class PlatformController extends ChangeNotifier {
           'Zero-shot image classification and visual feature extraction',
       sourceUrl: 'https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/model.onnx',
       expectedSha256:
-          '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
-      expectedSizeBytes: 367001600,
+          '8ac34fc990f890b4bec8d197de81f956fb135a65067e77fadbf8f053656ed711',
+      expectedSizeBytes: 605799029,
       format: 'onnx',
       parameterCount: '86M',
       quantization: 'FP16',
@@ -210,8 +214,8 @@ class PlatformController extends ChangeNotifier {
       description: 'Fast streaming automatic speech recognition',
       sourceUrl: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin',
       expectedSha256:
-          '4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a',
-      expectedSizeBytes: 78643200,
+          '921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f',
+      expectedSizeBytes: 77704715,
       format: 'gguf',
       parameterCount: '39M',
       quantization: 'Q8_0',
@@ -226,8 +230,8 @@ class PlatformController extends ChangeNotifier {
       description: 'Real-time neural text-to-speech engine',
       sourceUrl: 'https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx',
       expectedSha256:
-          'ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d',
-      expectedSizeBytes: 62914560,
+          'b3a6e47b57b8c7fbe6a0ce2518161a50f59a9cdd8a50835c02cb02bdd6206c18',
+      expectedSizeBytes: 63201294,
       format: 'onnx',
       parameterCount: '28M',
       quantization: 'FP32',
@@ -252,15 +256,7 @@ class PlatformController extends ChangeNotifier {
     ),
   ];
 
-  final Map<String, DownloadProgressItem> _downloadProgress = {
-    'whisper-tiny-en': const DownloadProgressItem(
-      modelId: 'whisper-tiny-en',
-      bytesDownloaded: 78643200,
-      totalBytes: 78643200,
-      percentage: 100.0,
-      status: DownloadStatus.verified,
-    ),
-  };
+  final Map<String, DownloadProgressItem> _downloadProgress;
 
   Modality? _modelModalityFilter;
 
@@ -1061,6 +1057,7 @@ class PlatformController extends ChangeNotifier {
     final prev = _activeLoadedModel;
     _activeLoadedModel = null;
     _peakMemoryRssMb = 38.0;
+    _backendClient.unloadModel(modelId: prev);
     _recordEvent(
       eventType: 'model_unloaded',
       payload: {
@@ -1304,6 +1301,13 @@ class PlatformController extends ChangeNotifier {
     }
   }
 
+  void addChatMessage(ChatMessage message) {
+    if (_activeSessionId != null) {
+      _sessionMessages[_activeSessionId!]?.add(message);
+      notifyListeners();
+    }
+  }
+
   void deleteMessage(String messageId) {
     final messages = _sessionMessages[_activeSessionId];
     if (messages == null) return;
@@ -1405,10 +1409,7 @@ class PlatformController extends ChangeNotifier {
     final cleanPrompt = prompt.trim();
     final lower = cleanPrompt.toLowerCase();
 
-    final List<String> responseWords = [
-      'Executing', 'inference', 'with', model, 'on',
-      '${activeExecutionBackend.displayName}:',
-    ];
+    final List<String> responseWords = [];
 
     if (lower.contains('capabilit') ||
         lower.contains('what can you do') ||
@@ -1453,14 +1454,6 @@ class PlatformController extends ChangeNotifier {
           ...snippetWords.split(RegExp(r'\s+')),
         ]);
       }
-    } else if (ragHits != null && ragHits.isNotEmpty) {
-      final best = ragHits.first;
-      final snippetWords =
-          best.chunk.text.split(RegExp(r'\s+')).take(35).join(' ');
-      responseWords.addAll([
-        'Based', 'on', 'knowledge', 'grounding', '[${best.citationTag}]:',
-        ...snippetWords.split(RegExp(r'\s+')),
-      ]);
     } else if (lower.startsWith('hi') ||
         lower.startsWith('hello') ||
         lower.startsWith('hey')) {
@@ -1541,6 +1534,14 @@ class PlatformController extends ChangeNotifier {
       responseWords.addAll([
         'Saved', 'preference:', '"User', 'prefers', '$pref"', 'in', 'local', 'semantic', 'memory.'
       ]);
+    } else if (ragHits != null && ragHits.isNotEmpty) {
+      final best = ragHits.first;
+      final snippetWords =
+          best.chunk.text.split(RegExp(r'\s+')).take(35).join(' ');
+      responseWords.addAll([
+        'Based', 'on', 'knowledge', 'grounding', '[${best.citationTag}]:',
+        ...snippetWords.split(RegExp(r'\s+')),
+      ]);
     } else {
       final mathRes = _evaluateSimpleMath(cleanPrompt);
       if (mathRes != null) {
@@ -1618,8 +1619,28 @@ class PlatformController extends ChangeNotifier {
 
     List<RetrievalResultItem> ragHits = [];
     List<String> matchedCitations = [];
-    if (_enableRagGrounding) {
-      ragHits = searchKnowledge(trimmed, limit: 2);
+    final lowerTrimmed = trimmed.toLowerCase();
+    final isPersonalOrConversational = lowerTrimmed.startsWith('hi') ||
+        lowerTrimmed.startsWith('hello') ||
+        lowerTrimmed.startsWith('hey') ||
+        lowerTrimmed.startsWith('my name is') ||
+        lowerTrimmed.contains('what is my name') ||
+        lowerTrimmed.contains('what do i prefer') ||
+        lowerTrimmed.contains('adventure') ||
+        _evaluateSimpleMath(trimmed) != null;
+
+    final isDomainInquiry = lowerTrimmed.contains('admissionguard') ||
+        lowerTrimmed.contains('architecture') ||
+        lowerTrimmed.contains('fallback') ||
+        lowerTrimmed.contains('privacy') ||
+        lowerTrimmed.contains('crate') ||
+        lowerTrimmed.contains('pipeline') ||
+        lowerTrimmed.contains('hardware') ||
+        lowerTrimmed.contains('modality');
+
+    if (_enableRagGrounding && !isPersonalOrConversational && isDomainInquiry) {
+      final rawHits = searchKnowledge(trimmed, limit: 2);
+      ragHits = rawHits.where((h) => h.rrfScore >= 0.010).toList();
       matchedCitations = ragHits.map((h) => h.citationTag).toList();
     }
 

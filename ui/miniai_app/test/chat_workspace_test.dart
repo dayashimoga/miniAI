@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:miniai_app/src/controllers/platform_controller.dart';
 import 'package:miniai_app/src/models/system_contracts.dart';
@@ -85,9 +86,59 @@ void main() {
       expect(userMsg.tokenCount, greaterThan(0));
 
       expect(assistantMsg.role, equals(ChatMessageRole.assistant));
-      expect(assistantMsg.content, contains('Executing inference with llama-3.2-1b-instruct-q4'));
+      expect(assistantMsg.content, contains('Offline inference means executing'));
       expect(assistantMsg.tokenCount, greaterThan(10));
       expect(controller.isGenerating, isFalse);
+    });
+
+    testWidgets('Renders collapsible think accordion for reasoning messages', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChatWorkspaceScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Send a simulated thinking message
+      final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+      final thinkMsg = ChatMessage(
+        id: 'msg-think-test',
+        sessionId: controller.activeSessionId!,
+        role: ChatMessageRole.assistant,
+        content: '<think>Analyzing problem step by step...</think>The final result is 42.',
+        tokenCount: 15,
+        modelId: 'smollm2-135m-instruct-q4',
+        createdAtEpochSecs: now,
+        updatedAtEpochSecs: now,
+      );
+      controller.addChatMessage(thinkMsg);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('think_block_msg-think-test')), findsOneWidget);
+      expect(find.text('Reasoning Process'), findsOneWidget);
+      expect(find.text('The final result is 42.'), findsOneWidget);
+
+      await tester.tap(find.text('Reasoning Process'));
+      await tester.pumpAndSettle();
+      expect(find.text('Analyzing problem step by step...'), findsOneWidget);
+    });
+
+    test('RAG intent routing correctly discriminates personal vs domain queries', () async {
+      await controller.sendMessage('My name is Alice', delayTokens: false);
+      expect(controller.currentMessages.last.content, contains('Alice'));
+      expect(controller.currentMessages.last.content, isNot(contains('ARCHITECTURE.md')));
+
+      await controller.sendMessage('what is adventure', delayTokens: false);
+      expect(controller.currentMessages.last.content, isNot(contains('ARCHITECTURE.md')));
+
+      await controller.sendMessage('What is the architecture and crate contracts of miniai?', delayTokens: false);
+      expect(controller.currentMessages.last.content, isNotEmpty);
+    });
+
+    test('Unloads active model and queries download progress', () async {
+      controller.unloadActiveModel();
+      expect(controller.getModelStatus('smollm2-135m-instruct-q4').percentage, equals(0.0));
+      expect(controller.getModelStatus('nonexistent-model').percentage, equals(0.0));
     });
 
     test('Edits and deletes message within active session', () async {
@@ -177,6 +228,44 @@ void main() {
       expect(find.byKey(const Key('export_chat_button')), findsOneWidget);
       expect(find.byKey(const Key('chat_input_field')), findsOneWidget);
       expect(find.byKey(const Key('send_message_button')), findsOneWidget);
+    });
+
+    testWidgets('Model selector dialog switches selected model and dismisses',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChatWorkspaceScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final selector = find.byKey(const Key('chat_model_selector'));
+      expect(selector, findsOneWidget);
+      await tester.tap(selector);
+      await tester.pumpAndSettle();
+
+      final smollmItem = find.textContaining('SmolLM2 135M').last;
+      expect(smollmItem, findsOneWidget);
+      await tester.tap(smollmItem);
+      await tester.pumpAndSettle();
+
+      expect(controller.selectedChatModelId, equals('smollm2-135m-instruct-q4'));
+
+      // Test Ctrl+K keyboard shortcut opens model switcher dialog
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
+      await tester.pumpAndSettle();
+      expect(find.text('Select Neural Model'), findsOneWidget);
+      await tester.tap(find.textContaining('SmolLM2 135M').last);
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Session sidebar supports creating, renaming, and deleting conversations',

@@ -24,6 +24,9 @@ pub enum LlmError {
     #[error("Invalid generation parameter: {reason}")]
     InvalidConfig { reason: String },
 
+    #[error("Neural inference failed: {reason}")]
+    InferenceFailed { reason: String },
+
     #[error("MiniAI core error: {0}")]
     Core(#[from] MiniAiError),
 }

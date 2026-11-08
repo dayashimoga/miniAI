@@ -117,14 +117,71 @@ impl ModelRegistry {
     where
         F: FnMut(DownloadProgress) + Send,
     {
+        self.download_model_inner(model_id, false, progress_callback)
+            .await
+    }
+
+    /// Downloads a public, read-only model artifact after explicit user acknowledgement.
+    ///
+    /// Implements the *Verified Weight Acquisition Policy*: no user prompts, files, audio or
+    /// telemetry leave the device when fetching public weights, so a Local-Only Privacy Mode
+    /// session may download them provided that (a) the user explicitly acknowledged the
+    /// download, (b) the URL is `https://` on a pinned registry host, and (c) the artifact
+    /// passes mandatory SHA-256 verification.
+    pub async fn download_model_acknowledged<F>(
+        &self,
+        model_id: &str,
+        user_acknowledged: bool,
+        progress_callback: F,
+    ) -> Result<PathBuf, RegistryError>
+    where
+        F: FnMut(DownloadProgress) + Send,
+    {
+        self.download_model_inner(model_id, user_acknowledged, progress_callback)
+            .await
+    }
+
+    /// Returns `true` if `url` is an `https://` URL on a pinned public model registry host.
+    pub fn is_verified_registry_url(url: &str) -> bool {
+        const VERIFIED_HOSTS: [&str; 2] = ["huggingface.co", "hf.co"];
+        let Some(rest) = url.strip_prefix("https://") else {
+            return false;
+        };
+        let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+        // Reject userinfo (`https://huggingface.co@evil.example/`) and empty authorities.
+        if authority.is_empty() || authority.contains('@') {
+            return false;
+        }
+        let host = authority
+            .split(':')
+            .next()
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        VERIFIED_HOSTS
+            .iter()
+            .any(|h| host == *h || host.ends_with(&format!(".{h}")))
+    }
+
+    async fn download_model_inner<F>(
+        &self,
+        model_id: &str,
+        user_acknowledged: bool,
+        progress_callback: F,
+    ) -> Result<PathBuf, RegistryError>
+    where
+        F: FnMut(DownloadProgress) + Send,
+    {
         let manifest =
             self.get_manifest(model_id)?
                 .ok_or_else(|| RegistryError::ModelNotFound {
                     model_id: model_id.to_string(),
                 })?;
 
-        // Privacy check: Block remote downloads if Local-Only Privacy Mode is active
-        if self.privacy.is_local_only() && manifest.source_url.starts_with("http") {
+        // Privacy check: Block remote downloads if Local-Only Privacy Mode is active, unless
+        // the user explicitly acknowledged a public-weight download from a verified registry.
+        let remote = manifest.source_url.starts_with("http");
+        let exempt = user_acknowledged && Self::is_verified_registry_url(&manifest.source_url);
+        if self.privacy.is_local_only() && remote && !exempt {
             return Err(RegistryError::PrivacyModeBlocked {
                 model_id: model_id.to_string(),
                 url: manifest.source_url.clone(),

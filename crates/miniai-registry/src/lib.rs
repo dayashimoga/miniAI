@@ -361,6 +361,153 @@ mod tests {
             .is_none());
     }
 
+    #[tokio::test]
+    async fn test_http_redirect_chain_is_followed_and_verified() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let mut privacy_engine = PrivacyPolicyEngine::default();
+        privacy_engine.set_local_only_mode(false);
+        let registry = ModelRegistry::new(storage, Arc::new(privacy_engine), temp.path()).unwrap();
+
+        let payload = b"redirected-cdn-artifact-0123456789";
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let payload_vec = payload.to_vec();
+        tokio::spawn(async move {
+            while let Ok((mut socket, _)) = listener.accept().await {
+                let payload = payload_vec.clone();
+                tokio::spawn(async move {
+                    let mut buf = vec![0u8; 4096];
+                    let n = socket.read(&mut buf).await.unwrap_or(0);
+                    let req = String::from_utf8_lossy(&buf[..n]).to_string();
+                    let first = req.lines().next().unwrap_or("").to_string();
+                    let resp = if first.contains("/resolve/main/m.gguf") {
+                        // Origin-relative redirect (HuggingFace -> CDN style)
+                        "HTTP/1.1 302 Found\r\nLocation: /cdn/signed-m.gguf?sig=abc\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
+                    } else {
+                        format!(
+                            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                            payload.len()
+                        )
+                    };
+                    let _ = socket.write_all(resp.as_bytes()).await;
+                    if first.contains("/cdn/signed-m.gguf") {
+                        let _ = socket.write_all(&payload).await;
+                    }
+                });
+            }
+        });
+
+        let url = format!("http://{addr}/resolve/main/m.gguf");
+        let manifest = create_test_manifest("redirected-model", &url, payload, false);
+        registry.register_manifest(&manifest).unwrap();
+
+        let path = registry
+            .download_model("redirected-model", |_| {})
+            .await
+            .unwrap();
+        assert_eq!(std::fs::read(path).unwrap(), payload);
+    }
+
+    #[tokio::test]
+    async fn test_redirect_loop_is_rejected() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let mut privacy_engine = PrivacyPolicyEngine::default();
+        privacy_engine.set_local_only_mode(false);
+        let registry = ModelRegistry::new(storage, Arc::new(privacy_engine), temp.path()).unwrap();
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            while let Ok((mut socket, _)) = listener.accept().await {
+                tokio::spawn(async move {
+                    let mut buf = vec![0u8; 4096];
+                    let _ = socket.read(&mut buf).await;
+                    let _ = socket
+                        .write_all(
+                            b"HTTP/1.1 301 Moved\r\nLocation: /loop\r\nConnection: close\r\n\r\n",
+                        )
+                        .await;
+                });
+            }
+        });
+
+        let manifest = create_test_manifest(
+            "loop-model",
+            &format!("http://{addr}/loop"),
+            b"never-delivered",
+            false,
+        );
+        registry.register_manifest(&manifest).unwrap();
+        let result = registry.download_model("loop-model", |_| {}).await;
+        assert!(matches!(result, Err(RegistryError::HttpError { .. })));
+    }
+
+    #[test]
+    fn test_verified_registry_url_allowlist_rejects_spoofing() {
+        assert!(ModelRegistry::is_verified_registry_url(
+            "https://huggingface.co/bartowski/x/resolve/main/m.gguf"
+        ));
+        assert!(ModelRegistry::is_verified_registry_url(
+            "https://cdn-lfs.hf.co/repos/m.gguf"
+        ));
+        assert!(!ModelRegistry::is_verified_registry_url(
+            "http://huggingface.co/m.gguf"
+        ));
+        assert!(!ModelRegistry::is_verified_registry_url(
+            "https://huggingface.co.evil.example/m.gguf"
+        ));
+        assert!(!ModelRegistry::is_verified_registry_url(
+            "https://huggingface.co@evil.example/m.gguf"
+        ));
+        assert!(!ModelRegistry::is_verified_registry_url(
+            "https://evilhuggingface.co/m.gguf"
+        ));
+        assert!(!ModelRegistry::is_verified_registry_url(
+            "file:///tmp/m.gguf"
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_acknowledged_download_still_blocked_for_unverified_host_or_without_ack() {
+        let temp = tempdir().unwrap();
+        let storage = StorageEngine::in_memory().unwrap();
+        let privacy = Arc::new(PrivacyPolicyEngine::default());
+        assert!(privacy.is_local_only());
+        let registry = ModelRegistry::new(storage, privacy, temp.path()).unwrap();
+
+        let hf = create_test_manifest(
+            "hf-model",
+            "https://huggingface.co/org/repo/resolve/main/m.gguf",
+            b"x",
+            false,
+        );
+        let evil = create_test_manifest(
+            "evil-model",
+            "https://weights.evil.example/m.gguf",
+            b"x",
+            false,
+        );
+        registry.register_manifest(&hf).unwrap();
+        registry.register_manifest(&evil).unwrap();
+
+        // No acknowledgement -> blocked even for a verified host
+        assert!(matches!(
+            registry
+                .download_model_acknowledged("hf-model", false, |_| {})
+                .await,
+            Err(RegistryError::PrivacyModeBlocked { .. })
+        ));
+        // Acknowledged but host not pinned -> blocked
+        assert!(matches!(
+            registry
+                .download_model_acknowledged("evil-model", true, |_| {})
+                .await,
+            Err(RegistryError::PrivacyModeBlocked { .. })
+        ));
+    }
+
     #[test]
     fn test_import_local_model_with_expected_sha256_success() {
         let temp = tempdir().unwrap();

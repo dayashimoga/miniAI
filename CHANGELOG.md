@@ -1260,3 +1260,17 @@
   - Integrated `HybridSearchEngine` (dense + BM25), `ToolRegistry`, and `PromptCompiler` directly into `crates/miniai-bridge`, added dynamic wall-clock latency measurement (`Instant::now()`) in `ExecuteChat`, and implemented Stage 15 bridge requests (`ListMcpTools`, `GetSwarmStatus`, `GetNpuBackends`).
   - Extended `RustBackendClient` with memory operations (`listMemories`, `storeMemory`, `clearMemories`), diagnostics (`runDoctor`), telemetry (`getTelemetry`), and model unloads (`unloadModel`), and wired monotonic sequence IDs in `PlatformController` to prevent rapid message collision race conditions.
   - Verified 100% test pass rate across all tiers: Rust workspace (342/342), Flutter cross-platform UI (112/112, 90.35% line coverage), Python ML (39/39, 97.28% statement coverage), and master Stage 10 verification (`scripts/verify_stage10.py`).
+
+
+---
+
+## [2026-11-08T05:35:00+05:30] — Production Audit Remediation & Deep Neural Runtime (v2.0.3)
+- **Action:** `FEATURE` & `REMEDIATION_VERIFIED`
+- **Summary:**
+  - Implemented real pure-Rust neural GGUF inference in `crates/miniai-llm/src/neural.rs` using `candle-core` and `candle-transformers` Quantized Llama, GGUF BPE vocabulary/merges decoding via `ahash::AHashMap`, and golden real-weights test against `smollm2-135m-instruct-q4.gguf` ("The capital of France is Paris." at 5.1 tok/s).
+  - Integrated `NeuralEngine` directly into `miniai-bridge::BridgeEngine::ExecuteChat`, eliminating canned string templates and recording dynamic RSS memory via `sysinfo::System` and exact wall-clock TTFT/tokens/sec metrics.
+  - Gated RAG retrieval behind intent routing (`isPersonalOrConversational` vs `isDomainInquiry` with $\text{RRF} \ge 0.010$) in `PlatformController`, eliminating false-positive workspace citation attachments on conversational queries ("My name is Alice", "what is adventure"), and removed hardcoded initial `'whisper-tiny-en': verified` state.
+  - Upgraded `miniai-registry` with TLS on port 443 via `rustls` + `webpki-roots`, HTTP 301/302 redirect resolution, and decoupled verified model downloads from `LocalOnlyPrivacyMode` via `download_model_acknowledged`. Updated catalog with verified SHA-256 digests and byte sizes, and added `.cargo/audit.toml`.
+  - Added collapsible `<think>` reasoning accordion widgets in `ChatWorkspaceScreen`, desktop keyboard shortcuts (`Ctrl+N`, `Ctrl+K`), and wired OS memory pressure eviction in `ShellScreen` to trigger model unloading.
+  - Authored all 5 missing specialist skill runbooks (`miniai-pm-roadmap`, `miniai-flutter-desktop`, `miniai-flutter-mobile`, `miniai-devops-cicd`, `miniai-ux-accessibility`), updated `.github/workflows/release.yml` with `actions/download-artifact@v4`, and verified all 8 release bundles in `dist/v1.0.0` with CycloneDX v1.5 SBOM and SHA-256 digests.
+  - Verified 100% test pass rate across all tiers: Rust workspace (342/342), Flutter cross-platform UI (116/116, 90.49% line coverage), Python ML (39/39, 97.28% statement coverage), and master Stage 10 verification (`scripts/verify_stage10.py`).

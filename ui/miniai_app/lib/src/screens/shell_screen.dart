@@ -13,7 +13,7 @@ import 'video_studio_screen.dart';
 import 'vision_canvas_screen.dart';
 import 'consent_inspector_screen.dart';
 
-class ShellScreen extends StatelessWidget {
+class ShellScreen extends StatefulWidget {
   const ShellScreen({
     super.key,
     required this.controller,
@@ -22,11 +22,36 @@ class ShellScreen extends StatelessWidget {
   final PlatformController controller;
 
   @override
+  State<ShellScreen> createState() => _ShellScreenState();
+}
+
+class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
+  PlatformController get controller => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didHaveMemoryPressure() {
+    super.didHaveMemoryPressure();
+    widget.controller.unloadActiveModel();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: controller,
+      listenable: widget.controller,
       builder: (context, _) {
-        final activeScreen = _buildActiveScreen(controller.selectedNavigationIndex);
+        final activeScreen = _buildActiveScreen(widget.controller.selectedNavigationIndex);
         final screenWidth = MediaQuery.sizeOf(context).width;
         final isCompact = screenWidth < 600;
 
@@ -40,13 +65,13 @@ class ShellScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Semantics(
-                    label: 'Active Workspace: ${controller.activeWorkspaceId}',
+                    label: 'Active Workspace: ${widget.controller.activeWorkspaceId}',
                     child: ActionChip(
                       key: const Key('workspace_badge'),
                       avatar: const Icon(Icons.folder_outlined, size: 16),
-                      label: Text(controller.activeWorkspaceId),
+                      label: Text(widget.controller.activeWorkspaceId),
                       onPressed: () {
-                        controller.setSelectedNavigationIndex(1);
+                        widget.controller.setSelectedNavigationIndex(1);
                       },
                     ),
                   ),
@@ -54,7 +79,7 @@ class ShellScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Semantics(
-                  label: controller.localOnlyMode
+                  label: widget.controller.localOnlyMode
                       ? 'Privacy Status: Local-Only Privacy Mode Active'
                       : 'Privacy Status: Hybrid Consent Mode',
                   child: ActionChip(
@@ -283,30 +308,30 @@ class ShellScreen extends StatelessWidget {
   Widget _buildActiveScreen(int index) {
     switch (index) {
       case 1:
-        return SettingsScreen(controller: controller);
+        return SettingsScreen(controller: widget.controller);
       case 2:
-        return EventInspectorView(controller: controller);
+        return EventInspectorView(controller: widget.controller);
       case 3:
-        return ModelManagerScreen(controller: controller);
+        return ModelManagerScreen(controller: widget.controller);
       case 4:
-        return HardwareInspectorScreen(controller: controller);
+        return HardwareInspectorScreen(controller: widget.controller);
       case 5:
-        return ChatWorkspaceScreen(controller: controller);
+        return ChatWorkspaceScreen(controller: widget.controller);
       case 6:
-        return TrainingStudioScreen(controller: controller);
+        return TrainingStudioScreen(controller: widget.controller);
       case 7:
-        return KnowledgeBaseScreen(controller: controller);
+        return KnowledgeBaseScreen(controller: widget.controller);
       case 8:
-        return VisionCanvasScreen(controller: controller);
+        return VisionCanvasScreen(controller: widget.controller);
       case 9:
-        return SoundStudioScreen(controller: controller);
+        return SoundStudioScreen(controller: widget.controller);
       case 10:
-        return VideoStudioScreen(controller: controller);
+        return VideoStudioScreen(controller: widget.controller);
       case 11:
-        return ConsentInspectorScreen(controller: controller);
+        return ConsentInspectorScreen(controller: widget.controller);
       case 0:
       default:
-        return DashboardScreen(controller: controller, embedded: true);
+        return DashboardScreen(controller: widget.controller, embedded: true);
     }
   }
 }

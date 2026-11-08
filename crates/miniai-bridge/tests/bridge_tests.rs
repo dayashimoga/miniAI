@@ -493,3 +493,72 @@ fn test_bridge_stage19_multimodal_studio_dispatch() {
     assert_eq!(train_data.get("lora_rank").unwrap(), 16);
     assert!(train_data.get("history").is_some());
 }
+
+#[test]
+fn test_bridge_stage20_power_governor_and_kv_cache() {
+    let engine = BridgeEngine::new_in_memory().expect("failed to create engine");
+
+    // 1. Get initial PowerProfile
+    let p_res = engine.dispatch(BridgeRequest::GetPowerProfile);
+    assert!(p_res.success, "{:?}", p_res.error);
+    let p_data = p_res.data.unwrap();
+    assert_eq!(p_data.get("is_throttled").unwrap(), false);
+    assert_eq!(p_data.get("thermal_state").unwrap(), "nominal");
+    assert_eq!(p_data.get("max_context_tokens").unwrap(), 4096);
+
+    // 2. Enable battery saving mode
+    let set_res = engine.dispatch(BridgeRequest::SetPowerProfile {
+        battery_saving: Some(true),
+        simulated_thermal: None,
+        simulated_power: None,
+    });
+    assert!(set_res.success, "{:?}", set_res.error);
+    let set_data = set_res.data.unwrap();
+    assert_eq!(set_data.get("is_throttled").unwrap(), true);
+    assert_eq!(set_data.get("battery_saving_active").unwrap(), true);
+    assert_eq!(set_data.get("max_context_tokens").unwrap(), 1024);
+
+    // 3. Set critical thermal state
+    let th_res = engine.dispatch(BridgeRequest::SetPowerProfile {
+        battery_saving: Some(false),
+        simulated_thermal: Some(miniai_core::ThermalState::Critical),
+        simulated_power: None,
+    });
+    assert!(th_res.success, "{:?}", th_res.error);
+    let th_data = th_res.data.unwrap();
+    assert_eq!(th_data.get("is_throttled").unwrap(), true);
+    assert_eq!(th_data.get("thermal_state").unwrap(), "critical");
+
+    // 4. Low battery level (15%) discharging forces CPU recommendation
+    let bat_res = engine.dispatch(BridgeRequest::SetPowerProfile {
+        battery_saving: Some(false),
+        simulated_thermal: Some(miniai_core::ThermalState::Nominal),
+        simulated_power: Some(miniai_core::PowerState::Battery {
+            level_percent: 15,
+            is_charging: false,
+        }),
+    });
+    assert!(bat_res.success, "{:?}", bat_res.error);
+    let bat_data = bat_res.data.unwrap();
+    assert_eq!(bat_data.get("recommended_backend").unwrap(), "cpu");
+
+    // 5. Select Accelerator Backend (Cpu and Cuda)
+    let sel_cpu = engine.dispatch(BridgeRequest::SelectAcceleratorBackend {
+        backend: miniai_core::AcceleratorBackend::Cpu,
+    });
+    assert!(sel_cpu.success);
+    assert_eq!(sel_cpu.data.unwrap().get("is_cpu").unwrap(), true);
+
+    let sel_cuda = engine.dispatch(BridgeRequest::SelectAcceleratorBackend {
+        backend: miniai_core::AcceleratorBackend::Cuda,
+    });
+    assert!(sel_cuda.success);
+
+    // 6. Reset KV cache
+    let rst_res = engine.dispatch(BridgeRequest::ResetKvCache);
+    assert!(rst_res.success);
+    assert_eq!(
+        rst_res.data.unwrap().get("status").unwrap(),
+        "kv_cache_reset"
+    );
+}

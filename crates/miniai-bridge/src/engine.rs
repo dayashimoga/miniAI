@@ -4,8 +4,8 @@ use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-use miniai_core::hardware::HardwareProfile;
-use miniai_core::PrivacyPolicyEngine;
+use miniai_core::hardware::{DeviceGovernor, HardwareProfile};
+use miniai_core::{AcceleratorBackend, PrivacyPolicyEngine};
 use miniai_llm::{
     template_for_model, ChatMessage as LlmChatMessage, ChatTemplate, GenerationConfig,
     NeuralEngine, PromptCompiler,
@@ -169,6 +169,9 @@ pub struct BridgeEngine {
     tool_registry: Arc<ToolRegistry>,
     prompt_compiler: Arc<PromptCompiler>,
     downloads: Arc<RwLock<HashMap<String, serde_json::Value>>>,
+    governor: Arc<RwLock<DeviceGovernor>>,
+    active_backend: Arc<RwLock<AcceleratorBackend>>,
+    last_chat_session_id: Arc<RwLock<Option<String>>>,
 }
 
 impl BridgeEngine {
@@ -189,6 +192,9 @@ impl BridgeEngine {
         let tool_registry = Arc::new(ToolRegistry::new());
         let prompt_compiler = Arc::new(PromptCompiler::new(ChatTemplate::Llama3));
         let downloads = Arc::new(RwLock::new(HashMap::new()));
+        let governor = Arc::new(RwLock::new(DeviceGovernor::new()));
+        let active_backend = Arc::new(RwLock::new(AcceleratorBackend::Cpu));
+        let last_chat_session_id = Arc::new(RwLock::new(None));
 
         Ok(Self {
             storage,
@@ -206,6 +212,9 @@ impl BridgeEngine {
             tool_registry,
             prompt_compiler,
             downloads,
+            governor,
+            active_backend,
+            last_chat_session_id,
         })
     }
 
@@ -226,6 +235,9 @@ impl BridgeEngine {
         let tool_registry = Arc::new(ToolRegistry::new());
         let prompt_compiler = Arc::new(PromptCompiler::new(ChatTemplate::Llama3));
         let downloads = Arc::new(RwLock::new(HashMap::new()));
+        let governor = Arc::new(RwLock::new(DeviceGovernor::new()));
+        let active_backend = Arc::new(RwLock::new(AcceleratorBackend::Cpu));
+        let last_chat_session_id = Arc::new(RwLock::new(None));
 
         Ok(Self {
             storage,
@@ -243,6 +255,9 @@ impl BridgeEngine {
             tool_registry,
             prompt_compiler,
             downloads,
+            governor,
+            active_backend,
+            last_chat_session_id,
         })
     }
 
@@ -271,6 +286,8 @@ impl BridgeEngine {
             format!("models/{}.bin", model_id),
             format!("../models/{}.gguf", model_id),
             format!("../../models/{}.gguf", model_id),
+            format!("G:/miniAI/models/{}.gguf", model_id),
+            "G:/miniAI/models/smollm2-135m-instruct-q4.gguf".to_string(),
             format!("scratch/models/{}.gguf", model_id),
             format!("../scratch/models/{}.gguf", model_id),
             format!(
@@ -571,6 +588,25 @@ impl BridgeEngine {
                         }
 
                         if let Some(ref mut eng) = *lock {
+                            // Session switch isolation: reset KV-cache if session ID changed
+                            if let Ok(mut last_s) = self.last_chat_session_id.write() {
+                                if last_s.as_deref() != Some(session_id.as_str()) {
+                                    eng.reset_kv_cache();
+                                    *last_s = Some(session_id.clone());
+                                }
+                            }
+
+                            // Evaluate power & thermal governor constraints
+                            let gov_profile = self
+                                .governor
+                                .read()
+                                .map(|g| g.evaluate_profile(&self.hardware))
+                                .unwrap_or_else(|_| {
+                                    DeviceGovernor::new().evaluate_profile(&self.hardware)
+                                });
+                            let effective_max_tokens =
+                                max_tokens.unwrap_or(64).min(gov_profile.max_context_tokens);
+
                             let tmpl = template_for_model(&model);
                             let compiler = PromptCompiler::new(tmpl);
                             let chat_prompt = if let Some(ref msgs) = messages {
@@ -589,7 +625,7 @@ impl BridgeEngine {
                                 )
                             };
                             let gen_cfg = GenerationConfig {
-                                max_new_tokens: max_tokens.unwrap_or(64),
+                                max_new_tokens: effective_max_tokens,
                                 context_window_size: 2048,
                                 temperature: temperature.unwrap_or(0.7),
                                 top_p: 0.95,
@@ -1693,6 +1729,72 @@ impl BridgeEngine {
                 });
 
                 BridgeResponse::ok(val)
+            }
+
+            BridgeRequest::GetPowerProfile => {
+                let gov = match self.governor.read() {
+                    Ok(g) => g,
+                    Err(e) => return BridgeResponse::err("LOCK_ERROR", e.to_string()),
+                };
+                let profile = gov.evaluate_profile(&self.hardware);
+                BridgeResponse::ok(serde_json::to_value(&profile).unwrap_or_default())
+            }
+
+            BridgeRequest::SetPowerProfile {
+                battery_saving,
+                simulated_thermal,
+                simulated_power,
+            } => {
+                let mut gov = match self.governor.write() {
+                    Ok(g) => g,
+                    Err(e) => return BridgeResponse::err("LOCK_ERROR", e.to_string()),
+                };
+                if let Some(bs) = battery_saving {
+                    gov.set_battery_saving(bs);
+                }
+                if let Some(th) = simulated_thermal {
+                    gov.set_simulated_thermal(Some(th));
+                }
+                if let Some(p) = simulated_power {
+                    gov.set_simulated_power(Some(p));
+                }
+                let profile = gov.evaluate_profile(&self.hardware);
+                BridgeResponse::ok(serde_json::to_value(&profile).unwrap_or_default())
+            }
+
+            BridgeRequest::SelectAcceleratorBackend { backend } => {
+                let mut active = match self.active_backend.write() {
+                    Ok(a) => a,
+                    Err(e) => return BridgeResponse::err("LOCK_ERROR", e.to_string()),
+                };
+                let admitted =
+                    self.hardware.detected_backends.contains(&backend) || backend.is_cpu();
+                if admitted {
+                    *active = backend;
+                    BridgeResponse::ok(serde_json::json!({
+                        "status": "selected",
+                        "backend": backend,
+                        "is_cpu": backend.is_cpu(),
+                    }))
+                } else {
+                    *active = AcceleratorBackend::Cpu;
+                    BridgeResponse::ok(serde_json::json!({
+                        "status": "fallback_to_cpu",
+                        "backend": AcceleratorBackend::Cpu,
+                        "reason": format!("Requested backend {:?} not supported on current hardware; fallback to CPU", backend),
+                    }))
+                }
+            }
+
+            BridgeRequest::ResetKvCache => {
+                let mut guard = match self.neural_engine.lock() {
+                    Ok(g) => g,
+                    Err(e) => return BridgeResponse::err("LOCK_ERROR", e.to_string()),
+                };
+                if let Some(ref mut engine) = *guard {
+                    engine.reset_kv_cache();
+                }
+                BridgeResponse::ok(serde_json::json!({ "status": "kv_cache_reset" }))
             }
         }
     }

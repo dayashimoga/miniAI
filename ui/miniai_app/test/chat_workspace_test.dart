@@ -186,6 +186,23 @@ void main() {
       final lastMsg = restrictedController.currentMessages.last;
       expect(lastMsg.content, contains('Memory Admission Error'));
     });
+
+    test('Stage 20: Battery saving mode and thermal throttling governor state', () async {
+      expect(controller.batterySavingMode, isFalse);
+      expect(controller.thermalState, equals('nominal'));
+      expect(controller.powerState, equals('ac_connected'));
+      expect(controller.batteryPercent, equals(100));
+
+      await controller.toggleBatterySavingMode(true);
+      expect(controller.batterySavingMode, isTrue);
+      expect(controller.isPowerThrottled, isTrue);
+
+      await controller.toggleBatterySavingMode(false);
+      expect(controller.batterySavingMode, isFalse);
+
+      await controller.refreshPowerProfile();
+      expect(controller.powerState, isNotEmpty);
+    });
   });
 
   group('ChatWorkspaceScreen Widget & Streaming Interaction Tests', () {

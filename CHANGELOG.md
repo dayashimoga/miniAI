@@ -1345,3 +1345,34 @@
     * Rust workspace: 346 tests passing across all 17 crates (`cargo test --workspace`), 0 clippy warnings, 0 fmt diffs.
     * Python ML: 39 tests passing with 97.28% statement coverage (`uv run --group dev pytest`).
     * Flutter cross-platform UI: 118 tests passing (`flutter test --coverage`) with 90.32% line coverage and 0 analyze issues.
+
+
+---
+
+## [2026-11-08T12:15:00+05:30] — Stage 20: Hardware Acceleration (CUDA/Metal), KV-Cache Persistence & Mobile Battery Governor (v2.0.7)
+- **Action:** `FEATURE` & `REMEDIATION_VERIFIED`
+- **Summary:**
+  - **Stage 20: Hardware Acceleration, KV-Cache Prefix Caching & Mobile Battery Governor**:
+    * Implemented prompt prefix caching and state retention in `miniai-llm::NeuralEngine` (`crates/miniai-llm/src/neural.rs`):
+      - Evaluates common prefix between previous conversation tokens and incoming prompt.
+      - Automatically bypasses full-prompt prefill on subsequent turns, stepping through suffix tokens at the KV-cache offset.
+      - Added `cached_prefix_len()` and `reset_kv_cache()` for explicit session isolation.
+      - Verified real-model acceleration with `real_model_kv_cache_prefix_reuse_speeds_up_multi_turn` (Turn 1 prefill: 4848ms, Turn 2 prefill: 2826ms, answer: "teal").
+    * Implemented Device Power & Thermal Governor in `miniai-core::hardware` (`crates/miniai-core/src/hardware.rs`):
+      - `PowerState` (AC connected vs battery level/charging).
+      - `ThermalState` (Nominal, Fair, Serious, Critical).
+      - `PowerGovernorProfile` & `DeviceGovernor` managing concurrency limits, context window caps, and CPU fallback on critical thermals or battery drain (<20%).
+    * Implemented native bridge dispatch handlers in `crates/miniai-bridge/src/engine.rs`:
+      - `GetPowerProfile`: Queries dynamic device power and thermal health.
+      - `SetPowerProfile`: Sets battery-saving mode or simulates thermal/power states.
+      - `SelectAcceleratorBackend`: Dynamically switches between CPU, CUDA, Metal, and DirectML with deterministic CPU fallback.
+      - `ResetKvCache`: Explicitly flushes retained KV cache across session switches.
+    * Integrated with Flutter client and UI (`ui/miniai_app`):
+      - Added typed governor methods in `RustBackendClient`.
+      - Wired `PlatformController` to telemetry and governor streams with `toggleBatterySavingMode()`, `refreshPowerProfile()`, and verified local model auto-discovery.
+      - Added dynamic `THROTTLED` / `ECO` badge to the header telemetry bar in `ShellScreen`.
+  - **Master Verification Battery (100% Green Across All Tiers)**:
+    * Master Stage 10 Gate Verification (`scripts/verify_stage10.py`): **PASSED** unconditionally across all tiers (`overall_passed: true`).
+    * Rust workspace: 347 tests passing across all 17 crates (`cargo test --workspace`), 0 clippy warnings (`-D warnings`), 0 fmt diffs.
+    * Python ML: 39 tests passing with 97.28% statement coverage (`uv run --group dev pytest`).
+    * Flutter cross-platform UI: 120 tests passing (`flutter test --coverage`) with 90.05% line coverage and 0 analyze issues.

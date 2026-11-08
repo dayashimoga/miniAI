@@ -491,3 +491,196 @@ pub fn probe_host_hardware() -> HardwareProfile {
         gpus,
     }
 }
+
+/// Battery and power connection state for mobile and laptop environments.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum PowerState {
+    AcConnected,
+    Battery {
+        level_percent: u8,
+        is_charging: bool,
+    },
+}
+
+/// Device thermal status for thermal throttling and hardware protection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ThermalState {
+    Nominal,
+    Fair,
+    Serious,
+    Critical,
+}
+
+/// Dynamic power, battery and thermal governor profile.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PowerGovernorProfile {
+    pub power_state: PowerState,
+    pub thermal_state: ThermalState,
+    pub is_throttled: bool,
+    pub max_concurrency: usize,
+    pub max_context_tokens: usize,
+    pub recommended_backend: AcceleratorBackend,
+    pub battery_saving_active: bool,
+}
+
+/// Device power and thermal governor managing execution constraints across mobile & desktop.
+#[derive(Debug, Clone)]
+pub struct DeviceGovernor {
+    battery_saving_enabled: bool,
+    simulated_thermal: Option<ThermalState>,
+    simulated_power: Option<PowerState>,
+}
+
+impl Default for DeviceGovernor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl DeviceGovernor {
+    /// Creates a new governor instance with default nominal thermal state and AC power.
+    pub fn new() -> Self {
+        Self {
+            battery_saving_enabled: false,
+            simulated_thermal: None,
+            simulated_power: None,
+        }
+    }
+
+    /// Sets whether power/battery saving mode is active.
+    pub fn set_battery_saving(&mut self, enabled: bool) {
+        self.battery_saving_enabled = enabled;
+    }
+
+    /// Overrides current thermal state (useful for testing or platform event binding).
+    pub fn set_simulated_thermal(&mut self, state: Option<ThermalState>) {
+        self.simulated_thermal = state;
+    }
+
+    /// Overrides current power state (useful for testing or platform event binding).
+    pub fn set_simulated_power(&mut self, state: Option<PowerState>) {
+        self.simulated_power = state;
+    }
+
+    /// Evaluates current power and thermal conditions against hardware capabilities.
+    pub fn evaluate_profile(&self, hw: &HardwareProfile) -> PowerGovernorProfile {
+        let power_state = self
+            .simulated_power
+            .clone()
+            .unwrap_or(PowerState::AcConnected);
+        let thermal_state = self.simulated_thermal.unwrap_or(ThermalState::Nominal);
+
+        let is_low_battery = match &power_state {
+            PowerState::Battery {
+                level_percent,
+                is_charging,
+            } => !*is_charging && *level_percent <= 20,
+            PowerState::AcConnected => false,
+        };
+
+        let is_critical_battery = match &power_state {
+            PowerState::Battery {
+                level_percent,
+                is_charging,
+            } => !*is_charging && *level_percent <= 10,
+            PowerState::AcConnected => false,
+        };
+
+        let is_throttled = self.battery_saving_enabled
+            || is_critical_battery
+            || matches!(
+                thermal_state,
+                ThermalState::Serious | ThermalState::Critical
+            );
+
+        let max_concurrency = if is_throttled {
+            1
+        } else {
+            (hw.logical_cpu_cores as usize).clamp(1, 4)
+        };
+
+        let max_context_tokens = if is_throttled { 1024 } else { 4096 };
+
+        // If severely throttled or critical battery, prioritize CPU baseline to protect battery/GPU thermals
+        let recommended_backend = if is_throttled || is_low_battery {
+            AcceleratorBackend::Cpu
+        } else {
+            hw.select_execution_backend(None, false)
+        };
+
+        PowerGovernorProfile {
+            power_state,
+            thermal_state,
+            is_throttled,
+            max_concurrency,
+            max_context_tokens,
+            recommended_backend,
+            battery_saving_active: self.battery_saving_enabled,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_device_governor_nominal_profile() {
+        let hw = HardwareProfile::default();
+        let governor = DeviceGovernor::new();
+        let profile = governor.evaluate_profile(&hw);
+
+        assert_eq!(profile.power_state, PowerState::AcConnected);
+        assert_eq!(profile.thermal_state, ThermalState::Nominal);
+        assert!(!profile.is_throttled);
+        assert_eq!(
+            profile.max_concurrency,
+            (hw.logical_cpu_cores as usize).clamp(1, 4)
+        );
+        assert_eq!(profile.max_context_tokens, 4096);
+        assert_eq!(profile.recommended_backend, AcceleratorBackend::Cpu);
+    }
+
+    #[test]
+    fn test_device_governor_battery_saving_and_thermal_throttling() {
+        let hw = HardwareProfile::default();
+        let mut governor = DeviceGovernor::new();
+
+        // 1. Battery saving mode
+        governor.set_battery_saving(true);
+        let profile = governor.evaluate_profile(&hw);
+        assert!(profile.is_throttled);
+        assert_eq!(profile.max_concurrency, 1);
+        assert_eq!(profile.max_context_tokens, 1024);
+        assert!(profile.battery_saving_active);
+
+        // 2. Critical thermal throttling
+        governor.set_battery_saving(false);
+        governor.set_simulated_thermal(Some(ThermalState::Critical));
+        let profile = governor.evaluate_profile(&hw);
+        assert!(profile.is_throttled);
+        assert_eq!(profile.max_concurrency, 1);
+        assert_eq!(profile.max_context_tokens, 1024);
+
+        // 3. Low battery (<20%) forces CPU baseline
+        governor.set_simulated_thermal(Some(ThermalState::Nominal));
+        governor.set_simulated_power(Some(PowerState::Battery {
+            level_percent: 12,
+            is_charging: false,
+        }));
+        let profile = governor.evaluate_profile(&hw);
+        assert_eq!(profile.recommended_backend, AcceleratorBackend::Cpu);
+        assert!(!profile.is_throttled);
+
+        // 4. Critical battery (<=10%) throttles
+        governor.set_simulated_power(Some(PowerState::Battery {
+            level_percent: 8,
+            is_charging: false,
+        }));
+        let profile = governor.evaluate_profile(&hw);
+        assert!(profile.is_throttled);
+        assert_eq!(profile.max_concurrency, 1);
+    }
+}

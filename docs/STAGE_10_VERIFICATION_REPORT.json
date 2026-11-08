@@ -1,7 +1,7 @@
 {
   "stage": 10,
   "title": "Stage 10: Cross-Platform Hardening, Certification, Packaging & Releases (v1.0.0)",
-  "generated_at": "2026-11-08T06:09:21.016829+00:00",
+  "generated_at": "2026-11-08T06:42:04.744133+00:00",
   "overall_passed": true,
   "governance_audit": {
     "passed": true,
@@ -29,7 +29,7 @@
       "passed": true,
       "stdout_tail": [],
       "stderr_tail": [
-        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.52s"
+        "Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.78s"
       ]
     },
     {
@@ -117,7 +117,7 @@
         "--------------------------------------------------------------",
         "TOTAL                              918     25    97%",
         "Required test coverage of 90% reached. Total coverage: 97.28%",
-        "39 passed in 16.36s"
+        "39 passed in 15.43s"
       ],
       "stderr_tail": []
     },
@@ -129,7 +129,7 @@
       "passed": true,
       "stdout_tail": [
         "Analyzing miniai_app...                                         ",
-        "No issues found! (ran in 3.3s)"
+        "No issues found! (ran in 4.1s)"
       ],
       "stderr_tail": []
     },
@@ -140,21 +140,21 @@
       "exit_code": 0,
       "passed": true,
       "stdout_tail": [
-        "00:18 +104: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:18 +105: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:18 +106: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:18 +107: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:18 +108: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:19 +109: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:19 +110: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:18 +109: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:18 +110: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:19 +111: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:19 +112: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
         "00:19 +113: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:20 +114: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
-        "00:20 +115: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
-        "00:20 +116: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
-        "00:21 +117: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
-        "00:22 +118: All tests passed!"
+        "00:19 +114: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:19 +115: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:20 +116: G:/miniAI/ui/miniai_app/test/widget_test.dart: DashboardScreen Widget & Accessibility Tests Renders all 7 independent modality adapters and enforces privacy toggles",
+        "00:20 +117: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:21 +118: G:/miniAI/ui/miniai_app/test/training_studio_test.dart: Subphase 4.3.1 Training Studio Widget & Interaction Tests ShellScreen navigates to Tab 6 Training Studio across desktop and mobile",
+        "00:21 +119: G:/miniAI/ui/miniai_app/test/vision_canvas_test.dart: Subphase 6.3.1 Vision & Canvas Studio Widget Tests Canvas Studio tab: parameter controls, inpainting mask drawing, and gallery inspection",
+        "00:22 +120: All tests passed!"
       ],
       "stderr_tail": []
     },
@@ -181,15 +181,15 @@
       "stdout_tail": [
         "      \"filename\": \"bom.json\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"0dc169827b146cdea267c068a7b9063e8f8b0dd6f8b2ed0e906776e4eea89669\",",
-        "      \"actual_sha256\": \"0dc169827b146cdea267c068a7b9063e8f8b0dd6f8b2ed0e906776e4eea89669\",",
+        "      \"expected_sha256\": \"c6d0c0ad21db3a7ba0edda90a9418657cc9877d26143b798be4a581afd5a7bf2\",",
+        "      \"actual_sha256\": \"c6d0c0ad21db3a7ba0edda90a9418657cc9877d26143b798be4a581afd5a7bf2\",",
         "      \"passed\": true",
         "    },",
         "    {",
         "      \"filename\": \"bom.xml\",",
         "      \"exists\": true,",
-        "      \"expected_sha256\": \"3dc07f5e5facc4cfdb84c04c3517758db000670ff16cc25d0a0a0be96a7f776c\",",
-        "      \"actual_sha256\": \"3dc07f5e5facc4cfdb84c04c3517758db000670ff16cc25d0a0a0be96a7f776c\",",
+        "      \"expected_sha256\": \"fa6f736713c1a812e0053151c5264ed91dd3b44d4c73f74c80f8495618dd39f5\",",
+        "      \"actual_sha256\": \"fa6f736713c1a812e0053151c5264ed91dd3b44d4c73f74c80f8495618dd39f5\",",
         "      \"passed\": true",
         "    }",
         "  ]",
@@ -206,7 +206,7 @@
     "python_ml_tests": "39 passed (100% pass rate)",
     "python_ml_statement_coverage": "97.28%",
     "flutter_ui_tests": "102 passed (100% pass rate)",
-    "flutter_ui_line_coverage": "90.32%",
+    "flutter_ui_line_coverage": "90.05%",
     "flutter_analyze_issues": 0,
     "release_bundles_verified": "8/8 verified"
   },

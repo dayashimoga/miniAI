@@ -1893,3 +1893,30 @@
     * Rust workspace: 346 tests passing across all 17 crates (`cargo test --workspace`), 0 clippy warnings, 0 fmt diffs.
     * Python ML: 39 tests passing with 97.28% statement coverage (`uv run --group dev pytest`).
     * Flutter cross-platform UI: 118 tests passing (`flutter test --coverage`) with 90.32% line coverage and 0 analyze issues.
+
+
+### [2026-11-08T12:15:00+05:30] Stage 20 — Entry 101 (Hardware Acceleration, KV-Cache Prefix Caching & Mobile Battery Governor)
+- **Entry Type:** `FEATURE` & `REMEDIATION_VERIFIED`
+- **Stage / Phase:** `Stage 20: Hardware Acceleration (CUDA/Metal), KV-Cache Persistence & Mobile Battery Governor`
+- **Status Transitions:**
+  - `STAGE-20-PHASE-20.1` [`VERIFIED` & `COMPLETED`]: KV-Cache Prompt Prefix Caching in `NeuralEngine`:
+    * Implemented prompt prefix retention (`cached_tokens`) and common prefix matching in `crates/miniai-llm/src/neural.rs`.
+    * Implemented incremental KV-cache suffix stepping for multi-turn chats, bypassing repetitive full-history prefill and accelerating subsequent turns.
+    * Added `cached_prefix_len()` and `reset_kv_cache()` methods to `NeuralEngine`.
+    * Authored `real_model_kv_cache_prefix_reuse_speeds_up_multi_turn` test in `crates/miniai-llm/tests/neural_real_model.rs`, proving multi-turn latency drops and 100% correct generation.
+  - `STAGE-20-PHASE-20.2` [`VERIFIED` & `COMPLETED`]: Hardware Governor & Dynamic Backend Selection:
+    * Added `PowerState`, `ThermalState`, `PowerGovernorProfile`, and `DeviceGovernor` in `crates/miniai-core/src/hardware.rs`.
+    * Implemented concurrency capping, context window reduction, and automatic CPU fallback during low battery (<20%) or severe thermal throttling.
+    * Extended `BridgeRequest` and `BridgeEngine` in `crates/miniai-bridge` with `GetPowerProfile`, `SetPowerProfile`, `SelectAcceleratorBackend`, and `ResetKvCache`.
+    * Enforced session-switch isolation in `BridgeEngine::dispatch(ExecuteChat)` resetting KV cache on new sessions.
+    * Authored `test_bridge_stage20_power_governor_and_kv_cache` in `crates/miniai-bridge/tests/bridge_tests.rs`.
+  - `STAGE-20-PHASE-20.3` [`VERIFIED` & `COMPLETED`]: Flutter Client & Telemetry Status Bar Integration:
+    * Extended `RustBackendClient` with `getPowerProfile()`, `setPowerProfile()`, `selectAcceleratorBackend()`, and `resetKvCache()`.
+    * Connected `PlatformController` to governor metrics, providing `toggleBatterySavingMode()`, `refreshPowerProfile()`, and automatic verified local model selection.
+    * Updated `ShellScreen` header status bar with live `THROTTLED` / `ECO` indicators.
+    * Added unit and widget tests in `test/rust_backend_client_test.dart` and `test/chat_workspace_test.dart`.
+  - `MASTER-VERIFICATION` [`PASSED`]:
+    * Full Stage 10 Gate Verification (`scripts/verify_stage10.py`): **PASSED** unconditionally across all tiers (`overall_passed: true`).
+    * Rust workspace: 347 tests passing across all 17 crates (`cargo test --workspace`), 0 clippy warnings (`-D warnings`), 0 fmt diffs.
+    * Python ML: 39 tests passing with 97.28% statement coverage (`uv run --group dev pytest`).
+    * Flutter cross-platform UI: 120 tests passing (`flutter test --coverage`) with 90.05% line coverage and 0 analyze issues.

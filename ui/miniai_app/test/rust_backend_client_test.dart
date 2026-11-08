@@ -195,6 +195,31 @@ void main() {
       expect(train['status'], 'completed');
       expect(train['history'], isNotEmpty);
     });
+
+    test('Stage 20: Governor and KV-cache endpoints execute cleanly in client', () async {
+      final client = RustBackendClient();
+
+      // 1. getPowerProfile
+      final p1 = await client.getPowerProfile();
+      expect(p1['is_throttled'], isFalse);
+      expect(p1['thermal_state'], 'nominal');
+      expect(p1['max_context_tokens'], 4096);
+
+      // 2. setPowerProfile (battery saving)
+      final p2 = await client.setPowerProfile(batterySaving: true);
+      expect(p2['is_throttled'], isTrue);
+      expect(p2['battery_saving_active'], isTrue);
+      expect(p2['max_context_tokens'], 1024);
+
+      // 3. selectAcceleratorBackend
+      final bCpu = await client.selectAcceleratorBackend('cpu');
+      expect(bCpu['status'], 'selected');
+      expect(bCpu['is_cpu'], isTrue);
+
+      // 4. resetKvCache
+      final rst = await client.resetKvCache();
+      expect(rst['status'], 'kv_cache_reset');
+    });
   });
 }
 

@@ -57,6 +57,7 @@ pub struct NeuralEngine {
     file_size_bytes: u64,
     architecture: String,
     template: ChatTemplate,
+    cached_tokens: Vec<u32>,
 }
 
 impl std::fmt::Debug for NeuralEngine {
@@ -155,6 +156,7 @@ impl NeuralEngine {
             file_size_bytes,
             architecture,
             template: template_for_model(model_id),
+            cached_tokens: Vec::new(),
         })
     }
 
@@ -177,6 +179,16 @@ impl NeuralEngine {
     /// The chat template matching this model family.
     pub fn template(&self) -> ChatTemplate {
         self.template
+    }
+
+    /// Returns the number of prefix tokens currently retained in the KV cache.
+    pub fn cached_prefix_len(&self) -> usize {
+        self.cached_tokens.len()
+    }
+
+    /// Resets the retained KV cache so the next generation evaluates from position 0.
+    pub fn reset_kv_cache(&mut self) {
+        self.cached_tokens.clear();
     }
 
     /// Counts prompt tokens exactly using the model tokenizer.
@@ -326,15 +338,42 @@ impl NeuralEngine {
         let mut processor = LogitsProcessor::from_sampling(seed, sampling);
 
         let start = Instant::now();
-        // Prefill: run the whole prompt at position 0 (resets the KV cache).
-        let input = Tensor::new(tokens.as_slice(), &self.device)
-            .and_then(|t| t.unsqueeze(0))
-            .map_err(infer_err)?;
-        let mut logits = self
-            .model
-            .forward(&input, 0)
-            .and_then(|l| l.squeeze(0))
-            .map_err(infer_err)?;
+        // Prefill with KV-cache reuse: if prompt shares prefix with previous cached tokens,
+        // we can reuse the KV cache up to common_prefix_len. Candle's QuantizedLlama requires
+        // single-token steps (seq_len = 1) when pos > 0 because its causal mask expects pos == 0 for chunked prefill.
+        let mut common_prefix_len = 0;
+        if !self.cached_tokens.is_empty() && tokens.starts_with(&self.cached_tokens) {
+            common_prefix_len = self.cached_tokens.len();
+        }
+
+        let mut logits = if common_prefix_len > 0 && common_prefix_len < tokens.len() {
+            let mut last_logits = None;
+            for (p, &tok) in tokens.iter().enumerate().skip(common_prefix_len) {
+                let step_input = Tensor::new(&[tok], &self.device)
+                    .and_then(|t| t.unsqueeze(0))
+                    .map_err(infer_err)?;
+                let l = self
+                    .model
+                    .forward(&step_input, p)
+                    .and_then(|l| l.squeeze(0))
+                    .map_err(infer_err)?;
+                last_logits = Some(l);
+            }
+            last_logits.expect("at least one token evaluated in suffix")
+        } else {
+            let input = Tensor::new(tokens.as_slice(), &self.device)
+                .and_then(|t| t.unsqueeze(0))
+                .map_err(infer_err)?;
+            self.model
+                .forward(&input, 0)
+                .and_then(|l| l.squeeze(0))
+                .map_err(infer_err)?
+        };
+
+        if logits.rank() == 2 {
+            let last_idx = logits.dim(0).map_err(infer_err)? - 1;
+            logits = logits.get(last_idx).map_err(infer_err)?;
+        }
         let prompt_eval_ms = start.elapsed().as_secs_f64() * 1000.0;
 
         let mut generated: Vec<u32> = Vec::new();
@@ -421,6 +460,9 @@ impl NeuralEngine {
         } else {
             0.0
         };
+
+        // Cache evaluated token sequence for KV-cache prefix reuse in subsequent turns.
+        self.cached_tokens = tokens;
 
         Ok(NeuralGeneration {
             text: emitted.trim_end().to_string(),

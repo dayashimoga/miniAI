@@ -154,3 +154,42 @@ fn real_model_honours_cancellation_and_context_limits() {
         .unwrap_err();
     assert!(matches!(err, LlmError::ContextWindowExceeded { .. }));
 }
+
+#[test]
+#[ignore = "requires real GGUF weights via MINIAI_TEST_GGUF"]
+fn real_model_kv_cache_prefix_reuse_speeds_up_multi_turn() {
+    let mut engine = NeuralEngine::load("smollm2-135m-instruct-q4", &model_path()).unwrap();
+    assert_eq!(engine.cached_prefix_len(), 0);
+
+    let compiler = PromptCompiler::new(ChatTemplate::ChatMl);
+    let prompt1 = compiler.compile(
+        &[ChatMessage::user("Hello, my favorite color is teal.")],
+        None,
+    );
+    let out1 = engine
+        .generate(&prompt1, &greedy(16), None, |_| true)
+        .unwrap();
+    assert!(engine.cached_prefix_len() > 0);
+    let cached_turn1 = engine.cached_prefix_len();
+
+    let prompt2 = compiler.compile(
+        &[
+            ChatMessage::user("Hello, my favorite color is teal."),
+            ChatMessage::assistant(&out1.text),
+            ChatMessage::user("What is my favorite color?"),
+        ],
+        None,
+    );
+    let out2 = engine
+        .generate(&prompt2, &greedy(16), None, |_| true)
+        .unwrap();
+    println!(
+        "KV-Cache: Turn 1 prefill: {:.2}ms, Turn 2 prefill: {:.2}ms, Answer: {:?}",
+        out1.prompt_eval_ms, out2.prompt_eval_ms, out2.text
+    );
+    assert!(out2.text.to_lowercase().contains("teal"));
+    assert!(engine.cached_prefix_len() > cached_turn1);
+
+    engine.reset_kv_cache();
+    assert_eq!(engine.cached_prefix_len(), 0);
+}

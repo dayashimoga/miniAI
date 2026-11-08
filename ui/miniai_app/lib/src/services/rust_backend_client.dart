@@ -432,6 +432,40 @@ class RustBackendClient {
     );
   }
 
+  /// Queries the current power, battery, and thermal governor profile.
+  Future<Map<String, dynamic>> getPowerProfile() async {
+    return dispatch(action: 'get_power_profile');
+  }
+
+  /// Updates governor thresholds, toggling battery saving or simulated states.
+  Future<Map<String, dynamic>> setPowerProfile({
+    bool? batterySaving,
+    String? simulatedThermal,
+    Map<String, dynamic>? simulatedPower,
+  }) async {
+    return dispatch(
+      action: 'set_power_profile',
+      payload: {
+        if (batterySaving != null) 'battery_saving': batterySaving,
+        if (simulatedThermal != null) 'simulated_thermal': simulatedThermal,
+        if (simulatedPower != null) 'simulated_power': simulatedPower,
+      },
+    );
+  }
+
+  /// Dynamically selects or switches the active neural compute backend (CPU, CUDA, Metal).
+  Future<Map<String, dynamic>> selectAcceleratorBackend(String backend) async {
+    return dispatch(
+      action: 'select_accelerator_backend',
+      payload: {'backend': backend},
+    );
+  }
+
+  /// Resets the retained KV cache so the subsequent generation evaluates from scratch.
+  Future<Map<String, dynamic>> resetKvCache() async {
+    return dispatch(action: 'reset_kv_cache');
+  }
+
   /// In-process deterministic fallback when daemon is disconnected.
   Map<String, dynamic> _localFallback(String action, Map<String, dynamic>? payload) {
     switch (action) {
@@ -608,6 +642,38 @@ class RustBackendClient {
             {'epoch': 3, 'loss': 0.67, 'eval_perplexity': 2.14},
           ],
         };
+      case 'get_power_profile':
+        return {
+          'power_state': {'type': 'ac_connected'},
+          'thermal_state': 'nominal',
+          'is_throttled': false,
+          'max_concurrency': 4,
+          'max_context_tokens': 4096,
+          'recommended_backend': 'cpu',
+          'battery_saving_active': false,
+        };
+      case 'set_power_profile':
+        final bs = payload?['battery_saving'] as bool? ?? false;
+        final th = payload?['simulated_thermal'] as String? ?? 'nominal';
+        final isThrottled = bs || th == 'critical' || th == 'serious';
+        return {
+          'power_state': payload?['simulated_power'] ?? {'type': 'ac_connected'},
+          'thermal_state': th,
+          'is_throttled': isThrottled,
+          'max_concurrency': isThrottled ? 1 : 4,
+          'max_context_tokens': isThrottled ? 1024 : 4096,
+          'recommended_backend': 'cpu',
+          'battery_saving_active': bs,
+        };
+      case 'select_accelerator_backend':
+        final b = payload?['backend'] as String? ?? 'cpu';
+        return {
+          'status': 'selected',
+          'backend': b,
+          'is_cpu': b.toLowerCase() == 'cpu',
+        };
+      case 'reset_kv_cache':
+        return {'status': 'kv_cache_reset'};
       default:
         return {'status': 'ok'};
     }

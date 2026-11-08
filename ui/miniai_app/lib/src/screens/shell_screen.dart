@@ -143,6 +143,19 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
                               letterSpacing: 0.3,
                             ),
                           ),
+                          if (controller.isPowerThrottled) ...[
+                            const SizedBox(width: 6),
+                            const Icon(Icons.bolt, size: 13, color: Colors.amber),
+                            const SizedBox(width: 2),
+                            Text(
+                              controller.batterySavingMode ? 'ECO' : 'THROTTLED',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.amber,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

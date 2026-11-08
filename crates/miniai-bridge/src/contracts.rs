@@ -1,3 +1,4 @@
+use miniai_core::{AcceleratorBackend, PowerState, ThermalState};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -210,6 +211,25 @@ pub enum BridgeRequest {
         #[serde(default)]
         lora_rank: Option<u32>,
     },
+
+    #[serde(rename = "get_power_profile")]
+    GetPowerProfile,
+
+    #[serde(rename = "set_power_profile")]
+    SetPowerProfile {
+        #[serde(default)]
+        battery_saving: Option<bool>,
+        #[serde(default)]
+        simulated_thermal: Option<ThermalState>,
+        #[serde(default)]
+        simulated_power: Option<PowerState>,
+    },
+
+    #[serde(rename = "select_accelerator_backend")]
+    SelectAcceleratorBackend { backend: AcceleratorBackend },
+
+    #[serde(rename = "reset_kv_cache")]
+    ResetKvCache,
 }
 
 fn default_audit_limit() -> usize {

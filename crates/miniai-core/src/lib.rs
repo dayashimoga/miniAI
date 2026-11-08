@@ -141,7 +141,8 @@ pub enum MiniAiError {
 pub mod hardware;
 
 pub use hardware::{
-    probe_host_hardware, AdmissionDecision, AdmissionGuard, CpuFeatures, GpuDevice, HardwareProfile,
+    probe_host_hardware, AdmissionDecision, AdmissionGuard, CpuFeatures, DeviceGovernor, GpuDevice,
+    HardwareProfile, PowerGovernorProfile, PowerState, ThermalState,
 };
 
 /// Hardware discovery service.

@@ -20,13 +20,15 @@ class RustBackendClient {
   Future<Map<String, dynamic>> dispatch({
     required String action,
     Map<String, dynamic>? payload,
+    Duration? overrideTimeout,
   }) async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
       return _localFallback(action, payload);
     }
     HttpClient? client;
     try {
-      client = HttpClient()..connectionTimeout = timeout;
+      final effectiveTimeout = overrideTimeout ?? timeout;
+      client = HttpClient()..connectionTimeout = effectiveTimeout;
       final uri = Uri.parse('$daemonUrl/v1/bridge/dispatch');
       final request = await client.postUrl(uri);
       request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
@@ -37,7 +39,7 @@ class RustBackendClient {
       }
 
       request.write(jsonEncode(requestMap));
-      final response = await request.close().timeout(timeout);
+      final response = await request.close().timeout(effectiveTimeout);
 
       if (response.statusCode == HttpStatus.ok) {
         final body = await response.transform(utf8.decoder).join();
@@ -92,6 +94,10 @@ class RustBackendClient {
     required String sessionId,
     required String prompt,
     String? modelId,
+    List<Map<String, String>>? messages,
+    double? temperature,
+    int? maxTokens,
+    String? systemPrompt,
   }) async {
     return dispatch(
       action: 'execute_chat',
@@ -99,7 +105,51 @@ class RustBackendClient {
         'session_id': sessionId,
         'prompt': prompt,
         if (modelId != null) 'model_id': modelId,
+        if (messages != null) 'messages': messages,
+        if (temperature != null) 'temperature': temperature,
+        if (maxTokens != null) 'max_tokens': maxTokens,
+        if (systemPrompt != null) 'system_prompt': systemPrompt,
       },
+      overrideTimeout: const Duration(seconds: 120),
+    );
+  }
+
+  /// Starts streaming model download via daemon.
+  Future<Map<String, dynamic>> startModelDownload({
+    required String modelId,
+    required String sourceUrl,
+    String? expectedSha256,
+    int? expectedSizeBytes,
+  }) async {
+    return dispatch(
+      action: 'start_model_download',
+      payload: {
+        'model_id': modelId,
+        'source_url': sourceUrl,
+        if (expectedSha256 != null) 'expected_sha256': expectedSha256,
+        if (expectedSizeBytes != null) 'expected_size_bytes': expectedSizeBytes,
+      },
+      overrideTimeout: const Duration(seconds: 10),
+    );
+  }
+
+  /// Polls model download progress from daemon.
+  Future<Map<String, dynamic>> getModelDownloadProgress({
+    required String modelId,
+  }) async {
+    return dispatch(
+      action: 'get_model_download_progress',
+      payload: {'model_id': modelId},
+    );
+  }
+
+  /// Cancels an in-progress model download.
+  Future<Map<String, dynamic>> cancelModelDownload({
+    required String modelId,
+  }) async {
+    return dispatch(
+      action: 'cancel_model_download',
+      payload: {'model_id': modelId},
     );
   }
 
@@ -187,6 +237,40 @@ class RustBackendClient {
         return {'total_chat_requests': 0, 'total_tokens_generated': 0};
       case 'unload_model':
         return {'status': 'unloaded', 'freed_memory_mb': 104.5};
+      case 'execute_chat':
+        final prompt = payload?['prompt']?.toString() ?? '';
+        final model = payload?['model_id']?.toString() ?? 'smollm2-135m-instruct-q4';
+        return {
+          'status': 'ok',
+          'session_id': payload?['session_id'] ?? 'local',
+          'model_id': model,
+          'text': 'Neural inference completed for: $prompt',
+          'tokens': ['Neural', 'inference', 'completed', 'for:', prompt],
+          'token_count': 5,
+          'inference_time_ms': 45,
+          'tokens_per_second': 48.5,
+        };
+      case 'start_model_download':
+        return {
+          'model_id': payload?['model_id'] ?? '',
+          'status': 'downloading',
+          'bytes_downloaded': 0,
+          'total_bytes': payload?['expected_size_bytes'] ?? 105454432,
+          'percentage': 0.0,
+        };
+      case 'get_model_download_progress':
+        return {
+          'model_id': payload?['model_id'] ?? '',
+          'status': 'verified',
+          'bytes_downloaded': 105454432,
+          'total_bytes': 105454432,
+          'percentage': 100.0,
+        };
+      case 'cancel_model_download':
+        return {
+          'model_id': payload?['model_id'] ?? '',
+          'status': 'cancelled',
+        };
       default:
         return {'status': 'ok'};
     }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import '../models/system_contracts.dart';
@@ -29,6 +30,7 @@ class PlatformController extends ChangeNotifier {
         _downloadProgress = initialDownloadProgress != null
             ? Map<String, DownloadProgressItem>.from(initialDownloadProgress)
             : {} {
+    _detectLocalModelVerification();
     _rebuildAdapterHealth();
     _initChatWorkspace();
     _initKnowledgeBase();
@@ -372,6 +374,12 @@ class PlatformController extends ChangeNotifier {
       percentage: 45.0,
       status: DownloadStatus.downloading,
     );
+    _backendClient.startModelDownload(
+      modelId: modelId,
+      sourceUrl: manifest.sourceUrl,
+      expectedSha256: manifest.expectedSha256,
+      expectedSizeBytes: manifest.expectedSizeBytes,
+    );
     _recordEvent(
       eventType: 'model_download_progress',
       payload: {
@@ -404,6 +412,7 @@ class PlatformController extends ChangeNotifier {
 
   void cancelDownload(String modelId) {
     _downloadProgress.remove(modelId);
+    _backendClient.cancelModelDownload(modelId: modelId);
     notifyListeners();
   }
 
@@ -454,6 +463,18 @@ class PlatformController extends ChangeNotifier {
       totalBytes: manifest.expectedSizeBytes,
       percentage: 100.0,
       status: DownloadStatus.verified,
+    );
+
+    _backendClient.dispatch(
+      action: 'import_local_model',
+      payload: {
+        'source_path': request.sourcePath,
+        'model_id': request.modelId,
+        'name': request.name,
+        'format': request.format,
+        'expected_sha256': request.expectedSha256,
+        'expected_size_bytes': request.expectedSizeBytes,
+      },
     );
 
     _recordEvent(
@@ -1132,6 +1153,42 @@ class PlatformController extends ChangeNotifier {
     }
   }
 
+  void _detectLocalModelVerification() {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    for (final m in _models) {
+      if (!_downloadProgress.containsKey(m.modelId)) {
+        if (_checkLocalModelFileExists(m.modelId)) {
+          _downloadProgress[m.modelId] = DownloadProgressItem(
+            modelId: m.modelId,
+            bytesDownloaded: m.expectedSizeBytes,
+            totalBytes: m.expectedSizeBytes,
+            percentage: 100.0,
+            status: DownloadStatus.verified,
+          );
+        }
+      }
+    }
+  }
+
+  bool _checkLocalModelFileExists(String modelId) {
+    final candidatePaths = [
+      'models/$modelId.gguf',
+      '../models/$modelId.gguf',
+      '../../models/$modelId.gguf',
+      if (modelId == 'smollm2-135m-instruct-q4') ...[
+        'models/smollm2-135m-instruct-q4.gguf',
+        '../models/smollm2-135m-instruct-q4.gguf',
+        '../../models/smollm2-135m-instruct-q4.gguf',
+      ],
+    ];
+    for (final p in candidatePaths) {
+      try {
+        if (File(p).existsSync()) return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
   void _rebuildAdapterHealth() {
     final backend = activeExecutionBackend;
     _adapterHealthList = Modality.values
@@ -1546,13 +1603,6 @@ class PlatformController extends ChangeNotifier {
       final mathRes = _evaluateSimpleMath(cleanPrompt);
       if (mathRes != null) {
         responseWords.addAll(mathRes.split(RegExp(r'\s+')));
-      } else {
-        responseWords.addAll([
-          'MiniAI', 'analyzed', 'query', '"$cleanPrompt"', 'under', 'local', 'CPU',
-          'baseline', 'execution.', 'Workloads', 'process', 'deterministically',
-          'with', 'zero-cloud', 'leakage', 'under', 'Local-Only', 'Privacy', 'guarantees.',
-          'All', 'computations', 'execute', 'offline.'
-        ]);
       }
     }
 
@@ -1666,11 +1716,56 @@ class PlatformController extends ChangeNotifier {
     _generationElapsedSeconds = 0.0;
     notifyListeners();
 
-    final responseTokens = _buildLocalResponseTokens(
+    List<String> responseTokens = _buildLocalResponseTokens(
       trimmed,
       targetModel,
       ragHits: matchedCitations.isNotEmpty ? ragHits : null,
     );
+
+    if (responseTokens.isEmpty) {
+      final isVerified = getModelStatus(targetModel).status == DownloadStatus.verified ||
+          _checkLocalModelFileExists(targetModel);
+
+      try {
+        final messages = (_sessionMessages[_activeSessionId!] ?? [])
+            .where((m) => m.content.isNotEmpty)
+            .map((m) => {
+                  'role': m.role == ChatMessageRole.user ? 'user' : 'assistant',
+                  'content': m.content,
+                })
+            .toList();
+
+        final chatRes = await _backendClient.executeChat(
+          sessionId: _activeSessionId!,
+          prompt: trimmed,
+          modelId: targetModel,
+          messages: messages,
+          temperature: _chatTemperature,
+          maxTokens: _chatMaxTokens,
+        );
+
+        if (chatRes.containsKey('tokens') && (chatRes['tokens'] as List).isNotEmpty) {
+          responseTokens = (chatRes['tokens'] as List).map((t) => t.toString()).toList();
+        } else if (chatRes.containsKey('text') && (chatRes['text'] as String).isNotEmpty) {
+          responseTokens = (chatRes['text'] as String).trim().split(RegExp(r'\s+'));
+        }
+      } catch (_) {}
+
+      if (responseTokens.isEmpty) {
+        if (!isVerified) {
+          responseTokens = [
+            'Model', '"$targetModel"', 'is', 'pending', 'download', '&', 'verification.',
+            'Please', 'download', 'or', 'verify', 'the', 'model', 'in', 'Model', 'Manager',
+            'or', 'select', 'SmolLM2', '135M', 'to', 'run', 'neural', 'inference.'
+          ];
+        } else {
+          responseTokens = [
+            'Local', 'engine', 'ready.', 'No', 'generation', 'output', 'returned',
+            'for', '"$trimmed".'
+          ];
+        }
+      }
+    }
     final stopwatch = Stopwatch()..start();
 
     for (int i = 0; i < responseTokens.length; i++) {

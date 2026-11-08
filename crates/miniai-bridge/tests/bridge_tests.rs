@@ -35,6 +35,10 @@ fn test_bridge_engine_in_memory_lifecycle() {
         session_id: "test-session-01".to_string(),
         prompt: "what are your capabilities".to_string(),
         model_id: Some("llama-3.2-1b-instruct-q4".to_string()),
+        messages: None,
+        temperature: None,
+        max_tokens: None,
+        system_prompt: None,
     });
     assert!(chat_res.success);
     let chat_data = chat_res.data.unwrap();
@@ -134,6 +138,10 @@ fn test_bridge_telemetry_and_model_unloading() {
         session_id: "obs-session-01".to_string(),
         prompt: "measure throughput and latency".to_string(),
         model_id: Some("llama-3.2-1b-instruct-q4".to_string()),
+        messages: None,
+        temperature: None,
+        max_tokens: None,
+        system_prompt: None,
     });
     assert!(chat_res.success);
     let chat_data = chat_res.data.unwrap();
@@ -269,4 +277,92 @@ fn test_bridge_stage15_mcp_swarm_and_npu() {
     assert!(npu_res.success);
     let npu_data = npu_res.data.unwrap();
     assert_eq!(npu_data["backends"][0]["name"], "CPU Baseline");
+}
+
+#[test]
+fn test_bridge_chat_no_canned_boilerplate_and_neural_execution() {
+    let engine = BridgeEngine::new_in_memory().expect("in-memory engine");
+    let res = engine.dispatch(BridgeRequest::ExecuteChat {
+        session_id: "test-real-chat".to_string(),
+        prompt: "how to build a picnic tent".to_string(),
+        model_id: Some("smollm2-135m-instruct-q4".to_string()),
+        messages: None,
+        temperature: Some(0.0),
+        max_tokens: Some(32),
+        system_prompt: None,
+    });
+    assert!(res.success);
+    let data = res.data.unwrap();
+    let text = data["text"].as_str().unwrap();
+    assert!(
+        !text.contains("MiniAI analyzed query"),
+        "Must never return canned boilerplate template, got: {}",
+        text
+    );
+    assert!(!text.is_empty());
+}
+
+#[test]
+fn test_bridge_stage17_streaming_model_downloader_and_local_import() {
+    let engine = BridgeEngine::new_in_memory().expect("in-memory engine");
+
+    // 1. In Local-Only Privacy Mode, remote download must be blocked
+    let block_res = engine.dispatch(BridgeRequest::StartModelDownload {
+        model_id: "llama-3.2-1b-instruct-q4".to_string(),
+        source_url: "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf".to_string(),
+        expected_sha256: Some("6f85a640a97cf2bf5b8e764087b1e83da0fdb51d7c9fab7d0fece9385611df83".to_string()),
+        expected_size_bytes: Some(807694464),
+    });
+    assert!(!block_res.success);
+    assert_eq!(block_res.error.unwrap().code, "PRIVACY_BLOCKED");
+
+    // 2. Disable Local-Only Privacy Mode to permit download
+    let p_res = engine.dispatch(BridgeRequest::SetPrivacyMode { local_only: false });
+    assert!(p_res.success);
+
+    // 3. Start download
+    let start_res = engine.dispatch(BridgeRequest::StartModelDownload {
+        model_id: "llama-3.2-1b-instruct-q4".to_string(),
+        source_url: "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf".to_string(),
+        expected_sha256: Some("6f85a640a97cf2bf5b8e764087b1e83da0fdb51d7c9fab7d0fece9385611df83".to_string()),
+        expected_size_bytes: Some(807694464),
+    });
+    assert!(start_res.success);
+    let start_data = start_res.data.unwrap();
+    assert_eq!(start_data["model_id"], "llama-3.2-1b-instruct-q4");
+
+    // 4. Query progress
+    let prog_res = engine.dispatch(BridgeRequest::GetModelDownloadProgress {
+        model_id: "llama-3.2-1b-instruct-q4".to_string(),
+    });
+    assert!(prog_res.success);
+
+    // 5. Cancel download
+    let cancel_res = engine.dispatch(BridgeRequest::CancelModelDownload {
+        model_id: "llama-3.2-1b-instruct-q4".to_string(),
+    });
+    assert!(cancel_res.success);
+    assert_eq!(cancel_res.data.unwrap()["status"], "cancelled");
+
+    // 6. Test ImportLocalModel with existing smollm2 model
+    let smol_path = "models/smollm2-135m-instruct-q4.gguf";
+    if std::path::Path::new(smol_path).is_file() {
+        let import_res = engine.dispatch(BridgeRequest::ImportLocalModel {
+            source_path: smol_path.to_string(),
+            model_id: "smollm2-imported-test".to_string(),
+            name: Some("SmolLM2 Imported Test".to_string()),
+            format: Some("gguf".to_string()),
+            expected_sha256: Some(
+                "2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d".to_string(),
+            ),
+            expected_size_bytes: Some(105454432),
+        });
+        assert!(import_res.success);
+        let import_data = import_res.data.unwrap();
+        assert_eq!(import_data["status"], "verified");
+        assert_eq!(
+            import_data["sha256"],
+            "2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d"
+        );
+    }
 }

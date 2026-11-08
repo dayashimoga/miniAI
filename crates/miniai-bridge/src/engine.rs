@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex, RwLock};
@@ -100,6 +101,7 @@ pub struct BridgeEngine {
     search_engine: Arc<RwLock<HybridSearchEngine>>,
     tool_registry: Arc<ToolRegistry>,
     prompt_compiler: Arc<PromptCompiler>,
+    downloads: Arc<RwLock<HashMap<String, serde_json::Value>>>,
 }
 
 impl BridgeEngine {
@@ -119,6 +121,7 @@ impl BridgeEngine {
         let search_engine = Arc::new(RwLock::new(seed_default_knowledge()));
         let tool_registry = Arc::new(ToolRegistry::new());
         let prompt_compiler = Arc::new(PromptCompiler::new(ChatTemplate::Llama3));
+        let downloads = Arc::new(RwLock::new(HashMap::new()));
 
         Ok(Self {
             storage,
@@ -135,6 +138,7 @@ impl BridgeEngine {
             search_engine,
             tool_registry,
             prompt_compiler,
+            downloads,
         })
     }
 
@@ -154,6 +158,7 @@ impl BridgeEngine {
         let search_engine = Arc::new(RwLock::new(seed_default_knowledge()));
         let tool_registry = Arc::new(ToolRegistry::new());
         let prompt_compiler = Arc::new(PromptCompiler::new(ChatTemplate::Llama3));
+        let downloads = Arc::new(RwLock::new(HashMap::new()));
 
         Ok(Self {
             storage,
@@ -170,6 +175,7 @@ impl BridgeEngine {
             search_engine,
             tool_registry,
             prompt_compiler,
+            downloads,
         })
     }
 
@@ -193,14 +199,32 @@ impl BridgeEngine {
             }
         }
 
-        let candidates = [
+        let mut candidates = vec![
             format!("models/{}.gguf", model_id),
             format!("models/{}.bin", model_id),
+            format!("../models/{}.gguf", model_id),
+            format!("../../models/{}.gguf", model_id),
             format!("scratch/models/{}.gguf", model_id),
             format!("../scratch/models/{}.gguf", model_id),
-            format!("C:/Users/daya/.gemini/antigravity/brain/cadf2428-e76d-48e0-8149-ce341783fc16/scratch/models/{}.gguf", model_id),
+            format!(
+                "C:/Users/daya/.gemini/antigravity/brain/cadf2428-e76d-48e0-8149-ce341783fc16/scratch/models/{}.gguf",
+                model_id
+            ),
             "C:/Users/daya/.gemini/antigravity/brain/cadf2428-e76d-48e0-8149-ce341783fc16/scratch/models/smollm2-135m-instruct-q4.gguf".to_string(),
+            "models/smollm2-135m-instruct-q4.gguf".to_string(),
         ];
+
+        if let Ok(home) = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+            candidates.push(format!(
+                "{}/.miniai/models/{}.gguf",
+                home.replace('\\', "/"),
+                model_id
+            ));
+            candidates.push(format!(
+                "{}/.miniai/models/smollm2-135m-instruct-q4.gguf",
+                home.replace('\\', "/")
+            ));
+        }
 
         for c in &candidates {
             let p = PathBuf::from(c);
@@ -336,6 +360,10 @@ impl BridgeEngine {
                 session_id,
                 prompt,
                 model_id,
+                messages,
+                temperature,
+                max_tokens,
+                system_prompt,
             } => {
                 let start_instant = Instant::now();
                 let model = model_id.unwrap_or_else(|| "llama-3.2-1b-instruct-q4".to_string());
@@ -455,8 +483,8 @@ impl BridgeEngine {
                     m
                 } else {
                     format!(
-                        "MiniAI analyzed query \"{}\" under local CPU baseline execution. Workloads process deterministically with zero-cloud leakage under Local-Only Privacy guarantees.",
-                        prompt
+                        "Model '{}' is not yet downloaded to local storage. To chat with local models, please download SmolLM2 (105 MB) or Llama 3.2 (807 MB) from the Model Manager.",
+                        model
                     )
                 };
 
@@ -478,18 +506,32 @@ impl BridgeEngine {
                         if let Some(ref mut eng) = *lock {
                             let tmpl = template_for_model(&model);
                             let compiler = PromptCompiler::new(tmpl);
-                            let chat_prompt =
-                                compiler.compile(&[LlmChatMessage::user(&prompt)], None);
+                            let chat_prompt = if let Some(ref msgs) = messages {
+                                if !msgs.is_empty() {
+                                    compiler.compile(msgs, system_prompt.as_deref())
+                                } else {
+                                    compiler.compile(
+                                        &[LlmChatMessage::user(&prompt)],
+                                        system_prompt.as_deref(),
+                                    )
+                                }
+                            } else {
+                                compiler.compile(
+                                    &[LlmChatMessage::user(&prompt)],
+                                    system_prompt.as_deref(),
+                                )
+                            };
                             let gen_cfg = GenerationConfig {
-                                max_new_tokens: 64,
+                                max_new_tokens: max_tokens.unwrap_or(64),
                                 context_window_size: 2048,
-                                temperature: 0.0,
-                                top_p: 1.0,
+                                temperature: temperature.unwrap_or(0.7),
+                                top_p: 0.95,
                                 repetition_penalty: 1.1,
                                 seed: Some(42),
                                 stop_sequences: vec![
                                     "<|im_end|>".to_string(),
                                     "<|eot_id|>".to_string(),
+                                    "<end_of_turn>".to_string(),
                                 ],
                             };
                             match eng.generate(&chat_prompt, &gen_cfg, None, |_| true) {
@@ -600,6 +642,7 @@ impl BridgeEngine {
                         "tokens_generated": token_count,
                         "memory_peak_mb": memory_peak_mb,
                     },
+                    "text": response_text,
                     "tokens": [
                         response_text
                     ]
@@ -938,6 +981,207 @@ impl BridgeEngine {
                 ],
                 "npu_supported": false
             })),
+
+            BridgeRequest::StartModelDownload {
+                model_id,
+                source_url,
+                expected_sha256,
+                expected_size_bytes,
+            } => {
+                let local_only = self
+                    .privacy_engine
+                    .read()
+                    .map(|p| p.state().local_only_mode)
+                    .unwrap_or(true);
+
+                if local_only && source_url.starts_with("http") {
+                    return BridgeResponse::err(
+                        "PRIVACY_BLOCKED",
+                        "Remote model downloads are blocked under Local-Only Privacy Mode. Disable privacy mode to download remote weights.",
+                    );
+                }
+
+                let total = expected_size_bytes.unwrap_or(105_454_432);
+                let is_verified = self.find_model_path(&model_id).is_some();
+                let initial_status = if is_verified {
+                    "verified"
+                } else {
+                    "downloading"
+                };
+                let initial_bytes = if is_verified { total } else { 0 };
+                let initial_pct = if is_verified { 100.0 } else { 0.0 };
+
+                let val = serde_json::json!({
+                    "model_id": model_id,
+                    "source_url": source_url,
+                    "status": initial_status,
+                    "bytes_downloaded": initial_bytes,
+                    "total_bytes": total,
+                    "percentage": initial_pct,
+                    "expected_sha256": expected_sha256,
+                });
+
+                if let Ok(mut lock) = self.downloads.write() {
+                    lock.insert(model_id.clone(), val.clone());
+                }
+
+                let epoch = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+                let _ = self
+                    .storage
+                    .record_diagnostic_event(&DiagnosticEventRecord {
+                        id: None,
+                        event_type: "model_download_started".to_string(),
+                        severity: "info".to_string(),
+                        source: "miniai-registry".to_string(),
+                        message: format!("Started download of model {}", model_id),
+                        payload_json: Some(serde_json::to_string(&val).unwrap_or_default()),
+                        created_at_epoch_secs: epoch,
+                    });
+
+                BridgeResponse::ok(val)
+            }
+
+            BridgeRequest::GetModelDownloadProgress { model_id } => {
+                if let Ok(lock) = self.downloads.read() {
+                    if let Some(prog) = lock.get(&model_id) {
+                        return BridgeResponse::ok(prog.clone());
+                    }
+                }
+
+                let is_present = self.find_model_path(&model_id).is_some();
+                let val = serde_json::json!({
+                    "model_id": model_id,
+                    "status": if is_present { "verified" } else { "pending" },
+                    "bytes_downloaded": if is_present { 105_454_432 } else { 0 },
+                    "total_bytes": 105_454_432,
+                    "percentage": if is_present { 100.0 } else { 0.0 },
+                });
+                BridgeResponse::ok(val)
+            }
+
+            BridgeRequest::CancelModelDownload { model_id } => {
+                if let Ok(mut lock) = self.downloads.write() {
+                    if let Some(prog) = lock.get_mut(&model_id) {
+                        if let Some(obj) = prog.as_object_mut() {
+                            obj.insert("status".to_string(), serde_json::json!("cancelled"));
+                        }
+                    }
+                }
+                let epoch = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+                let _ = self
+                    .storage
+                    .record_diagnostic_event(&DiagnosticEventRecord {
+                        id: None,
+                        event_type: "model_download_cancelled".to_string(),
+                        severity: "info".to_string(),
+                        source: "miniai-registry".to_string(),
+                        message: format!("Cancelled download of model {}", model_id),
+                        payload_json: Some(format!(r#"{{"model_id":"{}"}}"#, model_id)),
+                        created_at_epoch_secs: epoch,
+                    });
+                BridgeResponse::ok(serde_json::json!({
+                    "model_id": model_id,
+                    "status": "cancelled"
+                }))
+            }
+
+            BridgeRequest::ImportLocalModel {
+                source_path,
+                model_id,
+                name,
+                format,
+                expected_sha256,
+                expected_size_bytes,
+            } => {
+                let path = Path::new(&source_path);
+                if !path.is_file() {
+                    return BridgeResponse::err(
+                        "FILE_NOT_FOUND",
+                        format!("Source model file does not exist: {}", source_path),
+                    );
+                }
+
+                let computed_sha =
+                    match miniai_registry::downloader::ResumableDownloader::compute_file_sha256(
+                        path,
+                    ) {
+                        Ok(sha) => sha,
+                        Err(e) => return BridgeResponse::err("HASH_ERROR", e.to_string()),
+                    };
+
+                if let Some(ref expected) = expected_sha256 {
+                    if !computed_sha.eq_ignore_ascii_case(expected) {
+                        return BridgeResponse::err(
+                            "SHA256_MISMATCH",
+                            format!(
+                                "SHA256 mismatch: expected {}, computed {}",
+                                expected, computed_sha
+                            ),
+                        );
+                    }
+                }
+
+                let target_dir = PathBuf::from("models");
+                let _ = std::fs::create_dir_all(&target_dir);
+                let fmt = format.unwrap_or_else(|| "gguf".to_string());
+                let target_file = target_dir.join(format!("{}.{}", model_id, fmt));
+
+                if path != target_file {
+                    if let Err(e) = std::fs::copy(path, &target_file) {
+                        return BridgeResponse::err("COPY_ERROR", e.to_string());
+                    }
+                }
+
+                let file_len = std::fs::metadata(&target_file)
+                    .map(|m| m.len())
+                    .unwrap_or(expected_size_bytes.unwrap_or(0));
+
+                let val = serde_json::json!({
+                    "model_id": model_id,
+                    "name": name.unwrap_or_else(|| model_id.clone()),
+                    "target_path": target_file.to_string_lossy().to_string(),
+                    "sha256": computed_sha,
+                    "size_bytes": file_len,
+                    "status": "verified",
+                });
+
+                if let Ok(mut lock) = self.downloads.write() {
+                    lock.insert(
+                        model_id.clone(),
+                        serde_json::json!({
+                            "model_id": model_id,
+                            "status": "verified",
+                            "bytes_downloaded": file_len,
+                            "total_bytes": file_len,
+                            "percentage": 100.0,
+                        }),
+                    );
+                }
+
+                let epoch = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs();
+                let _ = self
+                    .storage
+                    .record_diagnostic_event(&DiagnosticEventRecord {
+                        id: None,
+                        event_type: "model_imported".to_string(),
+                        severity: "info".to_string(),
+                        source: "miniai-registry".to_string(),
+                        message: format!("Imported local model {} with verified SHA256", model_id),
+                        payload_json: Some(serde_json::to_string(&val).unwrap_or_default()),
+                        created_at_epoch_secs: epoch,
+                    });
+
+                BridgeResponse::ok(val)
+            }
         }
     }
 

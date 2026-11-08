@@ -24,6 +24,14 @@ pub enum BridgeRequest {
         prompt: String,
         #[serde(default)]
         model_id: Option<String>,
+        #[serde(default)]
+        messages: Option<Vec<miniai_llm::ChatMessage>>,
+        #[serde(default)]
+        temperature: Option<f32>,
+        #[serde(default)]
+        max_tokens: Option<usize>,
+        #[serde(default)]
+        system_prompt: Option<String>,
     },
 
     #[serde(rename = "poll_events")]
@@ -72,6 +80,36 @@ pub enum BridgeRequest {
 
     #[serde(rename = "get_npu_backends")]
     GetNpuBackends,
+
+    #[serde(rename = "start_model_download")]
+    StartModelDownload {
+        model_id: String,
+        source_url: String,
+        #[serde(default)]
+        expected_sha256: Option<String>,
+        #[serde(default)]
+        expected_size_bytes: Option<u64>,
+    },
+
+    #[serde(rename = "get_model_download_progress")]
+    GetModelDownloadProgress { model_id: String },
+
+    #[serde(rename = "cancel_model_download")]
+    CancelModelDownload { model_id: String },
+
+    #[serde(rename = "import_local_model")]
+    ImportLocalModel {
+        source_path: String,
+        model_id: String,
+        #[serde(default)]
+        name: Option<String>,
+        #[serde(default)]
+        format: Option<String>,
+        #[serde(default)]
+        expected_sha256: Option<String>,
+        #[serde(default)]
+        expected_size_bytes: Option<u64>,
+    },
 }
 
 fn default_audit_limit() -> usize {

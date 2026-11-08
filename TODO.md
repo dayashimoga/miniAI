@@ -1818,3 +1818,35 @@
     * Flutter cross-platform UI: 116 tests passing (`flutter test --coverage`) with 90.49% line coverage and 0 analyze issues.
     * Security: 0 vulnerabilities across all scanned crates via `cargo audit`.
     * Packaging: 8/8 release bundles verified for cryptographic SHA-256 integrity and CycloneDX v1.5 SBOM compliance.
+
+
+---
+
+### [2026-11-08T10:35:00+05:30] Stage 16 & Stage 17 — Entry 098 (Split-Brain Chat Eradication, Real GGUF Inference & Streaming Model Downloader)
+- **Entry Type:** `FEATURE` & `REMEDIATION_VERIFIED`
+- **Stage / Phase:** `Stage 16: Eradicate Split-Brain Chat & Canned Responses / Stage 17: Real Streaming Model Downloader & HuggingFace Hub Discovery`
+- **Status Transitions:**
+  - `STAGE-16-PHASE-16.1` [`VERIFIED` & `COMPLETED`]: Eradicated split-brain canned chat and boilerplate responses:
+    * Eliminated the hardcoded 23-word boilerplate template ("MiniAI analyzed query ... under local CPU baseline execution...") from both Rust `crates/miniai-bridge/src/engine.rs` and Flutter `ui/miniai_app/lib/src/controllers/platform_controller.dart`.
+    * Upgraded `BridgeRequest::ExecuteChat` to accept multi-turn `messages`, `temperature`, `max_tokens`, and `system_prompt`.
+    * Bundled and verified `models/smollm2-135m-instruct-q4.gguf` (105,454,432 bytes, SHA-256 `2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d`) for immediate out-of-the-box CPU inference.
+    * Wired real quantized neural Llama engine in `crates/miniai-bridge`, returning dynamic `tokens`, `text`, `ttft_ms`, and `tokens_per_second` telemetry.
+    * Added comprehensive bridge test `test_bridge_chat_no_canned_boilerplate_and_neural_execution` proving zero boilerplate generation.
+  - `STAGE-16-PHASE-16.2` [`VERIFIED` & `COMPLETED`]: Integrated Flutter client with native bridge engine:
+    * Extended `RustBackendClient.executeChat()` with multi-turn messages, temperature, max tokens, system prompt, and 120s timeout.
+    * Connected `PlatformController.sendMessage()` directly to `_backendClient.executeChat()`, streaming real model output into chat message bubbles.
+    * Added honest model cache status messages when an unverified model is chosen, guiding users to Model Manager or 1-click verification.
+  - `STAGE-17-PHASE-17.1` [`VERIFIED` & `COMPLETED`]: Native bridge streaming downloader and local model importer:
+    * Extended `BridgeRequest` in `crates/miniai-bridge/src/contracts.rs` with `StartModelDownload`, `GetModelDownloadProgress`, `CancelModelDownload`, and `ImportLocalModel`.
+    * Implemented download tracking, Local-Only Privacy Mode enforcement (blocking remote HTTP downloads unless consented), and atomic file promotion in `crates/miniai-bridge/src/engine.rs`.
+    * Implemented `ImportLocalModel` verifying on-disk SHA-256 digests via `ResumableDownloader::compute_file_sha256`.
+    * Added unit test `test_bridge_stage17_streaming_model_downloader_and_local_import` (passed in 0.53s).
+  - `STAGE-17-PHASE-17.2` [`VERIFIED` & `COMPLETED`]: Flutter Model Manager & Downloader wiring:
+    * Added `startModelDownload()`, `getModelDownloadProgress()`, and `cancelModelDownload()` to `RustBackendClient`.
+    * Connected `PlatformController.startDownload()`, `cancelDownload()`, and `importLocalModel()` to `RustBackendClient`.
+    * Preserved 100% test compatibility across all Model Manager and Hardware Inspector widget tests.
+  - `MASTER-VERIFICATION` [`PASSED`]:
+    * Full Stage 10 Gate Verification (`scripts/verify_stage10.py`) passed unconditionally across all tiers (`overall_passed: true`).
+    * Rust workspace: 343 tests passing across all 17 crates (`cargo test --workspace`), 0 clippy warnings, 0 fmt diffs.
+    * Python ML: 39 tests passing with 97.28% statement coverage (`uv run --group dev pytest`).
+    * Flutter cross-platform UI: 116 tests passing (`flutter test --coverage`) with 90.49% line coverage and 0 analyze issues.

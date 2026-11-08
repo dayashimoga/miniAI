@@ -90,6 +90,28 @@ void main() {
 
       controller.allowVerifiedModelDownload('llama-3.2-1b-instruct-q4');
       expect(controller.allowVerifiedModelDownloads, isTrue);
+      controller.dispose();
+    });
+
+    test('RustBackendClient sessionNonce, daemon auto-discovery, and telemetry refresh', () async {
+      expect(client.sessionNonce, isNotEmpty);
+      expect(client.sessionNonce.startsWith('miniai_session_'), isTrue);
+
+      final daemonRunning = await client.ensureDaemonRunning();
+      expect(daemonRunning, isTrue);
+
+      // Exercise real search path logic with forceCheck
+      await client.ensureDaemonRunning(forceCheck: true);
+
+      client.dispose();
+
+      final controller = PlatformController();
+      expect(controller.telemetryCpuPercent, 17);
+      await controller.refreshTelemetry();
+      expect(controller.telemetryCpuPercent, 17);
+      expect(controller.peakMemoryRssMb, greaterThan(0.0));
+      expect(controller.avgTokPerSec, greaterThan(0.0));
+      controller.dispose();
     });
   });
 }

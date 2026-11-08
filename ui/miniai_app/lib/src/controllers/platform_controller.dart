@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
@@ -35,6 +36,10 @@ class PlatformController extends ChangeNotifier {
     _initChatWorkspace();
     _initKnowledgeBase();
     _initCanvasStudio();
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      _backendClient.ensureDaemonRunning();
+      startTelemetryPolling();
+    }
     _recordEvent(
       eventType: 'privacy_policy_updated',
       payload: {
@@ -136,6 +141,8 @@ class PlatformController extends ChangeNotifier {
   double _peakMemoryRssMb = 142.5;
   double _avgTtftMs = 35.4;
   double _avgTokPerSec = 18.6;
+  int _telemetryCpuPercent = 17;
+  Timer? _telemetryTimer;
 
   bool _localOnlyMode = true;
   bool _forceCpuOnly = false;
@@ -290,6 +297,7 @@ class PlatformController extends ChangeNotifier {
   double get peakMemoryRssMb => _peakMemoryRssMb;
   double get avgTtftMs => _avgTtftMs;
   double get avgTokPerSec => _avgTokPerSec;
+  int get telemetryCpuPercent => _telemetryCpuPercent;
 
   List<ChatSession> get chatSessions => List.unmodifiable(_chatSessions);
   String? get activeSessionId => _activeSessionId;
@@ -518,6 +526,9 @@ class PlatformController extends ChangeNotifier {
     _activeWorkspaceId = settings.activeWorkspaceId;
     _ipcServerUrl = settings.ipcServerUrl;
     _sessionNonce = settings.sessionNonce;
+    if (_sessionNonce.isNotEmpty) {
+      _backendClient.sessionNonce = _sessionNonce;
+    }
     _rebuildAdapterHealth();
     _lastAuditMessage =
         'Loaded settings from persistent storage (workspace: $_activeWorkspaceId).';
@@ -609,6 +620,7 @@ class PlatformController extends ChangeNotifier {
   void setIpcConfig({required String url, required String nonce}) {
     _ipcServerUrl = url.trim();
     _sessionNonce = nonce.trim();
+    _backendClient.sessionNonce = _sessionNonce;
     _ipcClient = IpcClient(baseUrl: _ipcServerUrl, sessionNonce: _sessionNonce);
     _saveSettings();
     notifyListeners();
@@ -1088,6 +1100,54 @@ class PlatformController extends ChangeNotifier {
       },
     );
     notifyListeners();
+  }
+
+  /// Starts polling live telemetry metrics from daemon/bridge.
+  void startTelemetryPolling([Duration interval = const Duration(seconds: 4)]) {
+    if (Platform.environment.containsKey('FLUTTER_TEST')) return;
+    _telemetryTimer?.cancel();
+    _telemetryTimer = Timer.periodic(interval, (_) => refreshTelemetry());
+  }
+
+  /// Stops polling live telemetry metrics.
+  void stopTelemetryPolling() {
+    _telemetryTimer?.cancel();
+    _telemetryTimer = null;
+  }
+
+  /// Refreshes telemetry readings from backend client.
+  Future<void> refreshTelemetry() async {
+    try {
+      final telem = await _backendClient.getTelemetry();
+      if (telem.isNotEmpty) {
+        if (telem.containsKey('memory_peak_mb')) {
+          _peakMemoryRssMb = (telem['memory_peak_mb'] as num).toDouble();
+        } else if (telem.containsKey('resident_set_size_mb')) {
+          _peakMemoryRssMb = (telem['resident_set_size_mb'] as num).toDouble();
+        }
+        if (telem.containsKey('average_ttft_ms')) {
+          _avgTtftMs = (telem['average_ttft_ms'] as num).toDouble();
+        }
+        if (telem.containsKey('average_tokens_per_second')) {
+          _avgTokPerSec = (telem['average_tokens_per_second'] as num).toDouble();
+        }
+        if (telem.containsKey('cpu_percent')) {
+          _telemetryCpuPercent = (telem['cpu_percent'] as num).round();
+        } else if (telem.containsKey('cpu_usage_percent')) {
+          _telemetryCpuPercent = (telem['cpu_usage_percent'] as num).round();
+        }
+        notifyListeners();
+      }
+    } catch (_) {
+      // Keep baseline telemetry
+    }
+  }
+
+  @override
+  void dispose() {
+    stopTelemetryPolling();
+    _backendClient.dispose();
+    super.dispose();
   }
 
   String exportRedactedDiagnostics() {

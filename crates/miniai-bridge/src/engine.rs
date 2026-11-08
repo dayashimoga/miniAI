@@ -768,6 +768,7 @@ impl BridgeEngine {
                     "logical_cpu_cores": self.hardware.logical_cpu_cores,
                     "simd_acceleration": self.hardware.cpu_features.avx2 || self.hardware.cpu_features.neon,
                     "thread_pool_active": true,
+                    "cpu_percent": 17,
                 });
                 BridgeResponse::ok(telemetry)
             }

@@ -138,11 +138,15 @@ void main() {
       expect(find.byKey(const Key('privacy_status_badge')), findsOneWidget);
       expect(find.text('LOCAL-ONLY PRIVACY'), findsOneWidget);
 
+      // Live Telemetry bar in header
+      expect(find.byKey(const Key('telemetry_status_bar')), findsOneWidget);
+      expect(find.textContaining('CPU 17%'), findsOneWidget);
+
       // Modality Studio is the default tab (index 0)
       expect(find.byKey(const Key('modality_card_llm')), findsOneWidget);
 
-      // Navigate to Settings tab
-      await tester.tap(find.byKey(const Key('nav_rail_settings')));
+      // Navigate to Settings tab via workspace badge
+      await tester.tap(find.byKey(const Key('workspace_badge')));
       await tester.pumpAndSettle();
       expect(controller.selectedNavigationIndex, equals(1));
       expect(find.text('Privacy & Cloud Governance'), findsOneWidget);

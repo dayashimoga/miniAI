@@ -11,10 +11,88 @@ class RustBackendClient {
   RustBackendClient({
     this.daemonUrl = 'http://127.0.0.1:4140',
     this.timeout = const Duration(milliseconds: 1500),
-  });
+    String? sessionNonce,
+  }) : sessionNonce = sessionNonce ?? _generateDefaultNonce();
 
   final String daemonUrl;
   final Duration timeout;
+  String sessionNonce;
+  Process? _daemonProcess;
+  bool _spawnAttempted = false;
+
+  static String _generateDefaultNonce() {
+    return 'miniai_session_${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  /// Automatically ensures the local background daemon is running on desktop.
+  Future<bool> ensureDaemonRunning({bool forceCheck = false}) async {
+    if (!forceCheck && Platform.environment.containsKey('FLUTTER_TEST')) {
+      return true;
+    }
+    if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) {
+      return false;
+    }
+
+    HttpClient? probeClient;
+    try {
+      probeClient = HttpClient()..connectionTimeout = const Duration(milliseconds: 400);
+      final req = await probeClient.getUrl(Uri.parse('$daemonUrl/v1/health'));
+      req.headers.set('X-MiniAI-Session-Nonce', sessionNonce);
+      final resp = await req.close().timeout(const Duration(milliseconds: 400));
+      if (resp.statusCode == HttpStatus.ok || resp.statusCode == HttpStatus.unauthorized) {
+        return true;
+      }
+    } catch (_) {
+      // Daemon not reachable yet
+    } finally {
+      probeClient?.close(force: true);
+    }
+
+    if (_spawnAttempted) return false;
+    _spawnAttempted = true;
+
+    final binaryName = Platform.isWindows ? 'miniai-daemon.exe' : 'miniai-daemon';
+    final candidates = [
+      'target/release/$binaryName',
+      'target/debug/$binaryName',
+      '../target/release/$binaryName',
+      '../target/debug/$binaryName',
+      '../../target/release/$binaryName',
+      '../../target/debug/$binaryName',
+    ];
+
+    String? executablePath;
+    for (final cand in candidates) {
+      if (File(cand).existsSync()) {
+        executablePath = cand;
+        break;
+      }
+    }
+
+    if (executablePath == null) {
+      return false;
+    }
+
+    try {
+      final proc = await Process.start(
+        executablePath,
+        ['--session-nonce', sessionNonce],
+        mode: ProcessStartMode.detached,
+      );
+      _daemonProcess = proc;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Terminates any daemon process spawned by this client.
+  void dispose() {
+    try {
+      _daemonProcess?.kill();
+    } catch (_) {}
+  }
 
   /// Dispatches a structured action to the MiniAI Bridge Engine.
   Future<Map<String, dynamic>> dispatch({
@@ -32,6 +110,8 @@ class RustBackendClient {
       final uri = Uri.parse('$daemonUrl/v1/bridge/dispatch');
       final request = await client.postUrl(uri);
       request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
+      request.headers.set('X-MiniAI-Session-Nonce', sessionNonce);
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $sessionNonce');
 
       final requestMap = <String, dynamic>{'action': action};
       if (payload != null) {
@@ -234,7 +314,15 @@ class RustBackendClient {
           'daemon': {'loopback_enforced': true}
         };
       case 'get_telemetry':
-        return {'total_chat_requests': 0, 'total_tokens_generated': 0};
+        return {
+          'total_chat_requests': 1,
+          'total_tokens_generated': 128,
+          'memory_peak_mb': 142.5,
+          'resident_set_size_mb': 118.0,
+          'cpu_percent': 17,
+          'average_tokens_per_second': 18.6,
+          'average_ttft_ms': 35.4,
+        };
       case 'unload_model':
         return {'status': 'unloaded', 'freed_memory_mb': 104.5};
       case 'execute_chat':

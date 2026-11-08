@@ -115,14 +115,14 @@ impl DaemonServer {
             let response = "HTTP/1.1 204 No Content\r\n\
                             Access-Control-Allow-Origin: *\r\n\
                             Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\
-                            Access-Control-Allow-Headers: Authorization, Content-Type, X-Session-Nonce\r\n\
+                            Access-Control-Allow-Headers: Authorization, Content-Type, X-Session-Nonce, X-MiniAI-Session-Nonce\r\n\
                             Connection: close\r\n\
                             \r\n";
             stream.write_all(response.as_bytes()).await?;
             return Ok(());
         }
 
-        // Bearer Authentication verification if auth_token is configured
+        // Bearer Authentication or Session Nonce verification if auth_token is configured
         if let Some(expected) = &auth_token {
             let mut authorized = false;
             for line in request_str.lines() {
@@ -133,11 +133,23 @@ impl DaemonServer {
                         break;
                     }
                 }
+                if let Some(nonce) = trimmed.strip_prefix("X-MiniAI-Session-Nonce: ") {
+                    if nonce.trim() == expected {
+                        authorized = true;
+                        break;
+                    }
+                }
+                if let Some(nonce) = trimmed.strip_prefix("X-Session-Nonce: ") {
+                    if nonce.trim() == expected {
+                        authorized = true;
+                        break;
+                    }
+                }
             }
             if !authorized {
                 let err_body = serde_json::json!({
                     "error": "UNAUTHORIZED",
-                    "message": "Valid Bearer token required for localhost daemon access"
+                    "message": "Valid Bearer token or X-MiniAI-Session-Nonce required for localhost daemon access"
                 })
                 .to_string();
                 Self::send_response(&mut stream, 401, "Unauthorized", &err_body).await?;
@@ -156,15 +168,28 @@ impl DaemonServer {
             }
         }
 
-        let mut body = String::new();
-        if let Some(pos) = request_str.find("\r\n\r\n") {
+        let mut body_bytes = if let Some(pos) = request_str.find("\r\n\r\n") {
             let start = pos + 4;
             if start < bytes_read {
                 let available = bytes_read - start;
                 let take = available.min(content_length);
-                body = request_str[start..start + take].to_string();
+                buffer[start..start + take].to_vec()
+            } else {
+                Vec::new()
             }
+        } else {
+            Vec::new()
+        };
+
+        while body_bytes.len() < content_length {
+            let mut chunk = vec![0u8; (content_length - body_bytes.len()).min(16384)];
+            let n = stream.read(&mut chunk).await?;
+            if n == 0 {
+                break;
+            }
+            body_bytes.extend_from_slice(&chunk[..n]);
         }
+        let body = String::from_utf8_lossy(&body_bytes).to_string();
 
         match (method, path) {
             ("GET", "/v1/health") => {
@@ -206,7 +231,7 @@ impl DaemonServer {
              Content-Type: application/json\r\n\
              Access-Control-Allow-Origin: *\r\n\
              Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\
-             Access-Control-Allow-Headers: Authorization, Content-Type, X-Session-Nonce\r\n\
+             Access-Control-Allow-Headers: Authorization, Content-Type, X-Session-Nonce, X-MiniAI-Session-Nonce\r\n\
              Content-Length: {}\r\n\
              Connection: close\r\n\
              \r\n\

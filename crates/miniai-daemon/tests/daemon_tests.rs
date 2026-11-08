@@ -160,4 +160,19 @@ async fn test_daemon_server_bearer_auth() {
         assert!(resp.contains("200 OK"));
         assert!(resp.contains("miniai-daemon"));
     }
+
+    // 4. Request with valid X-MiniAI-Session-Nonce must receive 200 OK
+    {
+        let mut stream = TcpStream::connect(addr).await.expect("connect to daemon");
+        let req = format!(
+            "GET /v1/health HTTP/1.1\r\nHost: {}\r\nX-MiniAI-Session-Nonce: ephemeral_secret_token_abc123\r\nConnection: close\r\n\r\n",
+            addr
+        );
+        stream.write_all(req.as_bytes()).await.unwrap();
+
+        let mut resp = String::new();
+        stream.read_to_string(&mut resp).await.unwrap();
+        assert!(resp.contains("200 OK"));
+        assert!(resp.contains("miniai-daemon"));
+    }
 }

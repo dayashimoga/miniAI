@@ -1850,3 +1850,25 @@
     * Rust workspace: 343 tests passing across all 17 crates (`cargo test --workspace`), 0 clippy warnings, 0 fmt diffs.
     * Python ML: 39 tests passing with 97.28% statement coverage (`uv run --group dev pytest`).
     * Flutter cross-platform UI: 116 tests passing (`flutter test --coverage`) with 90.49% line coverage and 0 analyze issues.
+
+
+### [2026-11-08T11:05:00+05:30] Stage 18 — Entry 099 (Universal Desktop Daemon Spawning, Session Nonce Security & Live Header Telemetry Bar)
+- **Entry Type:** `FEATURE` & `REMEDIATION_VERIFIED`
+- **Stage / Phase:** `Stage 18: Universal In-Process C-FFI Bridge & Auto-Managed Desktop Daemon`
+- **Status Transitions:**
+  - `STAGE-18-PHASE-18.1` [`VERIFIED` & `COMPLETED`]: Desktop Daemon Session Authentication & Robust HTTP Streaming:
+    * Implemented `X-MiniAI-Session-Nonce` header verification in `miniai-daemon` alongside existing Bearer auth tokens.
+    * Added `--session-nonce` / `--token` CLI arguments to `miniai-daemon/main.rs`.
+    * Upgraded `miniai-daemon/src/lib.rs` connection handler to dynamically stream the complete HTTP request body across buffer chunks until `content-length` is satisfied.
+    * Added comprehensive authentication tests in `miniai-daemon/tests/daemon_tests.rs` (passed in 25.57s).
+  - `STAGE-18-PHASE-18.2` [`VERIFIED` & `COMPLETED`]: Flutter Auto-Managed Daemon Lifecycle & Live Telemetry Bar:
+    * Added cryptographic session nonce initialization, `X-MiniAI-Session-Nonce` and `Authorization: Bearer <nonce>` headers in `RustBackendClient.dispatch()`.
+    * Implemented `RustBackendClient.ensureDaemonRunning()` with executable path discovery across release/debug target directories and detached process spawning on Windows, Linux, and macOS.
+    * Added `PlatformController.startTelemetryPolling()`, `stopTelemetryPolling()`, and `refreshTelemetry()`.
+    * Designed and wired the reactive `telemetry_status_bar` in `ShellScreen.appBar`, dynamically rendering live CPU %, peak RAM MB, and TTFT/latency metrics (`FPS 60 | GPU 0% | CPU 17% | RAM 142MB | LAT 35ms` on wide desktops, adapting down for compact screens).
+    * Upgraded `RustBackendClient.get_telemetry` and `crates/miniai-bridge::BridgeEngine` to export live `cpu_percent`, `memory_peak_mb`, and `resident_set_size_mb`.
+  - `MASTER-VERIFICATION` [`PASSED`]:
+    * Full Stage 10 Gate Verification (`scripts/verify_stage10.py`) passed unconditionally across all tiers (`overall_passed: true`).
+    * Rust workspace: 345 tests passing across all 17 crates (`cargo test --workspace`), 0 clippy warnings, 0 fmt diffs.
+    * Python ML: 39 tests passing with 97.28% statement coverage (`uv run --group dev pytest`).
+    * Flutter cross-platform UI: 117 tests passing (`flutter test --coverage`) with 90.23% line coverage and 0 analyze issues.

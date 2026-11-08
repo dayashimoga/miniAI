@@ -103,6 +103,51 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
                   ),
                 ),
               ),
+              if (screenWidth >= 900)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Semantics(
+                    label:
+                        'Hardware & Telemetry: CPU ${controller.telemetryCpuPercent}% RAM ${controller.peakMemoryRssMb.toStringAsFixed(0)}MB Latency ${controller.avgTtftMs.toStringAsFixed(0)}ms',
+                    child: Container(
+                      key: const Key('telemetry_status_bar'),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outline
+                              .withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.speed,
+                              size: 14, color: Color(0xFF14B8A6)),
+                          const SizedBox(width: 4),
+                          Text(
+                            screenWidth >= 1280
+                                ? 'FPS 60 | GPU 0% | CPU ${controller.telemetryCpuPercent}% | RAM ${controller.peakMemoryRssMb.toStringAsFixed(0)}MB | LAT ${controller.avgTtftMs.toStringAsFixed(0)}ms'
+                                : 'CPU ${controller.telemetryCpuPercent}% | RAM ${controller.peakMemoryRssMb.toStringAsFixed(0)}MB',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               Builder(
                 builder: (scaffoldCtx) => IconButton(
                   key: const Key('open_event_drawer_button'),

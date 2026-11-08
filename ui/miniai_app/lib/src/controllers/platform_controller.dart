@@ -1979,6 +1979,17 @@ class PlatformController extends ChangeNotifier {
       },
     );
 
+    // Dispatch job to Rust backend bridge
+    _backendClient.executeTrainingJob(
+      taskType: _selectedTrainingMethod.wireValue,
+      baseModel: targetModel,
+      datasetName: _selectedDataset.name,
+      epochs: _trainingHyperparameters.epochs,
+      learningRate: _trainingHyperparameters.learningRate,
+      batchSize: _trainingHyperparameters.batchSize,
+      loraRank: _trainingHyperparameters.rank,
+    );
+
     if (simulateTicks) {
       await Future.delayed(const Duration(milliseconds: 20));
     }
@@ -2730,12 +2741,26 @@ class PlatformController extends ChangeNotifier {
       notifyListeners();
     }
 
+    final res = await _backendClient.generateImage(
+      prompt: _imageGenConfig.prompt,
+      negativePrompt: _imageGenConfig.negativePrompt,
+      mode: _imageGenConfig.mode.wireValue,
+      width: _imageGenConfig.width,
+      height: _imageGenConfig.height,
+      steps: _imageGenConfig.steps,
+      guidanceScale: _imageGenConfig.guidanceScale,
+      seed: _imageGenConfig.seed,
+    );
+
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final genId = 'gen-${DateTime.now().millisecondsSinceEpoch}';
-    final sha256Digest =
+    final genId = res['id']?.toString() ?? 'gen-${DateTime.now().millisecondsSinceEpoch}';
+    final sha256Digest = res['sha256']?.toString() ??
         'img${genId.hashCode.abs().toRadixString(16).padLeft(61, 'd')}';
-    const samplePng =
+    final b64Png = res['base64_png']?.toString() ??
         'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAPUlEQVR42u3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD4G4uAAAF7qF5xAAAAAElFTkSuQmCC';
+    final prov = res['provenance_summary']?.toString() ??
+        'Model: miniai-imagegen-cpu | Mode: ${_imageGenConfig.mode.displayName} | Seed: ${_imageGenConfig.seed} | Steps: ${_imageGenConfig.steps} | Guidance: ${_imageGenConfig.guidanceScale} | SHA-256: ${sha256Digest.substring(0, 16.clamp(0, sha256Digest.length))}...';
+    final sizeB = (res['size_bytes'] as num?)?.toInt() ?? 1540;
 
     final newItem = GeneratedImageItem(
       id: genId,
@@ -2749,10 +2774,9 @@ class PlatformController extends ChangeNotifier {
       seed: _imageGenConfig.seed,
       sha256: sha256Digest,
       timestampEpochSecs: now,
-      base64Png: samplePng,
-      provenanceSummary:
-          'Model: miniai-imagegen-cpu | Mode: ${_imageGenConfig.mode.displayName} | Seed: ${_imageGenConfig.seed} | Steps: ${_imageGenConfig.steps} | Guidance: ${_imageGenConfig.guidanceScale} | SHA-256: ${sha256Digest.substring(0, 16)}...',
-      sizeBytes: 1540,
+      base64Png: b64Png,
+      provenanceSummary: prov,
+      sizeBytes: sizeB,
     );
 
     _galleryImages.insert(0, newItem);
@@ -2929,17 +2953,31 @@ class PlatformController extends ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 25));
     }
 
+    final ttsResp = await _backendClient.synthesizeSpeech(
+      text: trimmed,
+      voiceId: _selectedVoiceProfile.wireValue,
+      pitch: _ttsPitchSemitones,
+      speed: _ttsSpeed,
+      sampleRate: 22050,
+    );
+
     final now = DateTime.now().millisecondsSinceEpoch;
-    final sha256 = 'tts${now.toRadixString(16).padLeft(61, 't')}';
-    final duration = (trimmed.length * 0.065 / _ttsSpeed).clamp(0.5, 60.0);
+    final sha256 = ttsResp['sha256']?.toString() ??
+        'tts${now.toRadixString(16).padLeft(61, 't')}';
+    final duration = (ttsResp['duration_secs'] as num?)?.toDouble() ??
+        (trimmed.length * 0.065 / _ttsSpeed).clamp(0.5, 60.0);
+    final pCount = (ttsResp['phoneme_count'] as num?)?.toInt() ??
+        (trimmed.length * 0.85).round();
+    final wavBytes = ttsResp['audio_base64']?.toString() ??
+        'UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 
     final output = TtsOutputContract(
       durationSecs: duration,
       sampleRate: 22050,
       channels: 1,
       sha256: sha256,
-      phonemeCount: (trimmed.length * 0.85).round(),
-      wavBytesBase64: 'UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
+      phonemeCount: pCount,
+      wavBytesBase64: wavBytes,
     );
 
     _lastTtsOutput = output;
@@ -3242,10 +3280,22 @@ class PlatformController extends ChangeNotifier {
       notifyListeners();
     }
 
+    final musicResp = await _backendClient.synthesizeMusic(
+      genre: _musicConfig.prompt,
+      tempoBpm: _musicConfig.tempoBpm,
+      durationSecs: _musicConfig.durationSecs,
+      keySignature: _musicConfig.scaleKey,
+      seed: _musicConfig.seed,
+    );
+
     final now = DateTime.now().millisecondsSinceEpoch;
     final trackId = 'track-$now';
-    final sha256 = 'mus${now.toRadixString(16).padLeft(61, 'm')}';
-    final numSamples = (_musicConfig.durationSecs * _musicConfig.sampleRate).round();
+    final sha256 = musicResp['sha256']?.toString() ??
+        'mus${now.toRadixString(16).padLeft(61, 'm')}';
+    final numSamples = (musicResp['num_samples_per_channel'] as num?)?.toInt() ??
+        (_musicConfig.durationSecs * _musicConfig.sampleRate).round();
+    final wavBytes = musicResp['audio_base64']?.toString() ??
+        'UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 
     final track = MusicTrackOutputContract(
       id: trackId,
@@ -3258,7 +3308,7 @@ class PlatformController extends ChangeNotifier {
       sha256: sha256,
       numSamplesPerChannel: numSamples,
       timestampEpochSecs: now ~/ 1000,
-      wavBytesBase64: 'UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
+      wavBytesBase64: wavBytes,
     );
 
     _musicLibrary.insert(0, track);
@@ -3642,10 +3692,20 @@ class PlatformController extends ChangeNotifier {
       notifyListeners();
     }
 
+    final vidResp = await _backendClient.synthesizeVideo(
+      prompt: _videoSynthesisConfig.prompt,
+      width: _videoSynthesisConfig.width,
+      height: _videoSynthesisConfig.height,
+      fps: _videoSynthesisConfig.fps,
+      durationSecs: _videoSynthesisConfig.durationSecs,
+      seed: _videoSynthesisConfig.seed,
+    );
+
     final totalFrames =
         (_videoSynthesisConfig.durationSecs * _videoSynthesisConfig.fps).round();
     final now = DateTime.now().millisecondsSinceEpoch;
-    final sha256 = 'syn${now.toRadixString(16).padLeft(61, 'v')}';
+    final sha256 = vidResp['sha256']?.toString() ??
+        'syn${now.toRadixString(16).padLeft(61, 'v')}';
 
     final meta = VideoMetadataContract(
       containerFormat: 'raw_frames',

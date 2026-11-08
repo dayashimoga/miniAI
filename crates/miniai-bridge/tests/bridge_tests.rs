@@ -366,3 +366,130 @@ fn test_bridge_stage17_streaming_model_downloader_and_local_import() {
         );
     }
 }
+
+#[test]
+fn test_bridge_stage19_multimodal_studio_dispatch() {
+    let engine = BridgeEngine::new_in_memory().expect("in-memory engine");
+
+    // 1. GenerateImage
+    let img_res = engine.dispatch(BridgeRequest::GenerateImage {
+        prompt: "A neon cyberpunk cityscape with flying cars".to_string(),
+        negative_prompt: Some("blurry, low quality".to_string()),
+        mode: Some("text_to_image".to_string()),
+        width: Some(128),
+        height: Some(128),
+        steps: Some(5),
+        guidance_scale: Some(7.5),
+        seed: Some(101),
+    });
+    assert!(img_res.success, "GenerateImage failed: {:?}", img_res.error);
+    let img_data = img_res.data.unwrap();
+    assert!(img_data.get("base64_png").is_some());
+    assert!(img_data.get("sha256").is_some());
+    assert_eq!(img_data.get("width").unwrap(), 128);
+    assert_eq!(img_data.get("height").unwrap(), 128);
+
+    // 2. AnalyzeVision
+    let vis_res = engine.dispatch(BridgeRequest::AnalyzeVision {
+        image_base64: None,
+        prompt: Some("What text appears in this frame?".to_string()),
+        mode: Some("ocr_and_vqa".to_string()),
+        width: Some(256),
+        height: Some(256),
+    });
+    assert!(vis_res.success, "AnalyzeVision failed: {:?}", vis_res.error);
+    let vis_data = vis_res.data.unwrap();
+    assert!(vis_data.get("image_sha256").is_some());
+    assert!(vis_data.get("ocr_boxes").is_some());
+    assert!(vis_data.get("vqa_answer").is_some());
+
+    // 3. TranscribeSpeech
+    let asr_res = engine.dispatch(BridgeRequest::TranscribeSpeech {
+        audio_base64: None,
+        sample_rate: Some(16000),
+        language: Some("en".to_string()),
+    });
+    assert!(
+        asr_res.success,
+        "TranscribeSpeech failed: {:?}",
+        asr_res.error
+    );
+    let asr_data = asr_res.data.unwrap();
+    assert!(asr_data.get("text").is_some());
+    assert!(asr_data.get("confidence").is_some());
+
+    // 4. SynthesizeSpeech
+    let tts_res = engine.dispatch(BridgeRequest::SynthesizeSpeech {
+        text: "MiniAI is running fully offline with zero telemetry leakage.".to_string(),
+        voice_id: Some("alloy".to_string()),
+        pitch: Some(0.0),
+        speed: Some(1.0),
+        sample_rate: Some(22050),
+    });
+    assert!(
+        tts_res.success,
+        "SynthesizeSpeech failed: {:?}",
+        tts_res.error
+    );
+    let tts_data = tts_res.data.unwrap();
+    assert!(tts_data.get("audio_base64").is_some());
+    assert!(tts_data.get("duration_secs").is_some());
+    assert!(tts_data.get("sha256").is_some());
+
+    // 5. SynthesizeMusic
+    let music_res = engine.dispatch(BridgeRequest::SynthesizeMusic {
+        genre: Some("Lo-fi chill beats".to_string()),
+        tempo_bpm: Some(100),
+        duration_secs: Some(2.0),
+        key_signature: Some("C Major".to_string()),
+        seed: Some(42),
+    });
+    assert!(
+        music_res.success,
+        "SynthesizeMusic failed: {:?}",
+        music_res.error
+    );
+    let music_data = music_res.data.unwrap();
+    assert!(music_data.get("audio_base64").is_some());
+    assert!(music_data.get("sha256").is_some());
+    assert_eq!(music_data.get("tempo_bpm").unwrap(), 100);
+
+    // 6. SynthesizeVideo
+    let video_res = engine.dispatch(BridgeRequest::SynthesizeVideo {
+        prompt: "A drone flying over snow-covered mountains".to_string(),
+        width: Some(160),
+        height: Some(120),
+        fps: Some(10.0),
+        duration_secs: Some(1.0),
+        seed: Some(99),
+    });
+    assert!(
+        video_res.success,
+        "SynthesizeVideo failed: {:?}",
+        video_res.error
+    );
+    let video_data = video_res.data.unwrap();
+    assert!(video_data.get("video_id").is_some());
+    assert!(video_data.get("sha256").is_some());
+    assert!(video_data.get("total_frames").is_some());
+
+    // 7. ExecuteTrainingJob
+    let train_res = engine.dispatch(BridgeRequest::ExecuteTrainingJob {
+        task_type: "lora_instruct".to_string(),
+        base_model: "llama-3.2-1b".to_string(),
+        dataset_name: "alpaca_clean_sample".to_string(),
+        epochs: Some(2),
+        learning_rate: Some(0.0002),
+        batch_size: Some(4),
+        lora_rank: Some(16),
+    });
+    assert!(
+        train_res.success,
+        "ExecuteTrainingJob failed: {:?}",
+        train_res.error
+    );
+    let train_data = train_res.data.unwrap();
+    assert_eq!(train_data.get("status").unwrap(), "completed");
+    assert_eq!(train_data.get("lora_rank").unwrap(), 16);
+    assert!(train_data.get("history").is_some());
+}

@@ -113,6 +113,88 @@ void main() {
       expect(controller.avgTokPerSec, greaterThan(0.0));
       controller.dispose();
     });
+
+    test('exercises all multimodal bridge methods and local fallbacks', () async {
+      // 1. generateImage
+      final img = await client.generateImage(
+        prompt: 'Futuristic solar observatory',
+        negativePrompt: 'foggy',
+        mode: 'text_to_image',
+        width: 256,
+        height: 256,
+        steps: 10,
+        guidanceScale: 7.5,
+        seed: 42,
+      );
+      expect(img['id'], isNotEmpty);
+      expect(img['base64_png'], isNotEmpty);
+      expect(img['sha256'], isNotEmpty);
+
+      // 2. analyzeVision
+      final vis = await client.analyzeVision(
+        prompt: 'Detect bounding boxes',
+        mode: 'ocr',
+        width: 224,
+        height: 224,
+      );
+      expect(vis['image_sha256'], isNotEmpty);
+      expect(vis['ocr_boxes'], isNotEmpty);
+
+      // 3. transcribeSpeech
+      final asr = await client.transcribeSpeech(
+        sampleRate: 16000,
+        language: 'en',
+      );
+      expect(asr['text'], isNotEmpty);
+      expect(asr['confidence'], greaterThan(0.9));
+
+      // 4. synthesizeSpeech
+      final tts = await client.synthesizeSpeech(
+        text: 'Speech synthesis offline verification.',
+        voiceId: 'alloy',
+        pitch: 0.0,
+        speed: 1.0,
+        sampleRate: 22050,
+      );
+      expect(tts['audio_base64'], isNotEmpty);
+      expect(tts['duration_secs'], greaterThan(0.0));
+
+      // 5. synthesizeMusic
+      final music = await client.synthesizeMusic(
+        genre: 'Ambient acoustic strings',
+        tempoBpm: 120,
+        durationSecs: 4.0,
+        keySignature: 'C Major',
+        seed: 42,
+      );
+      expect(music['audio_base64'], isNotEmpty);
+      expect(music['tempo_bpm'], 120);
+
+      // 6. synthesizeVideo
+      final video = await client.synthesizeVideo(
+        prompt: 'Cinematic mountain sunrise drone shot',
+        width: 320,
+        height: 240,
+        fps: 15.0,
+        durationSecs: 2.0,
+        seed: 42,
+      );
+      expect(video['video_id'], isNotEmpty);
+      expect(video['sha256'], isNotEmpty);
+
+      // 7. executeTrainingJob
+      final train = await client.executeTrainingJob(
+        taskType: 'lora_instruct',
+        baseModel: 'llama-3.2-1b',
+        datasetName: 'alpaca_clean',
+        epochs: 3,
+        learningRate: 0.0003,
+        batchSize: 8,
+        loraRank: 8,
+      );
+      expect(train['status'], 'completed');
+      expect(train['history'], isNotEmpty);
+    });
   });
 }
 

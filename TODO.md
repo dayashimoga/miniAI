@@ -1949,3 +1949,15 @@
     * Authored complete platform manual covering core pillars, C-FFI / loopback daemon IPC architecture, 7 multimodal runtimes, real neural inference, and Model Manager operation.
     * Documented device power & thermal governor behavior, cognitive 3-tier memory inspector, and frontier reasoning distillation pipeline (`miniai_ml`).
     * Documented CLI diagnostics using `miniai-daemon.exe doctor` and automated verification summary.
+
+
+### [2026-11-08T12:40:00+05:30] Architecture — Entry 104 (Architectural Decision Records ADR-017 through ADR-021)
+- **Entry Type:** `ARCHITECTURE` & `VERIFIED`
+- **Stage / Phase:** `Architectural Decision Records Synchronization`
+- **Status Transitions:**
+  - `ADR-017-THROUGH-021` [`VERIFIED` & `COMPLETED`]: Recorded binding Architectural Decision Records in `ADR.md`:
+    * ADR-017: Universal In-Process C-FFI Bridge & Auto-Managed Loopback Micro-Daemon with Dynamic Session Nonce Authentication.
+    * ADR-018: Real Streaming Model Downloader, Disk Cache & HuggingFace Hub Integration.
+    * ADR-019: KV-Cache Prompt Prefix Retention, Suffix Stepping & Multi-Turn Latency Acceleration.
+    * ADR-020: Hardware Power & Thermal Governor for Mobile and Laptop Longevity.
+    * ADR-021: Frontier Model `<think>` Reasoning Distillation Pipeline & Standardized Provenance.

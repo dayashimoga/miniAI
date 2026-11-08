@@ -1408,3 +1408,16 @@
   - Outlines core pillars, C-FFI / loopback daemon IPC architecture, 7 multimodal runtimes, real neural inference, and Model Manager operation.
   - Documents device power & thermal governor, cognitive 3-tier memory inspector, and frontier reasoning distillation pipeline.
   - Includes CLI diagnostics guide via `miniai-daemon.exe doctor` and automated verification summary.
+
+
+---
+
+## [2026-11-08T12:40:00+05:30] — Architecture: Architectural Decision Records ADR-017 through ADR-021 (v3.0.0-GA)
+- **Action:** `ARCHITECTURE` & `VERIFIED`
+- **Summary:**
+  - Codified binding Architectural Decision Records for MiniAI v3.0 in [`ADR.md`](./ADR.md):
+    * ADR-017: Universal In-Process C-FFI Bridge & Auto-Managed Loopback Micro-Daemon with Dynamic Session Nonce Authentication.
+    * ADR-018: Real Streaming Model Downloader, Disk Cache & HuggingFace Hub Integration.
+    * ADR-019: KV-Cache Prompt Prefix Retention, Suffix Stepping & Multi-Turn Latency Acceleration.
+    * ADR-020: Hardware Power & Thermal Governor for Mobile and Laptop Longevity.
+    * ADR-021: Frontier Model `<think>` Reasoning Distillation Pipeline & Standardized Provenance.

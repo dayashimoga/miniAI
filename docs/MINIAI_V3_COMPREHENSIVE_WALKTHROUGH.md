@@ -192,3 +192,4 @@ Output:
   "storage": { "integrity_messages": ["ok"], "is_healthy": true, "schema_version": 5 }
 }
 ```
+

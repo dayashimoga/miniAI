@@ -12,6 +12,8 @@ from miniai_ml.dataset import (
     DatasetRecord,
     compute_file_sha256,
     deduplicate_records,
+    distill_frontier_reasoning_dataset,
+    generate_synthetic_reasoning_trace,
     load_dataset_file,
     save_splits_and_manifest,
     split_dataset,
@@ -269,3 +271,100 @@ def test_verify_manifest_missing_files(tmp_path: Path) -> None:
 
     with pytest.raises(FileNotFoundError, match="Missing split file"):
         verify_dataset_manifest(tmp_path)
+
+
+def test_generate_synthetic_reasoning_trace_valid() -> None:
+    rec = generate_synthetic_reasoning_trace(
+        prompt="Explain why the sky is blue.",
+        think_steps=[
+            "Recall Rayleigh scattering of sunlight by gas particles in atmosphere.",
+            "Shorter wavelengths (blue, violet) scatter more efficiently than longer ones (red).",
+            "Human eyes are more sensitive to blue light than violet light.",
+        ],
+        conclusion="The sky appears blue because atmospheric gases scatter shorter blue wavelengths of sunlight in all directions.",
+        teacher_model="gemini-argon",
+        record_id="trace-001",
+        metadata={"subject": "physics"},
+    )
+
+    assert rec.id == "trace-001"
+    assert rec.input_text == "Explain why the sky is blue."
+    assert rec.target_text.startswith("<think>\n- Recall Rayleigh")
+    assert "</think>\n\nThe sky appears blue" in rec.target_text
+    assert rec.metadata["teacher_model"] == "gemini-argon"
+    assert rec.metadata["reasoning_steps_count"] == 3
+    assert rec.metadata["format"] == "frontier_reasoning_v1"
+    assert rec.metadata["has_think_tags"] is True
+    assert rec.metadata["subject"] == "physics"
+
+
+def test_generate_synthetic_reasoning_trace_validation_errors() -> None:
+    with pytest.raises(ValueError, match="Prompt must not be empty"):
+        generate_synthetic_reasoning_trace(
+            prompt="  ",
+            think_steps=["Step 1"],
+            conclusion="Answer",
+        )
+
+    with pytest.raises(ValueError, match="At least one reasoning step must be provided"):
+        generate_synthetic_reasoning_trace(
+            prompt="Valid prompt",
+            think_steps=[],
+            conclusion="Answer",
+        )
+
+    with pytest.raises(ValueError, match="Conclusion must not be empty"):
+        generate_synthetic_reasoning_trace(
+            prompt="Valid prompt",
+            think_steps=["Step 1"],
+            conclusion=" ",
+        )
+
+
+def test_distill_frontier_reasoning_dataset(tmp_path: Path) -> None:
+    samples = [
+        {
+            "prompt": f"Solve problem #{i}",
+            "think_steps": [f"Analyze step A for #{i}", f"Derive step B for #{i}"],
+            "conclusion": f"Solution is {i * 10}",
+        }
+        for i in range(10)
+    ]
+    # Add a duplicate
+    samples.append(samples[0])
+
+    out_dir = tmp_path / "distilled_dataset"
+    manifest = distill_frontier_reasoning_dataset(
+        teacher_samples=samples,
+        output_dir=out_dir,
+        dataset_id="frontier-test-v1",
+        teacher_model="gemini-argon",
+        seed=1337,
+    )
+
+    assert manifest.dataset_id == "frontier-test-v1"
+    assert manifest.source_format == "frontier_reasoning_jsonl"
+    assert manifest.total_records == 11
+    assert manifest.unique_records == 10
+    assert manifest.duplicates_removed == 1
+
+    # Verify manifest integrity
+    assert verify_dataset_manifest(out_dir) is True
+
+    # Check content of train.jsonl
+    train_records = load_dataset_file(out_dir / "train.jsonl")
+    assert len(train_records) == manifest.split_counts["train"]
+    for r in train_records:
+        assert "<think>" in r.target_text
+        assert "</think>" in r.target_text
+        assert r.metadata["teacher_model"] == "gemini-argon"
+        assert r.metadata["has_think_tags"] is True
+
+
+def test_distill_frontier_reasoning_dataset_empty_error(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="teacher_samples list cannot be empty"):
+        distill_frontier_reasoning_dataset(
+            teacher_samples=[],
+            output_dir=tmp_path / "empty",
+        )
+

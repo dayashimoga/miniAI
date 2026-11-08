@@ -123,6 +123,44 @@ void main() {
       expect(find.text('Analyzing problem step by step...'), findsOneWidget);
     });
 
+    testWidgets('Renders code block with syntax label and handles copy button tap', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final controller = PlatformController();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChatWorkspaceScreen(controller: controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+      final codeMsg = ChatMessage(
+        id: 'msg-code-test',
+        sessionId: controller.activeSessionId!,
+        role: ChatMessageRole.assistant,
+        content: 'Here is the implementation:\n```python\ndef hello_world():\n    print("Hello MiniAI")\n```\nEnjoy coding!',
+        tokenCount: 20,
+        modelId: 'smollm2-135m-instruct-q4',
+        createdAtEpochSecs: now,
+        updatedAtEpochSecs: now,
+      );
+      controller.addChatMessage(codeMsg);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('code_block_msg-code-test_1')), findsOneWidget);
+      expect(find.text('python'), findsOneWidget);
+      expect(find.text('def hello_world():\n    print("Hello MiniAI")'), findsOneWidget);
+      expect(find.byKey(const Key('copy_code_msg-code-test_1')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('copy_code_msg-code-test_1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Code copied to clipboard!'), findsOneWidget);
+    });
+
     test('RAG intent routing correctly discriminates personal vs domain queries', () async {
       await controller.sendMessage('My name is Alice', delayTokens: false);
       expect(controller.currentMessages.last.content, contains('Alice'));

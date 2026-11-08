@@ -286,3 +286,125 @@ def verify_dataset_manifest(dataset_dir: Path) -> bool:
             )
 
     return True
+
+
+def generate_synthetic_reasoning_trace(
+    prompt: str,
+    think_steps: list[str],
+    conclusion: str,
+    teacher_model: str = "gemini-argon",
+    record_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> DatasetRecord:
+    """Formats frontier teacher reasoning trace (<think> ... </think>) into a DatasetRecord.
+
+    Ingests frontier model reasoning steps and final answer, standardizing them into:
+      input_text: <prompt>
+      target_text: <think>\\n- step 1\\n- step 2\\n...</think>\\n\\n<conclusion>
+    """
+    clean_prompt = prompt.strip()
+    if not clean_prompt:
+        raise ValueError("Prompt must not be empty.")
+    if not think_steps:
+        raise ValueError("At least one reasoning step must be provided.")
+    clean_conclusion = conclusion.strip()
+    if not clean_conclusion:
+        raise ValueError("Conclusion must not be empty.")
+
+    steps_text = "\n".join(f"- {s.strip()}" for s in think_steps if s.strip())
+    target_text = f"<think>\n{steps_text}\n</think>\n\n{clean_conclusion}"
+
+    meta = {
+        "teacher_model": teacher_model,
+        "reasoning_steps_count": len(think_steps),
+        "format": "frontier_reasoning_v1",
+        "has_think_tags": True,
+    }
+    if metadata:
+        meta.update(metadata)
+
+    rec_id = (
+        record_id
+        or hashlib.sha256(f"{clean_prompt}::{target_text}".encode()).hexdigest()[:16]
+    )
+
+    return DatasetRecord(
+        id=rec_id,
+        input_text=clean_prompt,
+        target_text=target_text,
+        metadata=meta,
+    )
+
+
+def distill_frontier_reasoning_dataset(
+    teacher_samples: list[dict[str, Any]],
+    output_dir: Path,
+    dataset_id: str = "frontier-distillation-v3",
+    teacher_model: str = "gemini-argon",
+    train_ratio: float = 0.8,
+    val_ratio: float = 0.1,
+    test_ratio: float = 0.1,
+    seed: int = 42,
+) -> DatasetManifest:
+    """Ingests frontier reasoning samples, formats them with <think> traces, and saves splits & manifest.
+
+    Each teacher sample dict is expected to contain:
+      - 'prompt' (or 'input_text')
+      - 'think_steps' (or 'thinking' list/str)
+      - 'conclusion' (or 'target_text' / 'response')
+      - optional 'id' and 'metadata'
+    """
+    if not teacher_samples:
+        raise ValueError("teacher_samples list cannot be empty.")
+
+    records: list[DatasetRecord] = []
+    for idx, sample in enumerate(teacher_samples):
+        prompt = sample.get("prompt") or sample.get("input_text") or ""
+        conclusion = (
+            sample.get("conclusion")
+            or sample.get("target_text")
+            or sample.get("response")
+            or ""
+        )
+        raw_steps = sample.get("think_steps") or sample.get("thinking") or []
+        if isinstance(raw_steps, str):
+            think_steps = [
+                s.strip().lstrip("-* ").strip()
+                for s in raw_steps.splitlines()
+                if s.strip()
+            ]
+        else:
+            think_steps = [str(s).strip() for s in raw_steps if str(s).strip()]
+
+        rec_id = sample.get("id") or f"frontier-{idx:05d}"
+        user_meta = sample.get("metadata", {})
+
+        record = generate_synthetic_reasoning_trace(
+            prompt=prompt,
+            think_steps=think_steps,
+            conclusion=conclusion,
+            teacher_model=teacher_model,
+            record_id=rec_id,
+            metadata=user_meta,
+        )
+        records.append(record)
+
+    unique_records, dups_removed = deduplicate_records(records)
+    splits = split_dataset(
+        unique_records,
+        train_ratio=train_ratio,
+        val_ratio=val_ratio,
+        test_ratio=test_ratio,
+        seed=seed,
+    )
+
+    manifest = save_splits_and_manifest(
+        splits=splits,
+        output_dir=output_dir,
+        dataset_id=dataset_id,
+        source_format="frontier_reasoning_jsonl",
+        duplicates_removed=dups_removed,
+    )
+
+    return manifest
+
